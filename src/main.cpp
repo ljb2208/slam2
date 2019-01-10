@@ -10,6 +10,9 @@
 #include "IO/DataSetReader.h"
 #include "IO/ImageReader.h"
 #include "Pangolin/SlamViewer.h"
+#include "Util/Undistorter.h"
+#include "cv.h"
+#include <opencv2/imgproc.hpp>
 
 std::string source = "";
 std::string calib = "";
@@ -19,14 +22,18 @@ int height = 0;
 
 float playbackSpeed = 1.0;
 
+bool running = true;
+
 void my_exit_handler(int s)
 {
-	printf("Caught signal %d\n",s);
-	exit(1);
+    running = false;
+	printf("Exiting due to user %d\n",s);
+	
 }
 
 void exitThread()
 {
+    printf("Exit thread...\n");
 	struct sigaction sigIntHandler;
 	sigIntHandler.sa_handler = my_exit_handler;
 	sigemptyset(&sigIntHandler.sa_mask);
@@ -44,7 +51,7 @@ int main( int argc, char** argv )
 
     // hook crtl+C.
 	boost::thread exThread = boost::thread(exitThread);
-
+   
     ImageFolderReader* reader = new ImageFolderReader(source+"/image_0", calib);
     ImageFolderReader* readerRight = new ImageFolderReader(source+"/image_1", calib);
     int imageCount = reader->getNumImages();
@@ -66,8 +73,8 @@ int main( int argc, char** argv )
 
     imageReader->loadImage(reader->getImageFilename(0));
 
-    width = imageReader->getImageWidth();
-    height = imageReader->getImageHeight();
+    width = imageReader->getUDistImageWidth();
+    height = imageReader->getUDistImageHeight();
 
     if (width <1 || height < 1)
     {
@@ -112,6 +119,8 @@ int main( int argc, char** argv )
 
         for (int i=0; i < imageCount; i++){
 
+            if (!running)
+                exit(1);
             bool skipFrame=false;
             if(playbackSpeed!=0)
             {
@@ -131,7 +140,7 @@ int main( int argc, char** argv )
             imageReaderRight->loadImage(readerRight->getImageFilename(i));
 
             if (!skipFrame)
-                slamViewer->pushLiveImageFrame(imageReader->getImage(), imageReaderRight->getImage());
+                slamViewer->pushLiveImageFrame(imageReader->getUndistortedImage()->image, imageReaderRight->getUndistortedImage()->image);
         }
 
     });
@@ -143,6 +152,7 @@ int main( int argc, char** argv )
     runthread.join();
 
     delete imageReader;
+    delete imageReaderRight;
     delete reader;
     return 0;
 }

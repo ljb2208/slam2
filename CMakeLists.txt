@@ -31,6 +31,8 @@ set(CMAKE_CXX_FLAGS
 set(slam_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/IO/DataSetReader.cpp
     ${PROJECT_SOURCE_DIR}/src/IO/ImageReader.cpp
+    ${PROJECT_SOURCE_DIR}/src/Util/Undistorter.cpp
+    ${PROJECT_SOURCE_DIR}/src/Util/Settings.cpp
     ${PROJECT_SOURCE_DIR}/src/Pangolin/SlamViewer.cpp
 )
 

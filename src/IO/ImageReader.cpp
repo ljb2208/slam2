@@ -2,11 +2,13 @@
 
 ImageReader::ImageReader(bool displayImage){
     this->displayImage = displayImage;
+	udist = new Undistorter();
+    udist->loadFromFile("/home/lbarnett/development/odometry/00/param/camera.txt");
 }
 
 ImageReader::~ImageReader()
 {
-
+	delete udist;
 }
 
 int ImageReader::getImageWidth()
@@ -55,4 +57,19 @@ bool ImageReader::loadImage(std::string fileName)
 cv::Mat ImageReader::getImage()
 {
     return image;
+}
+
+int ImageReader::getUDistImageWidth()
+{
+	return udist->getOutputWidth();
+}
+
+int ImageReader::getUDistImageHeight()
+{
+	return udist->getOutputHeight();
+}
+
+SLImage* ImageReader::getUndistortedImage()
+{
+	return udist->undistort(image, 0);
 }

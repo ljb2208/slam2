@@ -10,6 +10,9 @@
 
 #include <boost/thread.hpp>
 
+#include "Util/Undistorter.h"
+#include "Util/SLImage.h"
+
 inline std::string type2str(int type)
 {
     std::string r;
@@ -39,10 +42,14 @@ public:
 
     bool loadImage(std::string fileName);
     cv::Mat getImage();
+    SLImage* getUndistortedImage();
     int getImageWidth();
     int getImageHeight();
+    int getUDistImageWidth();
+    int getUDistImageHeight();
 
 private:
     bool displayImage;
     cv::Mat image;
+    Undistorter* udist;
 };
