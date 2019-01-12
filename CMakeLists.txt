@@ -34,6 +34,9 @@ set(slam_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/Util/Undistorter.cpp
     ${PROJECT_SOURCE_DIR}/src/Util/Settings.cpp
     ${PROJECT_SOURCE_DIR}/src/Pangolin/SlamViewer.cpp
+    ${PROJECT_SOURCE_DIR}/src/Odometry/Odometry.cpp
+    ${PROJECT_SOURCE_DIR}/src/Odometry/Features.cpp
+    ${PROJECT_SOURCE_DIR}/src/Odometry/Feature.cpp
 )
 
 include_directories(

@@ -1,4 +1,6 @@
 #include "ImageReader.h"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/imgcodecs.hpp"
 
 ImageReader::ImageReader(bool displayImage){
     this->displayImage = displayImage;
@@ -69,7 +71,7 @@ int ImageReader::getUDistImageHeight()
 	return udist->getOutputHeight();
 }
 
-SLImage* ImageReader::getUndistortedImage()
+SLImage* ImageReader::getUndistortedImage(double timestamp)
 {
-	return udist->undistort(image, 0);
+	return udist->undistort(image, timestamp);
 }

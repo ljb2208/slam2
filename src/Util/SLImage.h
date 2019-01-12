@@ -13,6 +13,7 @@ class SLImage
             this->timestamp = timestamp;
         };
         cv::Mat image;
+        cv::Mat imageColor;
         int w, h;
         double timestamp;
         float exposure_time;

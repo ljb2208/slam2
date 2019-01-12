@@ -11,6 +11,7 @@
 #include "IO/ImageReader.h"
 #include "Pangolin/SlamViewer.h"
 #include "Util/Undistorter.h"
+#include "Odometry/Odometry.h"
 #include "cv.h"
 #include <opencv2/imgproc.hpp>
 
@@ -85,6 +86,7 @@ int main( int argc, char** argv )
     printf("Setting width to %i and height to %i\n", width, height);
 
     SlamViewer* slamViewer = new SlamViewer(width, height);
+    Odometry* odom = new Odometry(slamViewer);
 
     std::thread runthread([&]() {
 
@@ -136,11 +138,13 @@ int main( int argc, char** argv )
                 }
             }
 
+            double ts = timesToPlayAt[i];
+
             imageReader->loadImage(reader->getImageFilename(i));
             imageReaderRight->loadImage(readerRight->getImageFilename(i));
 
             if (!skipFrame)
-                slamViewer->pushLiveImageFrame(imageReader->getUndistortedImage()->image, imageReaderRight->getUndistortedImage()->image);
+                odom->addStereoFrames(imageReader->getUndistortedImage(ts), imageReaderRight->getUndistortedImage(ts));
         }
 
     });
@@ -154,5 +158,7 @@ int main( int argc, char** argv )
     delete imageReader;
     delete imageReaderRight;
     delete reader;
+    delete slamViewer;
+    delete odom;
     return 0;
 }

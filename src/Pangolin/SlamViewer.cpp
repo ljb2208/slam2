@@ -81,8 +81,10 @@ void SlamViewer::pushLiveImageFrame(cv::Mat image, cv::Mat imageRight)
 {
     boost::unique_lock<boost::mutex> lk(openImagesMutex);
 
-    cv::cvtColor(image, internalVideoImg, cv::COLOR_GRAY2RGB);
-    cv::cvtColor(imageRight, internalVideoImgRight, cv::COLOR_GRAY2RGB);
+    internalVideoImg = image;
+    internalVideoImgRight = imageRight;
+    //cv::cvtColor(image, internalVideoImg, cv::COLOR_GRAY2RGB);
+    //cv::cvtColor(imageRight, internalVideoImgRight, cv::COLOR_GRAY2RGB);
 
     videoImageChanged = true;
 }

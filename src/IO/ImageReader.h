@@ -42,7 +42,7 @@ public:
 
     bool loadImage(std::string fileName);
     cv::Mat getImage();
-    SLImage* getUndistortedImage();
+    SLImage* getUndistortedImage(double timestamp);
     int getImageWidth();
     int getImageHeight();
     int getUDistImageWidth();
@@ -51,5 +51,6 @@ public:
 private:
     bool displayImage;
     cv::Mat image;
+    cv::Mat imageColor;
     Undistorter* udist;
 };
