@@ -11,6 +11,7 @@ class Features
     public:
         Features();
         void matchFeatures(SLImage* image, SLImage* imageRight);
+        void computeFeatures();
         
     private:
         std::vector<cv::Point2f> getFeaturesToTrack(SLImage* image);

@@ -37,7 +37,7 @@ inline std::string type2str(int type)
 class ImageReader{
 
 public:
-    ImageReader(bool displayImage);
+    ImageReader(bool displayImage, std::string paramFile);
     ~ImageReader();
 
     bool loadImage(std::string fileName);

@@ -2,10 +2,10 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/imgcodecs.hpp"
 
-ImageReader::ImageReader(bool displayImage){
+ImageReader::ImageReader(bool displayImage, std::string paramFile){
     this->displayImage = displayImage;
 	udist = new Undistorter();
-    udist->loadFromFile("/home/lbarnett/development/odometry/00/param/camera.txt");
+    udist->loadFromFile(paramFile);
 }
 
 ImageReader::~ImageReader()

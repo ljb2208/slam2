@@ -128,3 +128,8 @@ cv::Mat Features::getImagePatch(cv::Mat image, cv::Point2f point, int width, int
 
     return roi;
 }
+
+void Features::computeFeatures()
+{
+    
+}
