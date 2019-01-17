@@ -47,6 +47,8 @@ public:
     int getImageHeight();
     int getUDistImageWidth();
     int getUDistImageHeight();
+    cv::Mat getCameraMatrix();
+    float getBaseline();
 
 private:
     bool displayImage;

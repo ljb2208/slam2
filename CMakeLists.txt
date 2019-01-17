@@ -38,6 +38,9 @@ set(slam_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/Odometry/Features.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Feature.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Filter.cpp
+    ${PROJECT_SOURCE_DIR}/src/Odometry/Matcher.cpp
+    ${PROJECT_SOURCE_DIR}/src/Odometry/Triangle.cpp
+    ${PROJECT_SOURCE_DIR}/src/Odometry/Matrix.cpp
 )
 
 include_directories(

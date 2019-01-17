@@ -200,7 +200,7 @@ void Undistorter::loadFromFile(std::string configFileName)
 
 	valid = true;
 
-	printf("\nRectified Kamera Matrix:\n");
+	printf("\nRectified Camera Matrix:\n");
 	std::cout << K << "\n\n";
 
 }
@@ -370,6 +370,11 @@ cv::Mat Undistorter::getCameraMatrix()
     }
 
     return cam;
+}
+
+float Undistorter::getBaseline()
+{
+	return baseLine;
 }
 
 SLImage* Undistorter::undistort(cv::Mat input, double timestamp)

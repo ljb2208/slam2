@@ -17,12 +17,12 @@
 
 std::string source = "";
 std::string calib = "";
-std::string param = "/home/ljb2208/development/odometry/00/param/camera.txt";
+std::string param = "/home/lbarnett/development/odometry/00/param/camera.txt";
 
 int width = 0;
 int height = 0;
 
-float playbackSpeed = 1.0;
+float playbackSpeed = 1.0;  //1.0
 
 bool running = true;
 
@@ -48,8 +48,8 @@ void exitThread()
 
 int main( int argc, char** argv )
 {
-    calib = "/home/ljb2208/development/odometry/00/param/camera.txt";
-    source = "/home/ljb2208/development/odometry/00";
+    calib = "/home/lbarnett/development/odometry/00/param/camera.txt";
+    source = "/home/lbarnett/development/odometry/00";
 
     // hook crtl+C.
 	boost::thread exThread = boost::thread(exitThread);
@@ -86,8 +86,11 @@ int main( int argc, char** argv )
 
     printf("Setting width to %i and height to %i\n", width, height);
 
+    cv::Mat cameraMatrix = imageReader->getCameraMatrix();
+    float baseLine = imageReader->getBaseline();
+
     SlamViewer* slamViewer = new SlamViewer(width, height);
-    Odometry* odom = new Odometry(slamViewer);
+    Odometry* odom = new Odometry(slamViewer, cameraMatrix, baseLine);
 
     std::thread runthread([&]() {
 

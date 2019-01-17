@@ -75,3 +75,13 @@ SLImage* ImageReader::getUndistortedImage(double timestamp)
 {
 	return udist->undistort(image, timestamp);
 }
+
+cv::Mat ImageReader::getCameraMatrix()
+{
+	return udist->getCameraMatrix();
+}
+
+float ImageReader::getBaseline()
+{
+	return udist->getBaseline();
+}

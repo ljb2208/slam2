@@ -14,6 +14,7 @@ public:
     SLImage* undistort(cv::Mat input, double timestamp);
     int getOutputWidth();
     int getOutputHeight();
+    float getBaseline();
 
 private:
     std::string configFileName;
