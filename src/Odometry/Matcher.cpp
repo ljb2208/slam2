@@ -253,6 +253,7 @@ void Matcher::updatePersistentMatches()
     it->age++;
   }
   int32_t maxAge = 0;
+  int32_t fnd = 0;
 
   for (vector<p_match>::iterator it=p_matched_2.begin(); it!= p_matched_2.end(); it++)
   {
@@ -260,7 +261,7 @@ void Matcher::updatePersistentMatches()
     bool found = false;
     for (vector<p_match>::iterator itp=p_matched_p.begin(); itp!=p_matched_p.end(); itp++)
     {
-      if (itp->u1c == it->u1p && itp->v1c == it->v1p)
+      if (itp->u1c == it->u1p && itp->v1c == it->v1p && itp->i1c == it->i1p)
       {
         itp->matched = true;
         itp->u1p = it->u1p;
@@ -281,8 +282,7 @@ void Matcher::updatePersistentMatches()
         if (itp->age > maxAge)
           maxAge = itp->age;
 
-        found = true;
-        printf("Found\n");
+        fnd++;
         break;
       }
     }
@@ -299,19 +299,15 @@ void Matcher::updatePersistentMatches()
     }
   }
 
+  printf("Persisent Match Count found: %i \n", fnd);
   printf("Persisent Match Count pre remove: %i \n", static_cast<int>(p_matched_p.size()));
 
   // remove where no current matches
-  for (vector<p_match>::iterator it=p_matched_p.begin(); it!=p_matched_p.end(); it++)
-  {
-    if (!it->matched)
-      p_matched_p.erase(it);
-  }
-
+  p_matched_p.erase(std::remove_if(p_matched_p.begin(), p_matched_p.end(),
+          [](p_match pm){ return pm.matched == false;}), p_matched_p.end());  
 
   printf("Persisent Match Count post remove: %i \n", static_cast<int>(p_matched_p.size()));
-
-  printf("post: %i max age: %i\n", static_cast<int>(p_matched_p.size()), maxAge);
+  printf("Max age: %i\n", static_cast<int>(p_matched_p.size()), maxAge);
 }
 
 void Matcher::bucketFeatures(int32_t max_features,float bucket_width,float bucket_height) {
