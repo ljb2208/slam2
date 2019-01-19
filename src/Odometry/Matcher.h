@@ -63,7 +63,7 @@ public:
       outlier_flow_tolerance = 5;
       multi_stage            = 1;
       half_resolution        = 1;
-      refinement             = 2; // default is 1
+      refinement             = 1; // default is 1
     }
   };
 
@@ -107,11 +107,12 @@ public:
     maximum max1;   // current feature left image
     maximum max2;   // current feature right image
     int32_t age;  // feature age
-    p_match(){ age = -1; }
+    bool matched;
+    p_match(){ age = -1; matched = false;}
     p_match(float u1p,float v1p,int32_t i1p,float u2p,float v2p,int32_t i2p,
             float u1c,float v1c,int32_t i1c,float u2c,float v2c,int32_t i2c):
             u1p(u1p),v1p(v1p),i1p(i1p),u2p(u2p),v2p(v2p),i2p(i2p),
-            u1c(u1c),v1c(v1c),i1c(i1c),u2c(u2c),v2c(v2c),i2c(i2c) { age = -1;}
+            u1c(u1c),v1c(v1c),i1c(i1c),u2c(u2c),v2c(v2c),i2c(i2c) { age = -1; matched = false;}
   };
 
   // computes features from left/right images and pushes them back to a ringbuffer,
@@ -230,6 +231,8 @@ private:
                        float       &u2,float       &v2,
                        uint8_t* desc_buffer);
   void refinement (std::vector<Matcher::p_match> &p_matched,int32_t method);
+
+  void updatePersistentMatches();
 
   // mean for gain computation
   inline float mean(const uint8_t* I,const int32_t &bpl,const int32_t &u_min,const int32_t &u_max,const int32_t &v_min,const int32_t &v_max);

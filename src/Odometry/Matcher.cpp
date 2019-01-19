@@ -231,6 +231,7 @@ void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
       refinement(p_matched_2,method);
     removeOutliers(p_matched_2,method);
 
+    updatePersistentMatches();
   // single pass matching
   } else {
     matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,p_matched_2,method,false,Tr_delta);
@@ -238,6 +239,79 @@ void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
       refinement(p_matched_2,method);
     removeOutliers(p_matched_2,method);
   }
+}
+
+void Matcher::updatePersistentMatches()
+{
+  printf("match2 count: %i \n", static_cast<int>(p_matched_2.size()));
+  printf("Persisent Match Count pre: %i \n", static_cast<int>(p_matched_p.size()));
+
+  //update all matches to false
+  for (vector<p_match>::iterator it=p_matched_p.begin(); it!=p_matched_p.end(); it++)
+  {
+    it->matched = false;
+    it->age++;
+  }
+  int32_t maxAge = 0;
+
+  for (vector<p_match>::iterator it=p_matched_2.begin(); it!= p_matched_2.end(); it++)
+  {
+    // find matching persistent match - if found update
+    bool found = false;
+    for (vector<p_match>::iterator itp=p_matched_p.begin(); itp!=p_matched_p.end(); itp++)
+    {
+      if (itp->u1c == it->u1p && itp->v1c == it->v1p)
+      {
+        itp->matched = true;
+        itp->u1p = it->u1p;
+        itp->v1p = it->v1p;
+        itp->i1p = it->i1p;
+        itp->u2p = it->u2p;
+        itp->v2p = it->v2p;
+        itp->i2p = it->i2p;
+        itp->u1c = it->u1c;
+        itp->v1c = it->v1c;
+        itp->i1c = it->i1c;
+        itp->u2c = it->u2c;
+        itp->v2c = it->v2c;
+        itp->i2c = it->i2c;
+
+        //need to update maxima ma1 and max2
+
+        if (itp->age > maxAge)
+          maxAge = itp->age;
+
+        found = true;
+        printf("Found\n");
+        break;
+      }
+    }
+    
+    // if not found create new persisent match and add
+    if (!found)
+    {
+      Matcher::p_match mtch(it->u1p, it->v1p, it->i1p, it->u2p, it->v2p, it->i2p,
+      it->u1c, it->v1c, it->i1c, it->u2c, it->v2c, it->i2c);
+      mtch.matched = true;
+
+      //need to update maxima ma1 and max2
+      p_matched_p.push_back(mtch);
+    }
+  }
+
+  printf("Persisent Match Count pre remove: %i \n", static_cast<int>(p_matched_p.size()));
+
+  // remove where no current matches
+  for (vector<p_match>::iterator it=p_matched_p.begin(); it!=p_matched_p.end(); it++)
+  {
+    if (!it->matched)
+      p_matched_p.erase(it);
+  }
+
+
+  printf("Persisent Match Count post remove: %i \n", static_cast<int>(p_matched_p.size()));
+
+  printf("post: %i max age: %i\n", static_cast<int>(p_matched_p.size()), maxAge);
 }
 
 void Matcher::bucketFeatures(int32_t max_features,float bucket_width,float bucket_height) {
@@ -1190,8 +1264,9 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
         if (u1p>=u2p && u1c>=u2c) {
           
           // add match
-          p_matched.push_back(Matcher::p_match(u1p,v1p,i1p,u2p,v2p,i2p,
-                                               u1c,v1c,i1c,u2c,v2c,i2c));
+          Matcher::p_match match(u1p,v1p,i1p,u2p,v2p,i2p,
+                                               u1c,v1c,i1c,u2c,v2c,i2c);
+          p_matched.push_back(match);
         }
       }
     }
