@@ -172,10 +172,7 @@ int main( int argc, char** argv )
     if(slamViewer != 0)
         slamViewer->run();
 
-    runthread.join();
-
-    printf("output timers\n");
-    
+    runthread.join();    
 
     delete imageReader;
     delete imageReaderRight;

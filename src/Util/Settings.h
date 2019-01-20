@@ -11,3 +11,6 @@ extern float benchmark_varNoise;
 extern float benchmark_varBlurNoise;
 extern int benchmark_noiseGridsize;
 extern float benchmark_initializerSlackFactor;
+
+extern bool setting_render_display3D;
+extern bool settings_showCurrentCamera;

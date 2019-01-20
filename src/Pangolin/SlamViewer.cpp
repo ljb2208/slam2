@@ -3,6 +3,7 @@
 #include "opencv2/imgcodecs.hpp"
 #include <opencv2/highgui/highgui.hpp>
 #include "IO/ImageReader.h"
+#include "Util/Settings.h"
 
 SlamViewer::SlamViewer(int width, int height)
 {
@@ -29,6 +30,19 @@ void SlamViewer::run()
 
 	glEnable(GL_DEPTH_TEST);
 
+    // 3D visualization
+	pangolin::OpenGlRenderState Visualization3D_camera(
+		pangolin::ProjectionMatrix(width,height,400,400,width/2,height/2,0.1,1000),
+		pangolin::ModelViewLookAt(-0,-5,-10, 0,0,0, pangolin::AxisNegY)
+		);
+
+	pangolin::View& Visualization3D_display = pangolin::CreateDisplay()
+		.SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1.0, -width/(float)height)
+		.SetHandler(new pangolin::Handler3D(Visualization3D_camera));
+
+    pangolin::View& d_kfDepth = pangolin::Display("imgKFDepth")
+	    .SetAspect(width/(float)height);
+
     pangolin::View& d_video = pangolin::Display("imgVideo")
 	    .SetAspect((float)width/height);
 
@@ -42,14 +56,55 @@ void SlamViewer::run()
     pangolin::CreateDisplay()
 		  .SetBounds(0.0, 0.3, pangolin::Attach::Pix(UI_WIDTH), 1.0)
 		  .SetLayout(pangolin::LayoutEqual)
+          .AddDisplay(d_kfDepth)
 		  .AddDisplay(d_video)
           .AddDisplay(d_videoRight);
 	
+
+    float yellow[3] = {1,1,0};
+    float blue[3] = {0,0,1};
+    std::vector<Sophus::Matrix4f> matrix_result;
+
     // Default hooks for exiting (Esc) and fullscreen (tab).
 	while( !pangolin::ShouldQuit() && running )
 	{
         // Clear entire screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        
+        if(setting_render_display3D)
+		{
+			// Activate efficiently by object
+			Visualization3D_display.Activate(Visualization3D_camera);
+			boost::unique_lock<boost::mutex> lk3d(model3DMutex);
+			
+			int refreshed=0;
+
+            
+			for(KeyFrameDisplay* fh : keyframes)
+			{				
+				if(this->settings_showKFCameras) fh->drawCam(1,blue,0.1);
+
+				refreshed =+ (int)(fh->refreshPC(refreshed < 10, this->settings_scaledVarTH, this->settings_absVarTH,
+						this->settings_pointCloudMode, this->settings_minRelBS, this->settings_sparsity));
+				fh->drawPC(1);
+
+			}
+
+            for(int i = 0; i < matrix_result.size(); i++)
+            {
+
+                KeyFrameDisplay* fh = new KeyFrameDisplay;
+                fh->drawGTCam(matrix_result[i], 5, yellow, 0.1);
+                delete(fh);
+            }
+
+			if(this->settings_showCurrentCamera) currentCam->drawCam(2,0,0.2);
+			//drawConstraints();
+            
+			lk3d.unlock();
+		}
+        
 
         openImagesMutex.lock();
 
