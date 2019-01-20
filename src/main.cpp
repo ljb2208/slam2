@@ -123,6 +123,9 @@ int main( int argc, char** argv )
         clock_t started = clock();
         double sInitializerOffset=0;
 
+        if (imageCount > 100)
+            imageCount = 100;
+
         for (int i=0; i < imageCount; i++){
 
             if (!running)
@@ -144,12 +147,24 @@ int main( int argc, char** argv )
 
             double ts = timesToPlayAt[i];
 
+            
             imageReader->loadImage(reader->getImageFilename(i));
-            imageReaderRight->loadImage(readerRight->getImageFilename(i));
-
+            imageReaderRight->loadImage(readerRight->getImageFilename(i));                        
+            
             if (!skipFrame)
-                odom->addStereoFrames(imageReader->getUndistortedImage(ts), imageReaderRight->getUndistortedImage(ts));
+            {
+                SLImage* sli_left = imageReader->getUndistortedImage(ts);
+                SLImage* sli_right = imageReaderRight->getUndistortedImage(ts);
+                odom->addStereoFrames(sli_left, sli_right);
+
+                delete sli_left;
+                delete sli_right;
+
+            }
+            
         }
+
+        odom->timer->outputAll();
 
     });
 
@@ -158,6 +173,9 @@ int main( int argc, char** argv )
         slamViewer->run();
 
     runthread.join();
+
+    printf("output timers\n");
+    
 
     delete imageReader;
     delete imageReaderRight;

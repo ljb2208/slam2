@@ -4,6 +4,10 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/core.hpp>
 
+#include <chrono>
+
+using namespace std::chrono;
+
 Odometry::Odometry(SlamViewer* viewer, cv::Mat cameraMatrix, float baseLine)
 {
     this->viewer = viewer;
@@ -22,33 +26,73 @@ Odometry::Odometry(SlamViewer* viewer, cv::Mat cameraMatrix, float baseLine)
 
     matcher = new Matcher(Matcher::parameters());
     matcher->setIntrinsics(param.calib.f, param.calib.cu, param.calib.cv, param.base);
+
+    timer = new Timer();
+}
+
+Odometry::~Odometry()
+{
+    timer->outputAll();
+    delete timer;
+    delete matcher;
 }
 
 bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
-{
+{    
     int32_t dims[] = {image->w, image->h, image->w};
 
     uint8_t* left_image = getImageArray(image);
     uint8_t* right_image = getImageArray(imageRight);
 
+    timer->startTimer("pushBack");
     matcher->pushBack(left_image, right_image, dims, false);
+    timer->stopTimer();
 
     if (!Tr_valid)
     {
+        timer->startTimer("matchFeatures");
         matcher->matchFeatures(2);
-        matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
+        timer->stopTimer();
+
+        timer->startTimer("bucketFeatures");        
+        //matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
+        matcher->bucketFeaturesSTA(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
+        timer->stopTimer();
+
+        timer->startTimer("getMatches");
         p_matched = matcher->getMatches();
+        timer->stopTimer();
     }
 
     // match features and update motion
     if (Tr_valid)
-        matcher->matchFeatures(2,&Tr_delta);
+    {
+        timer->startTimer("matchFeatures2");
+        matcher->matchFeatures(2,&Tr_delta);        
+        timer->stopTimer();                
+    }
     else          
+    {
+        timer->startTimer("matchFeatures");
         matcher->matchFeatures(2);
-    matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
-    p_matched = matcher->getMatches();
-    updateMotion();
+        timer->stopTimer();
+    }
+
+    printf("Num matches pre bucket: %i\n", static_cast<int>(matcher->getMatches().size()));
     
+
+    timer->startTimer("bucketFeatures2");
+    //matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
+    matcher->bucketFeaturesSTA(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
+    timer->stopTimer();
+
+    timer->startTimer("getMatches");
+    p_matched = matcher->getMatches();
+    timer->stopTimer();
+
+    timer->startTimer("updateMotion");
+    bool result = updateMotion();
+    timer->stopTimer();
 
     for (int i=0; i < p_matched.size(); i++)
     {
@@ -61,10 +105,11 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     free(left_image);
     free(right_image);
 
-    viewer->pushLiveImageFrame(image->imageColor, imageRight->imageColor);
 
+    viewer->pushLiveImageFrame(image->imageColor, imageRight->imageColor);
     
-    bool result = updateMotion();
+    // possible duplicate
+    //bool result = updateMotion();
 
     if (result)
     {

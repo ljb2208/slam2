@@ -51,6 +51,7 @@ public:
     int32_t half_resolution;        // 0=disabled,1=match at half resolution, refine at full resolution
     int32_t refinement;             // refinement (0=none,1=pixel,2=subpixel)
     double  f,cu,cv,base;           // calibration (only for match prediction)
+    int32_t age_discriminator;      // up to this age is preferred to strength of feature
     
     // default settings
     parameters () {
@@ -64,6 +65,7 @@ public:
       multi_stage            = 1;
       half_resolution        = 1;
       refinement             = 1; // default is 1
+      age_discriminator      = 3;
     }
   };
 
@@ -233,6 +235,26 @@ private:
   void refinement (std::vector<Matcher::p_match> &p_matched,int32_t method);
 
   void updatePersistentMatches();
+
+  static bool compareMatches(Matcher::p_match p1, Matcher::p_match p2)
+  {
+    int32_t ageDiscrim = 3;
+    if (p1.age > p2.age && p1.age <= ageDiscrim)
+      return true;
+    
+    if (p2.age > p1.age && p2.age <= ageDiscrim)
+      return false;
+    
+    if (p1.max1.val > p2.max1.val)
+      return true;
+
+    if (p2.max1.val > p1.max1.val)
+      return false;
+    
+    return (p1.i1p > p2.i1p);  
+  };
+
+  
 
   // mean for gain computation
   inline float mean(const uint8_t* I,const int32_t &bpl,const int32_t &u_min,const int32_t &u_max,const int32_t &v_min,const int32_t &v_max);

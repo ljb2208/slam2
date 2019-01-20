@@ -276,8 +276,8 @@ void Matcher::updatePersistentMatches()
         itp->u2c = it->u2c;
         itp->v2c = it->v2c;
         itp->i2c = it->i2c;
-
-        //need to update maxima ma1 and max2
+        itp->max1 = it->max1;
+        itp->max2 = it->max2;        
 
         if (itp->age > maxAge)
           maxAge = itp->age;
@@ -292,6 +292,12 @@ void Matcher::updatePersistentMatches()
     {
       Matcher::p_match mtch(it->u1p, it->v1p, it->i1p, it->u2p, it->v2p, it->i2p,
       it->u1c, it->v1c, it->i1c, it->u2c, it->v2c, it->i2c);
+      mtch.imax1 = it->max1;
+      mtch.max1 = it->max1;
+
+      mtch.imax2 = it->max2;
+      mtch.max2 = it->max2;
+
       mtch.matched = true;
 
       //need to update maxima ma1 and max2
@@ -307,7 +313,7 @@ void Matcher::updatePersistentMatches()
           [](p_match pm){ return pm.matched == false;}), p_matched_p.end());  
 
   printf("Persisent Match Count post remove: %i \n", static_cast<int>(p_matched_p.size()));
-  printf("Max age: %i\n", static_cast<int>(p_matched_p.size()), maxAge);
+  printf("Max age: %i\n", maxAge);
 }
 
 void Matcher::bucketFeatures(int32_t max_features,float bucket_width,float bucket_height) {
@@ -358,7 +364,7 @@ void Matcher::bucketFeaturesSTA(int32_t max_features,float bucket_width,float bu
   // find max values
   float u_max = 0;
   float v_max = 0;
-  for (vector<p_match>::iterator it = p_matched_2.begin(); it!=p_matched_2.end(); it++) {
+  for (vector<p_match>::iterator it = p_matched_p.begin(); it!=p_matched_p.end(); it++) {
     if (it->u1c>u_max) u_max=it->u1c;
     if (it->v1c>v_max) v_max=it->v1c;
   }
@@ -366,35 +372,68 @@ void Matcher::bucketFeaturesSTA(int32_t max_features,float bucket_width,float bu
   // allocate number of buckets needed
   int32_t bucket_cols = (int32_t)floor(u_max/bucket_width)+1;
   int32_t bucket_rows = (int32_t)floor(v_max/bucket_height)+1;
-  vector<p_match> *buckets = new vector<p_match>[bucket_cols*bucket_rows];
+  vector<p_match> *buckets = new vector<p_match>[bucket_cols*bucket_rows*4];
+
+  printf("umax: %f vmax: %f bucket cols: %i rows: %i\n", u_max, v_max, bucket_cols, bucket_rows);
 
   // assign matches to their buckets
-  for (vector<p_match>::iterator it=p_matched_2.begin(); it!=p_matched_2.end(); it++) {
+  for (vector<p_match>::iterator it=p_matched_p.begin(); it!=p_matched_p.end(); it++) {    
     int32_t u = (int32_t)floor(it->u1c/bucket_width);
     int32_t v = (int32_t)floor(it->v1c/bucket_height);
-    buckets[v*bucket_cols+u].push_back(*it);
+    //bucketsByType[it->max1.c][v*bucket_cols+u].push_back(*it);
+    buckets[v*bucket_cols+u+it->max1.c*bucket_cols].push_back(*it);
   }
-  
+
   // refill p_matched from buckets
   p_matched_2.clear();
-  for (int32_t i=0; i<bucket_cols*bucket_rows; i++) {
-    
-    // shuffle bucket indices randomly
-    std::random_shuffle(buckets[i].begin(),buckets[i].end());
-    
-    // add up to max_features features from this bucket to p_matched
-    int32_t k=0;
-    for (vector<p_match>::iterator it=buckets[i].begin(); it!=buckets[i].end(); it++) {
-      p_matched_2.push_back(*it);
-      k++;
-      if (k>=max_features)
-        break;
+  for (int32_t c=0; c<bucket_cols; c++) 
+  {
+    for (int32_t r=0; r<bucket_rows; r++)  
+    {
+      
+      int32_t ind = r*bucket_cols +c;
+      // sort buckets       
+      std::sort(buckets[ind].begin(), buckets[ind].end(), compareMatches);
+      std::sort(buckets[ind+1*bucket_cols].begin(), buckets[ind+1*bucket_cols].end(), compareMatches);
+      std::sort(buckets[ind+2*bucket_cols].begin(), buckets[ind+2*bucket_cols].end(), compareMatches);
+      std::sort(buckets[ind+3*bucket_cols].begin(), buckets[ind+3*bucket_cols].end(), compareMatches);
+      
+      // add up to max_features features from this bucket to p_matched
+      int32_t k=0;
+
+      int32_t cnt0 = buckets[ind].size();
+      int32_t cnt1 = buckets[ind+1*bucket_cols].size();
+      int32_t cnt2 = buckets[ind+2*bucket_cols].size();
+      int32_t cnt3 = buckets[ind+3*bucket_cols].size();
+
+      while  (cnt0 >k || cnt1 >k || cnt2 > k || cnt3 >k)
+      {
+        if (cnt0 > k)
+          p_matched_2.push_back(buckets[ind].at(k));
+
+        if (cnt1 > k)
+          p_matched_2.push_back(buckets[ind + 1*bucket_cols].at(k));
+
+        if (cnt2 > k)
+          p_matched_2.push_back(buckets[ind + 2*bucket_cols].at(k));
+        
+        if (cnt3 > k)
+          p_matched_2.push_back(buckets[ind + 3*bucket_cols].at(k));
+
+        k++;
+
+        if (k >= (max_features/2))
+          break;
+        
+      }      
     }
   }
 
   // free buckets
   delete []buckets;
 }
+
+
 
 float Matcher::getGain (vector<int32_t> inliers) {
 
@@ -427,6 +466,7 @@ float Matcher::getGain (vector<int32_t> inliers) {
 
       if (mean_prev>10) {
         gain += mean_curr/mean_prev;
+
         num++;
       }
     }
@@ -1098,6 +1138,9 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
   int32_t* M = (int32_t*)calloc(dims_c[0]*dims_c[1],sizeof(int32_t));
   int32_t i1p,i2p,i1c,i2c,i1c2,i1p2;
   int32_t u1p,v1p,u2p,v2p,u1c,v1c,u2c,v2c;
+  int32_t val1, val2, c1, c2;
+  int32_t d11,d12,d13,d14,d15,d16,d17,d18;
+  int32_t d21,d22,d23,d24,d25,d26,d27,d28;
   
   double t00,t01,t02,t03,t10,t11,t12,t13,t20,t21,t22,t23;
   if (Tr_delta) {
@@ -1255,13 +1298,59 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
         // extract coordinates
         u2c = *(m2c+step_size*i2c+0); v2c = *(m2c+step_size*i2c+1);
         u1c = *(m1c+step_size*i1c+0); v1c = *(m1c+step_size*i1c+1);
+        val1 = *(m1c+step_size*i1c+2); val2 = *(m2c+step_size*i2c+2);
+        c1 = *(m1c+step_size*i1c+3); c2 = *(m2c+step_size*i2c+3);
+        d11 = *(m1c+step_size*i1c+4);
+        d12 = *(m1c+step_size*i1c+5);
+        d13 = *(m1c+step_size*i1c+6);
+        d14 = *(m1c+step_size*i1c+7);
+        d15 = *(m1c+step_size*i1c+8);
+        d16 = *(m1c+step_size*i1c+9);
+        d17 = *(m1c+step_size*i1c+10);
+        d18 = *(m1c+step_size*i1c+11);
+        d21 = *(m2c+step_size*i2c+4);
+        d22 = *(m2c+step_size*i2c+5);
+        d23 = *(m2c+step_size*i2c+6);
+        d24 = *(m2c+step_size*i2c+7);
+        d25 = *(m2c+step_size*i2c+8);
+        d26 = *(m2c+step_size*i2c+9);
+        d27 = *(m2c+step_size*i2c+10);
+        d28 = *(m2c+step_size*i2c+11);                        
+        
 
         // if disparities are positive
         if (u1p>=u2p && u1c>=u2c) {
           
           // add match
           Matcher::p_match match(u1p,v1p,i1p,u2p,v2p,i2p,
-                                               u1c,v1c,i1c,u2c,v2c,i2c);
+                                               u1c,v1c,i1c,u2c,v2c,i2c);                                               
+          
+          match.max1.c = c1; 
+          match.max1.val = val1;
+          match.max1.u = u1c;
+          match.max1.v = v1c;
+          match.max1.d1 = d11;
+          match.max1.d2 = d12;
+          match.max1.d3 = d13;
+          match.max1.d4 = d14;
+          match.max1.d5 = d15;
+          match.max1.d6 = d16;
+          match.max1.d7 = d17;
+          match.max1.d8 = d18;
+
+          match.max2.c = c2; 
+          match.max2.val = val2;
+          match.max2.u = u2c;
+          match.max2.v = v2c;
+          match.max2.d1 = d21;
+          match.max2.d2 = d22;
+          match.max2.d3 = d23;
+          match.max2.d4 = d24;
+          match.max2.d5 = d25;
+          match.max2.d6 = d26;
+          match.max2.d7 = d27;
+          match.max2.d8 = d28;
+
           p_matched.push_back(match);
         }
       }

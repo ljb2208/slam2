@@ -4,12 +4,14 @@
 #include "Pangolin/SlamViewer.h"
 #include "Features.h"
 #include "Matcher.h"
+#include "Util/Timer.h"
 #include <cv.h>
 
 class Odometry
 {
     public:
         Odometry(SlamViewer* viewer, cv::Mat cameraMatrix, float baseLine);
+        ~Odometry();
         bool addStereoFrames(SLImage* image, SLImage* imageRight);
 
         // camera parameters (all are mandatory / need to be supplied)
@@ -54,11 +56,12 @@ class Odometry
         };
 
         std::vector<Matcher::p_match>  p_matched;  // feature point matches
+        Timer* timer;
 
     private:
         SlamViewer* viewer;
         Features* features;
-        Matcher* matcher;
+        Matcher* matcher;        
 
         double *X,*Y,*Z;    // 3d points
         double *p_residual; // residuals (p_residual=p_observe-p_predict)

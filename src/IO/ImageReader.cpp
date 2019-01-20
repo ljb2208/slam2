@@ -31,7 +31,7 @@ int ImageReader::getImageHeight()
 }
 
 bool ImageReader::loadImage(std::string fileName)
-{
+{	
     image = cv::imread(fileName, CV_LOAD_IMAGE_GRAYSCALE);
 	if(image.rows*image.cols==0)
 	{

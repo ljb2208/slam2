@@ -418,6 +418,9 @@ SLImage* Undistorter::undistort(cv::Mat input, double timestamp)
 	result->image = convertFromFloat(out_data, wOut, hOut);
 	cv::cvtColor(result->image, result->imageColor, cv::COLOR_GRAY2RGB);
 
+	delete in_data;
+	delete out_data;
+
     return result;
 }
 
