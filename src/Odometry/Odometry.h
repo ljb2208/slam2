@@ -5,12 +5,13 @@
 #include "Features.h"
 #include "Matcher.h"
 #include "Util/Timer.h"
+#include "Mapping/Mapping.h"
 #include <cv.h>
 
 class Odometry
 {
     public:
-        Odometry(SlamViewer* viewer, cv::Mat cameraMatrix, float baseLine);
+        Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine);
         ~Odometry();
         bool addStereoFrames(SLImage* image, SLImage* imageRight);
 
@@ -62,6 +63,7 @@ class Odometry
         SlamViewer* viewer;
         Features* features;
         Matcher* matcher;        
+        Mapping* mapping;
 
         double *X,*Y,*Z;    // 3d points
         double *p_residual; // residuals (p_residual=p_observe-p_predict)

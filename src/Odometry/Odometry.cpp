@@ -8,9 +8,10 @@
 
 using namespace std::chrono;
 
-Odometry::Odometry(SlamViewer* viewer, cv::Mat cameraMatrix, float baseLine)
+Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine)
 {
     this->viewer = viewer;
+    this->mapping = mapping;
 
     Tr_valid = false;
     features = new Features();
@@ -122,6 +123,8 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         std::cout << ", Matches: " << num_matches;
         std::cout << ", Inliers: " << 100.0*num_inliers/num_matches << " %" << ", Current pose: " << std::endl;
         std::cout << pose << std::endl << std::endl;
+
+        mapping->addFrame(pose, image, imageRight, p_matched);
     }
     else
     {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <pangolin/pangolin.h>
+#include <Eigen/Core>
+#include "Util/NumType.h"
 
 #include <sstream>
 #include <fstream>
@@ -8,6 +10,7 @@
 class KeyFrameDisplay
 {
     public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
         KeyFrameDisplay();
         ~KeyFrameDisplay();
 
@@ -20,9 +23,18 @@ class KeyFrameDisplay
         void drawPC(float pointSize);
 
         // render ground truth
-        //void drawGTCam(Sophus::Matrix4f m, float lineWidth, float* color, float sizeFactor);
+        void drawGTCam(Sophus::Matrix4f m, float lineWidth, float* color, float sizeFactor);
+
+        Sophus::SE3 camToWorld;
+
     private:
         float fx,fy,cx,cy;
 	    float fxi,fyi,cxi,cyi;
         int width, height;
+
+        bool bufferValid;
+        int numGLBufferPoints;
+        int numGLBufferGoodPoints;
+        pangolin::GlBuffer vertexBuffer;
+        pangolin::GlBuffer colorBuffer;
 };

@@ -12,12 +12,14 @@
 #include "Pangolin/SlamViewer.h"
 #include "Util/Undistorter.h"
 #include "Odometry/Odometry.h"
+#include "Mapping/Mapping.h"
 #include "cv.h"
 #include <opencv2/imgproc.hpp>
+#include "boost/thread.hpp"
 
 std::string source = "";
 std::string calib = "";
-std::string param = "/home/ljb2208/development/odometry/00/param/camera.txt";
+std::string param = "/home/lbarnett/development/odometry/00/param/camera.txt";
 
 int width = 0;
 int height = 0;
@@ -25,6 +27,8 @@ int height = 0;
 float playbackSpeed = 1.0;  //1.0
 
 bool running = true;
+
+
 
 void my_exit_handler(int s)
 {
@@ -48,8 +52,8 @@ void exitThread()
 
 int main( int argc, char** argv )
 {
-    calib = "/home/ljb2208/development/odometry/00/param/camera.txt";
-    source = "/home/ljb2208/development/odometry/00";
+    calib = "/home/lbarnett/development/odometry/00/param/camera.txt";
+    source = "/home/lbarnett/development/odometry/00";
 
     // hook crtl+C.
 	boost::thread exThread = boost::thread(exitThread);
@@ -73,7 +77,7 @@ int main( int argc, char** argv )
     ImageReader* imageReader = new ImageReader(false, param);
     ImageReader* imageReaderRight = new ImageReader(false, param);
 
-    imageReader->loadImage(reader->getImageFilename(0));
+    imageReader->loadImage(reader->getImageFilename(0), 0);
 
     width = imageReader->getUDistImageWidth();
     height = imageReader->getUDistImageHeight();
@@ -90,7 +94,8 @@ int main( int argc, char** argv )
     float baseLine = imageReader->getBaseline();
 
     SlamViewer* slamViewer = new SlamViewer(width, height);
-    Odometry* odom = new Odometry(slamViewer, cameraMatrix, baseLine);
+    Mapping* mapping = new Mapping(slamViewer);
+    Odometry* odom = new Odometry(slamViewer, mapping, cameraMatrix, baseLine);
 
     std::thread runthread([&]() {
 
@@ -148,8 +153,8 @@ int main( int argc, char** argv )
             double ts = timesToPlayAt[i];
 
             
-            imageReader->loadImage(reader->getImageFilename(i));
-            imageReaderRight->loadImage(readerRight->getImageFilename(i));                        
+            imageReader->loadImage(reader->getImageFilename(i), i);
+            imageReaderRight->loadImage(readerRight->getImageFilename(i), i);                        
             
             if (!skipFrame)
             {
@@ -168,11 +173,16 @@ int main( int argc, char** argv )
 
     });
 
+    boost::thread* mappingThread = new boost::thread(boost::bind(&Mapping::run, mapping));
+    
+
 
     if(slamViewer != 0)
         slamViewer->run();
 
     runthread.join();    
+    mappingThread->join();
+    mapping->close();
 
     delete imageReader;
     delete imageReaderRight;

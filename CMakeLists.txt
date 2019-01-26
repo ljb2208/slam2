@@ -44,10 +44,13 @@ set(slam_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/Odometry/Triangle.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Matrix.cpp
     ${PROJECT_SOURCE_DIR}/src/Util/Timer.cpp
+    ${PROJECT_SOURCE_DIR}/src/Mapping/Mapping.cpp
+    ${PROJECT_SOURCE_DIR}/src/Mapping/KeyFrame.cpp
 )
 
 include_directories(
-  ${PROJECT_SOURCE_DIR}/src 
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/thirdparty/Sophus 
   ${EIGEN3_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
   ${Pangolin_INCLUDE_DIRS} 

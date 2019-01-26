@@ -40,7 +40,7 @@ public:
     ImageReader(bool displayImage, std::string paramFile);
     ~ImageReader();
 
-    bool loadImage(std::string fileName);
+    bool loadImage(std::string fileName, int index);
     cv::Mat getImage();
     SLImage* getUndistortedImage(double timestamp);
     int getImageWidth();
@@ -55,4 +55,5 @@ private:
     cv::Mat image;
     cv::Mat imageColor;
     Undistorter* udist;
+    int index;
 };

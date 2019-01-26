@@ -100,7 +100,7 @@ void SlamViewer::run()
             }
 
 			if(this->settings_showCurrentCamera) currentCam->drawCam(2,0,0.2);
-			//drawConstraints();
+			drawConstraints();
             
 			lk3d.unlock();
 		}
@@ -199,4 +199,84 @@ void SlamViewer::VideoSample(const std::string uri)
     }
 
     delete[] img;
+}
+
+void SlamViewer::drawConstraints()
+{
+    if(settings_showAllConstraints)
+	{
+		// draw constraints
+		glLineWidth(1);
+		glBegin(GL_LINES);
+
+		glColor3f(0,1,0);
+		glBegin(GL_LINES);
+		for(unsigned int i=0;i<connections.size();i++)
+		{
+			if(connections[i].to == 0 || connections[i].from==0) continue;
+			int nAct = connections[i].bwdAct + connections[i].fwdAct;
+			int nMarg = connections[i].bwdMarg + connections[i].fwdMarg;
+			if(nAct==0 && nMarg>0  )
+			{
+				Sophus::Vector3f t = connections[i].from->camToWorld.translation().cast<float>();
+				glVertex3f((GLfloat) t[0],(GLfloat) t[1], (GLfloat) t[2]);
+				t = connections[i].to->camToWorld.translation().cast<float>();
+				glVertex3f((GLfloat) t[0],(GLfloat) t[1], (GLfloat) t[2]);
+			}
+		}
+		glEnd();
+	}
+
+	if(settings_showActiveConstraints)
+	{
+		glLineWidth(3);
+		glColor3f(0,0,1);
+		glBegin(GL_LINES);
+		for(unsigned int i=0;i<connections.size();i++)
+		{
+			if(connections[i].to == 0 || connections[i].from==0) continue;
+			int nAct = connections[i].bwdAct + connections[i].fwdAct;
+
+			if(nAct>0)
+			{
+				Sophus::Vector3f t = connections[i].from->camToWorld.translation().cast<float>();
+				glVertex3f((GLfloat) t[0],(GLfloat) t[1], (GLfloat) t[2]);
+				t = connections[i].to->camToWorld.translation().cast<float>();
+				glVertex3f((GLfloat) t[0],(GLfloat) t[1], (GLfloat) t[2]);
+			}
+		}
+		glEnd();
+	}
+
+	if(settings_showTrajectory)
+	{
+		float colorRed[3] = {1,0,0};
+		glColor3f(colorRed[0],colorRed[1],colorRed[2]);
+		glLineWidth(3);
+
+		glBegin(GL_LINE_STRIP);
+		for(unsigned int i=0;i<keyframes.size();i++)
+		{
+			glVertex3f((float)keyframes[i]->camToWorld.translation()[0],
+					(float)keyframes[i]->camToWorld.translation()[1],
+					(float)keyframes[i]->camToWorld.translation()[2]);
+		}
+		glEnd();
+	}
+
+	if(settings_showFullTrajectory)
+	{
+		float colorGreen[3] = {0,1,0};
+		glColor3f(colorGreen[0],colorGreen[1],colorGreen[2]);
+		glLineWidth(3);
+
+		glBegin(GL_LINE_STRIP);
+		for(unsigned int i=0;i<allFramePoses.size();i++)
+		{
+			glVertex3f((float)allFramePoses[i][0],
+					(float)allFramePoses[i][1],
+					(float)allFramePoses[i][2]);
+		}
+		glEnd();
+	}
 }

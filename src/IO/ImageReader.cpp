@@ -30,8 +30,9 @@ int ImageReader::getImageHeight()
 		return image.rows;
 }
 
-bool ImageReader::loadImage(std::string fileName)
+bool ImageReader::loadImage(std::string fileName, int index)
 {	
+	this->index = index;
     image = cv::imread(fileName, CV_LOAD_IMAGE_GRAYSCALE);
 	if(image.rows*image.cols==0)
 	{
@@ -73,7 +74,7 @@ int ImageReader::getUDistImageHeight()
 
 SLImage* ImageReader::getUndistortedImage(double timestamp)
 {
-	return udist->undistort(image, timestamp);
+	return udist->undistort(image, timestamp, index);
 }
 
 cv::Mat ImageReader::getCameraMatrix()

@@ -11,7 +11,7 @@ public:
     void loadFromFile(std::string configFileName);
     cv::Mat getCameraMatrix();
     void processPhotometricFrame();
-    SLImage* undistort(cv::Mat input, double timestamp);
+    SLImage* undistort(cv::Mat input, double timestamp, int index);
     int getOutputWidth();
     int getOutputHeight();
     float getBaseline();

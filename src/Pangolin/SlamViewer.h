@@ -7,6 +7,14 @@
 #include <cv.h>
 #include "KeyFrameDisplay.h"
 
+struct GraphConnection
+{
+	KeyFrameDisplay* from;
+	KeyFrameDisplay* to;
+	int fwdMarg, bwdMarg, fwdAct, bwdAct;
+};
+
+
 class SlamViewer{
     public:
         SlamViewer(int width, int height);
@@ -33,6 +41,8 @@ class SlamViewer{
 
         std::vector<KeyFrameDisplay*> keyframes;
         KeyFrameDisplay* currentCam;
+        std::vector<GraphConnection,Eigen::aligned_allocator<GraphConnection>> connections;
+        std::vector<Vec3f,Eigen::aligned_allocator<Vec3f>> allFramePoses;
 
         // render settings
         bool settings_showKFCameras;
@@ -47,5 +57,7 @@ class SlamViewer{
         int settings_pointCloudMode;
         float settings_minRelBS;
         int settings_sparsity;
+
+        void drawConstraints();
 
 };

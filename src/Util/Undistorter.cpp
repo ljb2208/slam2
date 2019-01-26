@@ -377,9 +377,9 @@ float Undistorter::getBaseline()
 	return baseLine;
 }
 
-SLImage* Undistorter::undistort(cv::Mat input, double timestamp)
+SLImage* Undistorter::undistort(cv::Mat input, double timestamp, int index)
 {
-    SLImage* result = new SLImage(wOut, hOut, timestamp);
+    SLImage* result = new SLImage(wOut, hOut, timestamp, index);
 
 	float* in_data = convertToFloat(input);
 	float* out_data = new float[wOut * hOut];
