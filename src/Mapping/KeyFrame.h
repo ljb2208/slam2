@@ -15,7 +15,13 @@ class KeyFrame
         bool temporary;
         SLImage* image;
         SLImage* imageRight;
+
+        float getTranslationData(float* data);
+        
     private:
+
+        
+
         
 
 

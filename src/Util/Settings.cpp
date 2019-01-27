@@ -11,3 +11,4 @@ int benchmark_noiseGridsize = 3;
 
 bool setting_render_display3D = true;
 bool settings_showCurrentCamera = true;
+bool settings_showTrajectory = true;

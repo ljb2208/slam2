@@ -14,3 +14,4 @@ extern float benchmark_initializerSlackFactor;
 
 extern bool setting_render_display3D;
 extern bool settings_showCurrentCamera;
+extern bool settings_showTrajectory;

@@ -6,6 +6,8 @@
 #include <deque>
 #include <cv.h>
 #include "KeyFrameDisplay.h"
+#include "Mapping/KeyFrame.h"
+#include "Util/Settings.h"
 
 struct GraphConnection
 {
@@ -24,6 +26,7 @@ class SlamViewer{
 	    void close();
         void join();
 
+        void pushKeyFrame(KeyFrame keyFrame);
         void pushLiveImageFrame(cv::Mat image, cv::Mat imageRight);
         void VideoSample(const std::string uri);
 
@@ -39,6 +42,7 @@ class SlamViewer{
         cv::Mat internalVideoImg;
         cv::Mat internalVideoImgRight;
 
+        std::vector<KeyFrame> keyFrames;
         std::vector<KeyFrameDisplay*> keyframes;
         KeyFrameDisplay* currentCam;
         std::vector<GraphConnection,Eigen::aligned_allocator<GraphConnection>> connections;
@@ -47,7 +51,7 @@ class SlamViewer{
         // render settings
         bool settings_showKFCameras;
         bool settings_showCurrentCamera;
-        bool settings_showTrajectory;
+        //bool settings_showTrajectory;
         bool settings_showFullTrajectory;
         bool settings_showActiveConstraints;
         bool settings_showAllConstraints;

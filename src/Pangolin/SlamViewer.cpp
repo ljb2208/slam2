@@ -4,11 +4,14 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "IO/ImageReader.h"
 #include "Util/Settings.h"
+#include "IO/DataSetReader.h"
 
 SlamViewer::SlamViewer(int width, int height)
 {
     this->width = width;
     this->height = height;
+
+    //settings_showTrajectory = Settings::settings_showTrajectory;
 }
 
 SlamViewer::~SlamViewer()
@@ -49,6 +52,7 @@ void SlamViewer::run()
     pangolin::View& d_videoRight = pangolin::Display("imgVideoRight")
 	    .SetAspect((float)width/height);
 
+	pangolin::GlTexture texKFDepth(width,height,GL_RGB,false,0,GL_RGB,GL_UNSIGNED_BYTE);
     pangolin::GlTexture texVideo(width,height,GL_RGB,false,0,GL_RGB,GL_UNSIGNED_BYTE);
     pangolin::GlTexture texVideoRight(width,height,GL_RGB,false,0,GL_RGB,GL_UNSIGNED_BYTE);
 
@@ -65,6 +69,34 @@ void SlamViewer::run()
     float blue[3] = {0,0,1};
     std::vector<Sophus::Matrix4f> matrix_result;
 
+        // show ground truth
+    std::string gtPath = "/home/ljb2208/development/odometry/poses/01.txt";
+    std::ifstream ReadFile(gtPath.c_str());
+    std::string temp;
+    std::string delim (" ");
+    std::vector<std::string> results;
+    Sophus::Matrix4f gtCam;    
+
+    while(std::getline(ReadFile, temp))
+    {
+        split(temp, delim, results);
+        for(int i = 0; i < 3; i++)
+            for(int j = 0; j < 4; j++)
+            {
+                gtCam(i,j) = atof(results[4*i + j].c_str());
+            }
+        gtCam(3,0) = 0;
+        gtCam(3,1) = 0;
+        gtCam(3,2) = 0;
+        gtCam(3,3) = 1;
+
+        results.clear();
+        matrix_result.push_back(gtCam);
+
+    }
+    ReadFile.close();
+
+
     // Default hooks for exiting (Esc) and fullscreen (tab).
 	while( !pangolin::ShouldQuit() && running )
 	{
@@ -73,14 +105,15 @@ void SlamViewer::run()
 
         
         if(setting_render_display3D)
-		{
+		{            
+            
 			// Activate efficiently by object
 			Visualization3D_display.Activate(Visualization3D_camera);
 			boost::unique_lock<boost::mutex> lk3d(model3DMutex);
 			
 			int refreshed=0;
 
-            
+            /*
 			for(KeyFrameDisplay* fh : keyframes)
 			{				
 				if(this->settings_showKFCameras) fh->drawCam(1,blue,0.1);
@@ -90,6 +123,7 @@ void SlamViewer::run()
 				fh->drawPC(1);
 
 			}
+            
 
             for(int i = 0; i < matrix_result.size(); i++)
             {
@@ -97,10 +131,13 @@ void SlamViewer::run()
                 KeyFrameDisplay* fh = new KeyFrameDisplay;
                 fh->drawGTCam(matrix_result[i], 5, yellow, 0.1);
                 delete(fh);
-            }
+            }            
 
+            
 			if(this->settings_showCurrentCamera) currentCam->drawCam(2,0,0.2);
+            */
 			drawConstraints();
+            
             
 			lk3d.unlock();
 		}
@@ -142,6 +179,12 @@ void SlamViewer::pushLiveImageFrame(cv::Mat image, cv::Mat imageRight)
     //cv::cvtColor(imageRight, internalVideoImgRight, cv::COLOR_GRAY2RGB);
 
     videoImageChanged = true;
+}
+
+void SlamViewer::pushKeyFrame(KeyFrame keyFrame)
+{
+    boost::unique_lock<boost::mutex> lk(model3DMutex);
+    keyFrames.push_back(keyFrame);
 }
 
 void SlamViewer::close()
@@ -250,18 +293,26 @@ void SlamViewer::drawConstraints()
 
 	if(settings_showTrajectory)
 	{
-		float colorRed[3] = {1,0,0};
+        float colorRed[3] = {1,0,0};
 		glColor3f(colorRed[0],colorRed[1],colorRed[2]);
 		glLineWidth(3);
 
-		glBegin(GL_LINE_STRIP);
-		for(unsigned int i=0;i<keyframes.size();i++)
-		{
-			glVertex3f((float)keyframes[i]->camToWorld.translation()[0],
-					(float)keyframes[i]->camToWorld.translation()[1],
-					(float)keyframes[i]->camToWorld.translation()[2]);
+		glBegin(GL_LINE_STRIP);        
+
+		for(unsigned int i=0;i<keyFrames.size();i++)
+		{                        
+            float f1, f2, f3;
+
+            if (keyFrames[i].pose.val != 0)
+            {
+                f1 = keyFrames[i].pose.val[0][3];
+                f2 = keyFrames[i].pose.val[1][3];
+                f3 = keyFrames[i].pose.val[2][3];
+                glVertex3f(f1, f2, f3);					            
+            }
+
 		}
-		glEnd();
+		glEnd();        
 	}
 
 	if(settings_showFullTrajectory)

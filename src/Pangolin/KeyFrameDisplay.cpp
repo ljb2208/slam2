@@ -4,7 +4,10 @@
 
 KeyFrameDisplay::KeyFrameDisplay()
 {
-
+    fx = 718.856;
+    fy = 718.856;
+    cx = 607.1928;
+    cy = 185.2157;
 }
        
 KeyFrameDisplay::~KeyFrameDisplay()
@@ -102,8 +105,10 @@ void KeyFrameDisplay::drawPC(float pointSize)
 
 void KeyFrameDisplay::drawGTCam(Sophus::Matrix4f m, float lineWidth, float* color, float sizeFactor)
 {
-    if(cx != 0 || cy != 0)
-        return;
+    //if(cx != 0 || cy != 0)
+    //   return;
+
+    //printf("cx/cy set\n");
 
     float sz=sizeFactor;
 
