@@ -67,7 +67,7 @@ void SlamViewer::run()
 
     float yellow[3] = {1,1,0};
     float blue[3] = {0,0,1};
-    std::vector<Sophus::Matrix4f> matrix_result;
+    
 
         // show ground truth
     std::string gtPath = "/home/ljb2208/development/odometry/poses/01.txt";
@@ -92,6 +92,10 @@ void SlamViewer::run()
 
         results.clear();
         matrix_result.push_back(gtCam);
+
+        std::cout << "Ground truth pose" << std::endl;
+        std::cout << gtCam.inverse() << std::endl << std::endl;
+
 
     }
     ReadFile.close();
@@ -309,7 +313,32 @@ void SlamViewer::drawConstraints()
                 f2 = keyFrames[i].pose.val[1][3];
                 f3 = keyFrames[i].pose.val[2][3];
                 glVertex3f(f1, f2, f3);					            
+
+                printf("pt: %f %f %f\n", f1 , f2, f3);
             }
+
+		}
+		glEnd();        
+	}
+
+    if(settings_showGroundTruth)
+	{
+        float colorYellow[3] = {1,1,0};
+		glColor3f(colorYellow[0],colorYellow[1],colorYellow[2]);
+		glLineWidth(3);
+
+		glBegin(GL_LINE_STRIP);        
+
+		for(unsigned int i=0;i<matrix_result.size();i++)
+		{                        
+            float f1, f2, f3;
+            
+            f1 = matrix_result[i](0, 3);
+            f2 = matrix_result[i](1, 3);
+            f3 = matrix_result[i](2, 3);
+            glVertex3f(-f1, f2, f3);					                        
+
+            printf("gt: %f %f %f\n", f1 , f2, f3);
 
 		}
 		glEnd();        

@@ -27,6 +27,7 @@ class SlamViewer{
         void join();
 
         void pushKeyFrame(KeyFrame keyFrame);
+        void pushDepthImageFrame(cv::Mat image);
         void pushLiveImageFrame(cv::Mat image, cv::Mat imageRight);
         void VideoSample(const std::string uri);
 
@@ -63,5 +64,7 @@ class SlamViewer{
         int settings_sparsity;
 
         void drawConstraints();
+
+        std::vector<Sophus::Matrix4f> matrix_result;
 
 };

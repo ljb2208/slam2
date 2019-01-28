@@ -16,7 +16,7 @@ class KeyFrame
         SLImage* image;
         SLImage* imageRight;
 
-        float getTranslationData(float* data);
+        void generateDepthInfo();
         
     private:
 

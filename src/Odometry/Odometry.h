@@ -95,4 +95,6 @@ class Odometry
         // returns the number of inliers: num_inliers <= num_matched
         int32_t getNumberOfInliers () { return inliers.size(); }
         Matrix getMotion () { return Tr_delta; }      
+
+        cv::Mat getDepthImage();
 };

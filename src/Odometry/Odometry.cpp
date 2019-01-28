@@ -134,6 +134,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     return result;
 }
 
+
 bool Odometry::updateMotion()
 {
     // estimate motion

@@ -6,10 +6,17 @@ KeyFrame::KeyFrame()
     
 }
 
-float KeyFrame::getTranslationData(float* data)
+void KeyFrame::generateDepthInfo()
 {
-    float f1 = pose.val[0][0];
+    for (int i=0; i < p_matched_p.size(); i++)
+    {
+        float ul,ur;
 
-    //pose.getData(data, 0, 3, 2, 3);
+        ul = p_matched_p[i].u1c;
+        ur = p_matched_p[i].u2c;
+
+        
+
+    }
 }
 

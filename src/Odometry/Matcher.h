@@ -109,8 +109,9 @@ public:
     maximum max1;   // current feature left image
     maximum max2;   // current feature right image
     int32_t age;  // feature age
+    float   depth;  // depth
     bool matched;
-    p_match(){ age = -1; matched = false;}
+    p_match(){ age = -1; matched = false; depth = 0.0;}
     p_match(float u1p,float v1p,int32_t i1p,float u2p,float v2p,int32_t i2p,
             float u1c,float v1c,int32_t i1c,float u2c,float v2c,int32_t i2c):
             u1p(u1p),v1p(v1p),i1p(i1p),u2p(u2p),v2p(v2p),i2p(i2p),
