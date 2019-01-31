@@ -174,6 +174,8 @@ void Matcher::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace
     }
   }
 
+  ageFeaturePoints();
+
   // compute new features for current frame
   computeFeatures(I1c,dims_c,m1c1,n1c1,m1c2,n1c2,I1c_du,I1c_dv,I1c_du_full,I1c_dv_full);
   if (I2!=0)
@@ -1793,5 +1795,16 @@ float Matcher::mean(const uint8_t* I,const int32_t &bpl,const int32_t &u_min,con
       mean += (float)*(I+getAddressOffsetImage(u,v,bpl));
   return
     mean /= (float)((u_max-u_min+1)*(v_max-v_min+1));
+}
+
+void Matcher::ageFeaturePoints()
+{
+  for (int i=0; i < p_matched_p.size(); i++)
+  {
+    p_matched_p[i].u1p3 = p_matched_p[i].u1p2;
+    p_matched_p[i].v1p3 = p_matched_p[i].v1p2;
+    p_matched_p[i].u1p2 = p_matched_p[i].u1p;
+    p_matched_p[i].v1p2 = p_matched_p[i].v1p;
+  }
 }
 

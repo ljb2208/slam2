@@ -96,6 +96,8 @@ public:
 
   // structure for storing matches
   struct p_match {
+    float   u1p2,v1p2; // u,v-coordinates in 2nd previous left  image
+    float   u1p3,v1p3; // u,v-coordinates in 3rd previous left  image
     float   u1p,v1p; // u,v-coordinates in previous left  image
     int32_t i1p;     // feature index (for tracking)
     float   u2p,v2p; // u,v-coordinates in previous right image
@@ -267,11 +269,11 @@ private:
     return (p1.i1p > p2.i1p);  
   };
 
-  
 
   // mean for gain computation
   inline float mean(const uint8_t* I,const int32_t &bpl,const int32_t &u_min,const int32_t &u_max,const int32_t &v_min,const int32_t &v_max);
 
+  void ageFeaturePoints();
   // parameters
   parameters param;
   int32_t    margin;

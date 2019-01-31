@@ -1,6 +1,6 @@
 #include "Odometry.h"
 #include "opencv2/imgproc/imgproc.hpp"
-
+#include "opencv2/calib3d/calib3d.hpp"
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/core.hpp>
 
@@ -599,4 +599,71 @@ uint8_t* Odometry::getImageArray(SLImage* image)
     }
 
     return img_data;
+}
+
+bool Odometry::estimateRotation()
+{
+    std::vector<cv::Point> points1;
+    std::vector<cv::Point> points2;
+    cv::Mat mask;
+
+    for (int i=0; i < p_matched.size(); i++)
+    {
+        points1.push_back(cv::Point(p_matched[i].u1c, p_matched[i].v1c));
+        points2.push_back(cv::Point(p_matched[i].u1p, p_matched[i].v1p));
+    }
+
+    if (points1.size() < 5)
+    {
+        rotationDepth = 0;
+        return false;
+    }
+
+    essMat = cv::findEssentialMat(points1, points2, param.calib.f, cv::Point(param.calib.cu, param.calib.cv),
+            cv::RANSAC, 0.999, 1.0, mask);
+
+    points1.clear();
+    points2.clear();
+
+    for (int i=0; i < p_matched.size(); i++)
+    {
+        if (p_matched[i].age > 1)
+        {
+            points1.push_back(cv::Point(p_matched[i].u1c, p_matched[i].v1c));
+            points2.push_back(cv::Point(p_matched[i].u1p2, p_matched[i].v1p2));
+        }
+    }
+
+    if (points1.size() < 5)
+    {
+        rotationDepth = 1;
+        return true;
+    }
+    
+    essMat2 = cv::findEssentialMat(points1, points2, param.calib.f, cv::Point(param.calib.cu, param.calib.cv),
+            cv::RANSAC, 0.999, 1.0, mask);
+    
+    points1.clear();
+    points2.clear();
+
+    for (int i=0; i < p_matched.size(); i++)
+    {
+        if (p_matched[i].age > 2)
+        {
+            points1.push_back(cv::Point(p_matched[i].u1c, p_matched[i].v1c));
+            points2.push_back(cv::Point(p_matched[i].u1p3, p_matched[i].v1p3));
+        }
+    }
+
+    if (points1.size() < 5)
+    {
+        rotationDepth = 2;
+        return true;
+    }
+    
+    essMat3 = cv::findEssentialMat(points1, points2, param.calib.f, cv::Point(param.calib.cu, param.calib.cv),
+            cv::RANSAC, 0.999, 1.0, mask);
+    
+    rotationDepth = 3;
+    return true;
 }

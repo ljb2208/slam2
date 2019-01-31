@@ -72,6 +72,15 @@ class Odometry
         double *p_predict;  // predicted 2d points
         std::vector<int32_t>           inliers;    // inlier set
         Matrix pose = Matrix::eye(4);
+
+
+
+        //essential matricies
+        cv::Mat essMat;
+        cv::Mat essMat2;
+        cv::Mat essMat3;
+        int rotationDepth;
+
         // parameters
         parameters param;
 
@@ -98,6 +107,8 @@ class Odometry
 
         cv::Scalar getColorFromDepth(float depth);
         cv::Mat getDepthImage();
+
+        bool estimateRotation();
 
         std::ofstream outputFile;
 };
