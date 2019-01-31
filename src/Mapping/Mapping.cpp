@@ -46,6 +46,13 @@ void Mapping::run()
             delete keyFrame.image;
             delete keyFrame.imageRight;
 
+            if (!keyFrames.empty())
+            {
+                float distance = getTranslationDistance(&keyFrame);
+                float angle = getRotationAngle(&keyFrame);
+                printf("Distance between KFs: %f Angle: %f\n", distance, angle);
+            }
+
             keyFrames.push_back(keyFrame);
 
             int count = 0;
@@ -65,4 +72,43 @@ void Mapping::run()
 void Mapping::close()
 {
     running = false;
+}
+
+float Mapping::getTranslationDistance(KeyFrame* keyFrame)
+{
+    // get euclidian distance between this keyframe and last keyframe on stack
+    KeyFrame pKeyFrame = keyFrames.back();
+
+    float f1, f2, f3;
+
+    f1 = keyFrame->pose.val[0][3] - pKeyFrame.pose.val[0][3];
+    f2 = keyFrame->pose.val[1][3] - pKeyFrame.pose.val[1][3];
+    f3 = keyFrame->pose.val[2][3] - pKeyFrame.pose.val[2][3];
+
+    return fabs(sqrt(f1*f1 + f2*f2 + f3*f3));    
+}
+
+float Mapping::getRotationAngle(KeyFrame* keyFrame)
+{
+    // get rotation angle between this keyframe and last keyframe on stack
+    KeyFrame pKeyFrame = keyFrames.back();
+
+    Matrix rA = keyFrame->pose.getMat(0, 0, 2, 2);
+    Matrix rB = pKeyFrame.pose.getMat(0, 0, 2, 2);
+
+    Matrix rAT = rA.operator~();
+    Matrix rAB = rAT.operator*(rB);
+
+    // calculate trace
+    float trace = rAB.val[0][0] + rAB.val[1][1] + rAB.val[2][2];
+
+    if (trace > 3)
+        trace = 3;
+
+    float f1 = acos((trace - 1) / 2);
+    float f2 = (f1 * 180) / M_PI;
+
+    //printf("trace: %f, f1: %f f2:%f f5: %f f6: %f\n", trace, f1, f2, f5, f6);
+
+    return f2;
 }

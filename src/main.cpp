@@ -17,12 +17,13 @@
 #include <opencv2/imgproc.hpp>
 #include "boost/thread.hpp"
 
-std::string source = "";
-std::string calib = "";
-std::string param = "/home/ljb2208/development/odometry/00/param/camera.txt";
+std::string source = "/home/lbarnett/development/odometry/00";
+std::string calib = "/home/lbarnett/development/odometry/00/param/camera.txt";
+std::string param = "/home/lbarnett/development/odometry/00/param/camera.txt";
 
 int width = 0;
 int height = 0;
+int imageOffset = 0;
 
 float playbackSpeed = 1.0;  //1.0
 
@@ -52,9 +53,6 @@ void exitThread()
 
 int main( int argc, char** argv )
 {
-    calib = "/home/ljb2208/development/odometry/00/param/camera.txt";
-    source = "/home/ljb2208/development/odometry/00";
-
     // hook crtl+C.
 	boost::thread exThread = boost::thread(exitThread);
    
@@ -64,13 +62,13 @@ int main( int argc, char** argv )
 
     if (imageCount < 1)
     {
-        printf("No images found! Exiting...");
+        printf("No images found! Exiting...\n");
         return 0;
     }
 
     if (imageCount != readerRight->getNumImages())
     {
-        printf("Differing number of left and right images. Exiting....");
+        printf("Differing number of left and right images. Exiting....\n");
         return 0;
     }
 
@@ -104,9 +102,9 @@ int main( int argc, char** argv )
 
         printf("Getting timestamps\n");
 
-        for (int y=0; y < reader->getNumImages(); y++)
+        for (int y=0; y < reader->getNumImages() - imageOffset; y++)
         {
-            idsToPlay.push_back(y);
+            idsToPlay.push_back(y + imageOffset);
 
             if (y == 0)
             {
@@ -114,9 +112,10 @@ int main( int argc, char** argv )
             }
             else
             {
-                double tsThis = reader->getTimestamp(idsToPlay[idsToPlay.size()-1]);
-                double tsPrev = reader->getTimestamp(idsToPlay[idsToPlay.size()-2]);
-                timesToPlayAt.push_back(timesToPlayAt.back() +  fabs(tsThis-tsPrev)/playbackSpeed);
+                double tsThis = reader->getTimestamp(y + imageOffset);
+                double tsPrev = reader->getTimestamp(y + imageOffset - 1);
+                double playTime =timesToPlayAt.back() + fabs(tsThis-tsPrev)/playbackSpeed;
+                timesToPlayAt.push_back(playTime);
             }
         }
 
@@ -131,7 +130,7 @@ int main( int argc, char** argv )
         //if (imageCount > 100)
         //    imageCount = 100;
 
-        for (int i=0; i < imageCount; i++){
+        for (int i=0; i < imageCount - imageOffset; i++){
 
             if (!running)
                 exit(1);
@@ -153,8 +152,8 @@ int main( int argc, char** argv )
             double ts = timesToPlayAt[i];
 
             
-            imageReader->loadImage(reader->getImageFilename(i), i);
-            imageReaderRight->loadImage(readerRight->getImageFilename(i), i);                        
+            imageReader->loadImage(reader->getImageFilename(i + imageOffset), i);
+            imageReaderRight->loadImage(readerRight->getImageFilename(i + imageOffset), i);                        
             
             if (!skipFrame)
             {

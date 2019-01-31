@@ -82,7 +82,7 @@ class Odometry
         uint8_t* getImageArray(SLImage* image);
         bool updateMotion();
 
-        std::vector<double> estimateMotion (std::vector<Matcher::p_match> p_matched);
+        std::vector<double> estimateMotion ();
         Matrix transformationVectorToMatrix (std::vector<double> tr);
         std::vector<int32_t> getRandomSample(int32_t N,int32_t num);
         Odometry::result updateParameters(std::vector<Matcher::p_match> &p_matched,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps);
@@ -96,5 +96,8 @@ class Odometry
         int32_t getNumberOfInliers () { return inliers.size(); }
         Matrix getMotion () { return Tr_delta; }      
 
+        cv::Scalar getColorFromDepth(float depth);
         cv::Mat getDepthImage();
+
+        std::ofstream outputFile;
 };

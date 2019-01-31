@@ -43,8 +43,8 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 
 #define endll endl << endl // double end line definition
 
-//typedef double FLOAT;      // double precision
-typedef float  FLOAT;    // single precision
+typedef double FLOAT;      // double precision
+//typedef float  FLOAT;    // single precision
 
 class Matrix {
 
@@ -63,7 +63,7 @@ public:
   // copies submatrix of M into array 'val', default values copy whole row/column/matrix
   void getData(FLOAT* val_,int32_t i1=0,int32_t j1=0,int32_t i2=-1,int32_t j2=-1);
 
-  // set or get submatrices of current matrix
+  // set or get submatrices of current matrixi
   Matrix getMat(int32_t i1,int32_t j1,int32_t i2=-1,int32_t j2=-1);
   void   setMat(const Matrix &M,const int32_t i,const int32_t j);
 

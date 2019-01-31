@@ -29,10 +29,17 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     matcher->setIntrinsics(param.calib.f, param.calib.cu, param.calib.cv, param.base);
 
     timer = new Timer();
+
+    outputFile.open("outputs.csv", std::ios::trunc);
+    outputFile << "Index,NumMatches,NumInliers,";
+    outputFile << "pose00,pose01,pose02,pose03,pose10,pose11,pose12,pose13,pose20,pose21,pose22,pose23,pose30,pose31,pose32,pose33,";
+    outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";
+    outputFile << std::endl;
 }
 
 Odometry::~Odometry()
 {
+    outputFile.close();
     timer->outputAll();
     delete timer;
     delete matcher;
@@ -95,13 +102,21 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     bool result = updateMotion();
     timer->stopTimer();
 
+    //float maxDepth, minDepth;
+    //updateDepth(&maxDepth, &minDepth);
+
+    //printf("Max depth: %f min depth: %f\n", maxDepth, minDepth);
+
     for (int i=0; i < p_matched.size(); i++)
     {
         cv::Point2f matchPoint(p_matched[i].u1c, p_matched[i].v1c);
         cv::Point2f matchPointRight(p_matched[i].u2c, p_matched[i].v2c);
-        cv::circle(image->imageColor, matchPoint, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
+        cv::circle(image->imageColor, matchPoint, 4, getColorFromDepth(p_matched[i].depth), -1, 8, 0);
         cv::circle(imageRight->imageColor, matchPointRight, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
     }
+
+    std::string imageIndex = std::to_string(image->index);
+    cv::putText(image->imageColor, imageIndex.c_str(), cv::Point(40, 40), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0,0,255), 1, 8, false);
 
     free(left_image);
     free(right_image);
@@ -115,14 +130,54 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     if (result)
     {
         // on success, update current pose
-        pose = pose * Matrix::inv(getMotion());
+        Matrix motion = getMotion();
+        pose = pose * Matrix::inv(motion);
         
         // output some statistics
         double num_matches = getNumberOfMatches();
         double num_inliers = getNumberOfInliers();
+        std::cout << "Index: " << image->index;
         std::cout << ", Matches: " << num_matches;
         std::cout << ", Inliers: " << 100.0*num_inliers/num_matches << " %" << ", Current pose: " << std::endl;
         std::cout << pose << std::endl << std::endl;
+        std::cout << "Motion:" << std::endl;
+        std::cout << motion <<  std::endl << std::endl;
+
+        outputFile << image->index << ",";
+        outputFile << num_matches << ",";
+        outputFile << num_inliers << ",";
+        outputFile << pose.val[0][0] << ",";
+        outputFile << pose.val[1][0] << ",";
+        outputFile << pose.val[2][0] << ",";
+        outputFile << pose.val[3][0] << ",";
+        outputFile << pose.val[0][1] << ",";
+        outputFile << pose.val[1][1] << ",";
+        outputFile << pose.val[2][1] << ",";
+        outputFile << pose.val[3][1] << ",";
+        outputFile << pose.val[0][2] << ",";
+        outputFile << pose.val[1][2] << ",";
+        outputFile << pose.val[2][2] << ",";
+        outputFile << pose.val[3][2] << ",";
+        outputFile << pose.val[0][3] << ",";
+        outputFile << pose.val[1][3] << ",";
+        outputFile << pose.val[2][3] << ",";
+        outputFile << pose.val[3][3] << ",";
+        outputFile << motion.val[0][0] << ",";
+        outputFile << motion.val[1][0] << ",";
+        outputFile << motion.val[2][0] << ",";
+        outputFile << motion.val[3][0] << ",";
+        outputFile << motion.val[0][1] << ",";
+        outputFile << motion.val[1][1] << ",";
+        outputFile << motion.val[2][1] << ",";
+        outputFile << motion.val[3][1] << ",";
+        outputFile << motion.val[0][2] << ",";
+        outputFile << motion.val[1][2] << ",";
+        outputFile << motion.val[2][2] << ",";
+        outputFile << motion.val[3][2] << ",";
+        outputFile << motion.val[0][3] << ",";
+        outputFile << motion.val[1][3] << ",";
+        outputFile << motion.val[2][3] << ",";
+        outputFile << motion.val[3][3] << std::endl;
 
         mapping->addFrame(pose, image, imageRight, p_matched);
     }
@@ -134,11 +189,58 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     return result;
 }
 
+cv::Scalar Odometry::getColorFromDepth(float depth)
+{
+    int r, g, b;
+
+    if (depth < 10)
+    {
+        b = 255 - depth*25.5;
+
+        if (b < 0)
+            b = 0;
+
+        if (b > 255)
+            b = 255;
+
+        g = 255 - b; 
+        r = 0;
+    }
+    else if (depth == 10)
+    {
+        g=255;
+        r=0;
+        b=0;
+    }
+    else
+    {
+        b=0;
+        g = 255 - (depth - 10) * 25.5;
+
+        if (g < 0)
+            g = 0;
+        if (g > 255)
+            g = 255;
+        r = 255 - g;
+    }
+
+    if (r > 255)
+        r = 255;
+
+    if (g > 255)
+        g = 255;
+    
+    if (b > 255)
+        b = 255;
+
+    //printf("depth: %f r: %i g: %i b: %i", depth, r, g, b);
+    return cv::Scalar(r, g, b);
+}
 
 bool Odometry::updateMotion()
 {
     // estimate motion
-    std::vector<double> tr_delta = estimateMotion(p_matched);
+    std::vector<double> tr_delta = estimateMotion();
     
     // on failure
     if (tr_delta.size()!=6)
@@ -152,7 +254,7 @@ bool Odometry::updateMotion()
     return true;
 }
 
-std::vector<double> Odometry::estimateMotion (std::vector<Matcher::p_match> p_matched)
+std::vector<double> Odometry::estimateMotion ()
 {
     // return value
     bool success = true;
@@ -186,6 +288,7 @@ std::vector<double> Odometry::estimateMotion (std::vector<Matcher::p_match> p_ma
         X[i] = (p_matched[i].u1p-param.calib.cu)*param.base/d;
         Y[i] = (p_matched[i].v1p-param.calib.cv)*param.base/d;
         Z[i] = param.calib.f*param.base/d;
+        p_matched[i].depth = param.calib.f*param.base/d;
     }
 
     // loop variables

@@ -26,6 +26,8 @@ class Mapping
         boost::mutex keyFramesMutex;
 
         bool getNextKeyFrame(KeyFrame* keyFrame);
+        float getTranslationDistance(KeyFrame* keyFrame);
+        float getRotationAngle(KeyFrame* keyFrame);
         KeyFrame currentKeyFrame;
 
         bool running;

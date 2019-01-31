@@ -70,7 +70,7 @@ void SlamViewer::run()
     
 
         // show ground truth
-    std::string gtPath = "/home/ljb2208/development/odometry/poses/01.txt";
+    std::string gtPath = "/home/lbarnett/development/odometry/poses/00.txt";
     std::ifstream ReadFile(gtPath.c_str());
     std::string temp;
     std::string delim (" ");
@@ -94,7 +94,7 @@ void SlamViewer::run()
         matrix_result.push_back(gtCam);
 
         std::cout << "Ground truth pose" << std::endl;
-        std::cout << gtCam.inverse() << std::endl << std::endl;
+        std::cout << gtCam << std::endl << std::endl;
 
 
     }
@@ -313,8 +313,6 @@ void SlamViewer::drawConstraints()
                 f2 = keyFrames[i].pose.val[1][3];
                 f3 = keyFrames[i].pose.val[2][3];
                 glVertex3f(f1, f2, f3);					            
-
-                printf("pt: %f %f %f\n", f1 , f2, f3);
             }
 
 		}
@@ -336,9 +334,7 @@ void SlamViewer::drawConstraints()
             f1 = matrix_result[i](0, 3);
             f2 = matrix_result[i](1, 3);
             f3 = matrix_result[i](2, 3);
-            glVertex3f(-f1, f2, f3);					                        
-
-            printf("gt: %f %f %f\n", f1 , f2, f3);
+            glVertex3f(f1, f2, f3);					                        
 
 		}
 		glEnd();        

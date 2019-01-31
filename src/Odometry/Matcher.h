@@ -63,8 +63,8 @@ public:
       outlier_disp_tolerance = 5;
       outlier_flow_tolerance = 5;
       multi_stage            = 1;
-      half_resolution        = 1;
-      refinement             = 1; // default is 1
+      half_resolution        = 1; // default is 1
+      refinement             = 2; // default is 1
       age_discriminator      = 3;
     }
   };
@@ -246,11 +246,23 @@ private:
     if (p2.age > p1.age && p2.age <= ageDiscrim)
       return false;
     
-    if (p1.max1.val > p2.max1.val)
-      return true;
+    if (p1.max1.c == 0 || p1.max1.c ==2) // class 0 and 2 are minima so negative val
+    {
+      if (p1.max1.val < p2.max1.val)
+        return true;
 
-    if (p2.max1.val > p1.max1.val)
-      return false;
+      if (p2.max1.val < p1.max1.val)
+        return false;
+    }
+    else
+    {
+      if (p1.max1.val > p2.max1.val)
+        return true;
+
+      if (p2.max1.val > p1.max1.val)
+        return false;
+    }
+    
     
     return (p1.i1p > p2.i1p);  
   };
