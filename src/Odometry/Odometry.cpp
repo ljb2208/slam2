@@ -3,6 +3,7 @@
 #include "opencv2/calib3d/calib3d.hpp"
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/eigen.hpp>
 
 #include <chrono>
 
@@ -665,5 +666,49 @@ bool Odometry::estimateRotation()
             cv::RANSAC, 0.999, 1.0, mask);
     
     rotationDepth = 3;
+    return true;
+}
+
+bool Odometry::convertRotations()
+{
+    //quaternions
+    Eigen::Quaternionf qEss;
+    Eigen::Quaternionf qEss2;
+    Eigen::Quaternionf qEss3;
+
+    Eigen::Quaternionf qRs;
+    Eigen::Quaternionf qRs2;
+    Eigen::Quaternionf qRs3;
+
+    if (rotationDepth ==0)
+        return false;
+    
+    if (rotationDepth > 0)
+    {
+        Eigen::Matrix3f eig;
+        cv::cv2eigen(essMat, eig);
+        qEss = eig;
+
+        qR = qEss;
+        qRs = qEss;
+    }
+
+    if (rotationDepth > 1)
+    {
+        Eigen::Matrix3f eig;
+        cv::cv2eigen(essMat2, eig);
+        qEss2 = eig;
+
+        qRs2 = qR2.inverse() * qEss2;
+        Eigen::Quaternionf qTemp = sqrt(qR.inverse() * qRs2);
+        //qR = qR * (^0.5);
+    }
+
+    if (rotationDepth > 2)
+    {
+        Eigen::Matrix3f eig;
+        cv::cv2eigen(essMat3, eig);
+        qEss3 = eig;
+    }
     return true;
 }

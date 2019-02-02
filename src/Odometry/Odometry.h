@@ -7,6 +7,7 @@
 #include "Util/Timer.h"
 #include "Mapping/Mapping.h"
 #include <cv.h>
+#include <Eigen/Geometry>
 
 class Odometry
 {
@@ -81,6 +82,11 @@ class Odometry
         cv::Mat essMat3;
         int rotationDepth;
 
+        //quaternions
+        Eigen::Quaternionf qR;
+        Eigen::Quaternionf qR2;
+        Eigen::Quaternionf qR3;
+
         // parameters
         parameters param;
 
@@ -109,6 +115,7 @@ class Odometry
         cv::Mat getDepthImage();
 
         bool estimateRotation();
+        bool convertRotations();
 
         std::ofstream outputFile;
 };
