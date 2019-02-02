@@ -263,7 +263,14 @@ void Matcher::updatePersistentMatches()
     bool found = false;
     for (vector<p_match>::iterator itp=p_matched_p.begin(); itp!=p_matched_p.end(); itp++)
     {
-      if (itp->u1c == it->u1p && itp->v1c == it->v1p && itp->i1c == it->i1p)
+
+      float u1c = roundf(itp->u1c);
+      float u1p = roundf(it->u1p);
+
+      float v1c = roundf(itp->v1c);// * 100) / 100;
+      float v1p = roundf(it->v1p);// * 100) / 100;
+
+      if (u1c == u1p && v1c == v1p && itp->i1c == it->i1p)
       {
         itp->matched = true;
         itp->u1p = it->u1p;

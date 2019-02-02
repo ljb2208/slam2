@@ -8,6 +8,7 @@
 #include "Mapping/Mapping.h"
 #include <cv.h>
 #include <Eigen/Geometry>
+#include "IO/DataSetReader.h"
 
 class Odometry
 {
@@ -74,8 +75,6 @@ class Odometry
         std::vector<int32_t>           inliers;    // inlier set
         Matrix pose = Matrix::eye(4);
 
-
-
         //essential matricies
         cv::Mat essMat;
         cv::Mat essMat2;
@@ -116,6 +115,11 @@ class Odometry
 
         bool estimateRotation();
         bool convertRotations();
+
+        float getRotationError(int index);
+        float getTranslationError(int index);
+
+        std::vector<Matrix> groundTruth;
 
         std::ofstream outputFile;
 };

@@ -31,10 +31,15 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
 
     timer = new Timer();
 
+    ImageFolderReader* imReader = new ImageFolderReader();
+    groundTruth = imReader->getGroundTruth();
+    delete imReader;
+
     outputFile.open("outputs.csv", std::ios::trunc);
     outputFile << "Index,NumMatches,NumInliers,";
     outputFile << "pose00,pose01,pose02,pose03,pose10,pose11,pose12,pose13,pose20,pose21,pose22,pose23,pose30,pose31,pose32,pose33,";
-    outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";
+    outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33,";
+    outputFile << "errorR, errorT";
     outputFile << std::endl;
 }
 
@@ -102,6 +107,15 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     timer->startTimer("updateMotion");
     bool result = updateMotion();
     timer->stopTimer();
+
+    // if (estimateRotation())
+    // {
+    //     convertRotations();
+
+    //     printf("Est and conv Rotations: depth: %i\n", rotationDepth);
+    //     printf("Calc rotation\n");
+    //     std::cout << qR.toRotationMatrix() << std::endl << std::endl;
+    // }
 
     //float maxDepth, minDepth;
     //updateDepth(&maxDepth, &minDepth);
@@ -178,7 +192,8 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         outputFile << motion.val[0][3] << ",";
         outputFile << motion.val[1][3] << ",";
         outputFile << motion.val[2][3] << ",";
-        outputFile << motion.val[3][3] << std::endl;
+        outputFile << motion.val[3][3] << ",";
+        outputFile << getRotationError(image->index) << "," << getTranslationError(image->index) << std::endl;
 
         mapping->addFrame(pose, image, imageRight, p_matched);
     }
@@ -700,7 +715,7 @@ bool Odometry::convertRotations()
         qEss2 = eig;
 
         qRs2 = qR2.inverse() * qEss2;
-        Eigen::Quaternionf qTemp = sqrt(qR.inverse() * qRs2);
+        //Eigen::Quaternionf qTemp = sqrt(qR.inverse() * qRs2);
         //qR = qR * (^0.5);
     }
 
@@ -709,6 +724,51 @@ bool Odometry::convertRotations()
         Eigen::Matrix3f eig;
         cv::cv2eigen(essMat3, eig);
         qEss3 = eig;
+
+        qRs3 = qR3 * qR2;
+        qRs3 = qRs3.inverse() * qEss3;
     }
+
     return true;
+}
+
+float Odometry::getRotationError(int index)
+{
+    if (groundTruth.size() <= index)
+        return 9999999;
+
+     // get rotation angle between this keyframe and last keyframe on stack    
+    Matrix rA = pose.getMat(0, 0, 2, 2);
+    Matrix rB = groundTruth[index].getMat(0, 0, 2, 2);
+
+    Matrix rAT = rA.operator~();
+    Matrix rAB = rAT.operator*(rB);
+
+    // calculate trace
+    float trace = rAB.val[0][0] + rAB.val[1][1] + rAB.val[2][2];
+
+    if (trace > 3)
+        trace = 3;
+
+    float f1 = acos((trace - 1) / 2);
+    float f2 = (f1 * 180) / M_PI;
+
+    //printf("trace: %f, f1: %f f2:%f f5: %f f6: %f\n", trace, f1, f2, f5, f6);
+
+    return f2;
+}
+    
+float Odometry::getTranslationError(int index)
+{
+    if (groundTruth.size() <= index)
+        return 9999999;
+
+    // get euclidian distance between this keyframe and last keyframe on stack
+    float f1, f2, f3;
+
+    f1 = pose.val[0][3] - groundTruth[index].val[0][3];
+    f2 = pose.val[1][3] - groundTruth[index].val[1][3];
+    f3 = pose.val[2][3] - groundTruth[index].val[2][3];
+
+    return fabs(sqrt(f1*f1 + f2*f2 + f3*f3));    
 }

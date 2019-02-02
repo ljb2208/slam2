@@ -100,3 +100,35 @@ double ImageFolderReader::getTimestamp(int index)
 
 	return timestamps[index];
 }
+
+std::vector<Matrix> ImageFolderReader::getGroundTruth()
+{
+    std::vector<Matrix> matrix_result;
+
+        // show ground truth
+    std::string gtPath = "/home/ljb2208/development/odometry/poses/00.txt";
+    std::ifstream ReadFile(gtPath.c_str());
+    std::string temp;
+    std::string delim (" ");
+    std::vector<std::string> results;
+    Matrix gtCam = Matrix::eye(4);    
+
+    while(std::getline(ReadFile, temp))
+    {
+        split(temp, delim, results);
+        for(int i = 0; i < 3; i++)
+            for(int j = 0; j < 4; j++)
+            {
+                gtCam.val[i][j] = atof(results[4*i + j].c_str());
+            }
+        gtCam.val[3][0] = 0;
+        gtCam.val[3][1] = 0;
+        gtCam.val[3][2] = 0;
+        gtCam.val[3][3] = 1;
+
+        results.clear();
+        matrix_result.push_back(gtCam);        
+    }
+    ReadFile.close();
+    return matrix_result;
+}

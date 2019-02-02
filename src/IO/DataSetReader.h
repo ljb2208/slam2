@@ -3,6 +3,8 @@
 #include <sstream>
 #include <fstream>
 #include <dirent.h>
+#include "Util/NumType.h"
+#include "Odometry/Matrix.h"
 
 #include <boost/thread.hpp>
 
@@ -58,12 +60,14 @@ inline void split(const std::string& src, const std::string& delim, std::vector<
 class ImageFolderReader{
 
 public:
+    ImageFolderReader(){};
     ImageFolderReader(std::string path, std::string calibFile);
     ~ImageFolderReader();
 
     int getNumImages();
     std::string getImageFilename(int index);
     double getTimestamp(int index);
+    std::vector<Matrix> getGroundTruth();
 
 private:
     void loadTimestamps();

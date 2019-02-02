@@ -111,6 +111,7 @@ public:
     maximum max1;   // current feature left image
     maximum max2;   // current feature right image
     int32_t age;  // feature age
+    int32_t noMatchCount;
     float   depth;  // depth
     bool matched;
     p_match(){ age = -1; matched = false; depth = 0.0;}
