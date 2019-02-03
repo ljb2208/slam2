@@ -69,38 +69,6 @@ void SlamViewer::run()
     float blue[3] = {0,0,1};
     
 
-        // show ground truth
-    std::string gtPath = "/home/ljb2208/development/odometry/poses/00.txt";
-    std::ifstream ReadFile(gtPath.c_str());
-    std::string temp;
-    std::string delim (" ");
-    std::vector<std::string> results;
-    Sophus::Matrix4f gtCam;    
-
-    while(std::getline(ReadFile, temp))
-    {
-        split(temp, delim, results);
-        for(int i = 0; i < 3; i++)
-            for(int j = 0; j < 4; j++)
-            {
-                gtCam(i,j) = atof(results[4*i + j].c_str());
-            }
-        gtCam(3,0) = 0;
-        gtCam(3,1) = 0;
-        gtCam(3,2) = 0;
-        gtCam(3,3) = 1;
-
-        results.clear();
-        matrix_result.push_back(gtCam);
-
-        std::cout << "Ground truth pose" << std::endl;
-        std::cout << gtCam << std::endl << std::endl;
-
-
-    }
-    ReadFile.close();
-
-
     // Default hooks for exiting (Esc) and fullscreen (tab).
 	while( !pangolin::ShouldQuit() && running )
 	{

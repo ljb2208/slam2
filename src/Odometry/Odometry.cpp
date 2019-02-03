@@ -277,7 +277,7 @@ std::vector<double> Odometry::estimateMotion ()
 
     // compute minimum distance for RANSAC samples
     double width=0,height=0;
-    for (std::vector<Matcher::p_match>::iterator it=p_matched.begin(); it!=p_matched.end(); it++) {
+    for (std::vector<Matches::p_match>::iterator it=p_matched.begin(); it!=p_matched.end(); it++) {
         if (it->u1c>width)  width  = it->u1c;
         if (it->v1c>height) height = it->v1c;
     }
@@ -404,7 +404,7 @@ std::vector<int32_t> Odometry::getRandomSample(int32_t N,int32_t num)
     return sample;
 }
 
-Odometry::result Odometry::updateParameters(std::vector<Matcher::p_match> &p_matched,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps)
+Odometry::result Odometry::updateParameters(std::vector<Matches::p_match> &p_matched,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps)
 {
     // we need at least 3 observations
     if (active.size()<3)
@@ -451,7 +451,7 @@ Odometry::result Odometry::updateParameters(std::vector<Matcher::p_match> &p_mat
     }
 }
 
-std::vector<int32_t> Odometry::getInlier(std::vector<Matcher::p_match> &p_matched, std::vector<double> &tr)
+std::vector<int32_t> Odometry::getInlier(std::vector<Matches::p_match> &p_matched, std::vector<double> &tr)
 {
      // mark all observations active
     std::vector<int32_t> active;
@@ -471,7 +471,7 @@ std::vector<int32_t> Odometry::getInlier(std::vector<Matcher::p_match> &p_matche
     return inliers;
 }
 
-void Odometry::computeObservations(std::vector<Matcher::p_match> &p_matched,std::vector<int32_t> &active)
+void Odometry::computeObservations(std::vector<Matches::p_match> &p_matched,std::vector<int32_t> &active)
 {
     // set all observations
     for (int32_t i=0; i<(int32_t)active.size(); i++) {

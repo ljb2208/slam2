@@ -2,6 +2,7 @@
 
 #include "Pangolin/SlamViewer.h"
 #include "Odometry/Matcher.h"
+#include "Odometry/Matches.h"
 #include <vector>
 #include <queue>
 #include "Util/SLImage.h"
@@ -13,7 +14,7 @@ class Mapping
     public:
         Mapping(SlamViewer* viewer);
 
-        void addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, std::vector<Matcher::p_match> p_matched);
+        void addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, std::vector<Matches::p_match> p_matched);
 
         void run();
 	    void close();

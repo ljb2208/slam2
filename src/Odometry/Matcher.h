@@ -22,6 +22,8 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 #ifndef __MATCHER_H__
 #define __MATCHER_H__
 
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +34,7 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 #include <vector>
 
 #include "Matrix.h"
+#include "Matches.h"
 
 class Matcher {
 
@@ -83,44 +86,6 @@ public:
     param.base = base;
   }
 
-  // structure for storing interest points
-  struct maximum {
-    int32_t u;   // u-coordinate
-    int32_t v;   // v-coordinate
-    int32_t val; // value
-    int32_t c;   // class
-    int32_t d1,d2,d3,d4,d5,d6,d7,d8; // descriptor
-    maximum() {}
-    maximum(int32_t u,int32_t v,int32_t val,int32_t c):u(u),v(v),val(val),c(c) {}
-  };
-
-  // structure for storing matches
-  struct p_match {
-    float   u1p2,v1p2; // u,v-coordinates in 2nd previous left  image
-    float   u1p3,v1p3; // u,v-coordinates in 3rd previous left  image
-    float   u1p,v1p; // u,v-coordinates in previous left  image
-    int32_t i1p;     // feature index (for tracking)
-    float   u2p,v2p; // u,v-coordinates in previous right image
-    int32_t i2p;     // feature index (for tracking)
-    float   u1c,v1c; // u,v-coordinates in current  left  image
-    int32_t i1c;     // feature index (for tracking)
-    float   u2c,v2c; // u,v-coordinates in current  right image
-    int32_t i2c;     // feature index (for tracking)
-    maximum imax1;  // initial feature left image
-    maximum imax2;  // initial feature right image
-    maximum max1;   // current feature left image
-    maximum max2;   // current feature right image
-    int32_t age;  // feature age
-    int32_t noMatchCount;
-    float   depth;  // depth
-    bool matched;
-    p_match(){ age = -1; matched = false; depth = 0.0;}
-    p_match(float u1p,float v1p,int32_t i1p,float u2p,float v2p,int32_t i2p,
-            float u1c,float v1c,int32_t i1c,float u2c,float v2c,int32_t i2c):
-            u1p(u1p),v1p(v1p),i1p(i1p),u2p(u2p),v2p(v2p),i2p(i2p),
-            u1c(u1c),v1c(v1c),i1c(i1c),u2c(u2c),v2c(v2c),i2c(i2c) { age = -1; matched = false;}
-  };
-
   // computes features from left/right images and pushes them back to a ringbuffer,
   // which interally stores the features of the current and previous image pair
   // use this function for stereo or quad matching
@@ -155,7 +120,7 @@ public:
   void bucketFeaturesSTA(int32_t max_features,float bucket_width,float bucket_height);
 
   // return vector with matched feature points and indices
-  std::vector<Matcher::p_match> getMatches() { return p_matched_2; }
+  std::vector<Matches::p_match> getMatches() { return p_matched_2; }
 
   // given a vector of inliers computes gain factor between the current and
   // the previous frame. this function is useful if you want to reconstruct 3d
@@ -187,7 +152,7 @@ private:
   }
 
   // Alexander Neubeck and Luc Van Gool: Efficient Non-Maximum Suppression, ICPR'06, algorithm 4
-  void nonMaximumSuppression (int16_t* I_f1,int16_t* I_f2,const int32_t* dims,std::vector<Matcher::maximum> &maxima,int32_t nms_n);
+  void nonMaximumSuppression (int16_t* I_f1,int16_t* I_f2,const int32_t* dims,std::vector<Matches::maximum> &maxima,int32_t nms_n);
 
   // descriptor functions
   inline uint8_t saturate(int16_t in);
@@ -195,7 +160,7 @@ private:
   void filterImageSobel (uint8_t* I,uint8_t* I_du,uint8_t* I_dv,const int* dims);
   inline void computeDescriptor (const uint8_t* I_du,const uint8_t* I_dv,const int32_t &bpl,const int32_t &u,const int32_t &v,uint8_t *desc_addr);
   inline void computeSmallDescriptor (const uint8_t* I_du,const uint8_t* I_dv,const int32_t &bpl,const int32_t &u,const int32_t &v,uint8_t *desc_addr);
-  void computeDescriptors (uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,std::vector<Matcher::maximum> &maxima);
+  void computeDescriptors (uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,std::vector<Matches::maximum> &maxima);
   
   void getHalfResolutionDimensions(const int32_t *dims,int32_t *dims_half);
   uint8_t* createHalfResolutionImage(uint8_t *I,const int32_t* dims);
@@ -212,17 +177,17 @@ private:
   void computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int32_t &num1,int32_t* &max2,int32_t &num2,uint8_t* &I_du,uint8_t* &I_dv,uint8_t* &I_du_full,uint8_t* &I_dv_full);
 
   // matching functions
-  void computePriorStatistics (std::vector<Matcher::p_match> &p_matched,int32_t method);
+  void computePriorStatistics (Matches* p_matched,int32_t method);
   void createIndexVector (int32_t* m,int32_t n,std::vector<int32_t> *k,const int32_t &u_bin_num,const int32_t &v_bin_num);
   inline void findMatch (int32_t* m1,const int32_t &i1,int32_t* m2,const int32_t &step_size,
                          std::vector<int32_t> *k2,const int32_t &u_bin_num,const int32_t &v_bin_num,const int32_t &stat_bin,
                          int32_t& min_ind,int32_t stage,bool flow,bool use_prior,double u_=-1,double v_=-1);
   void matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
                  int32_t n1p,int32_t n2p,int32_t n1c,int32_t n2c,
-                 std::vector<Matcher::p_match> &p_matched,int32_t method,bool use_prior,Matrix *Tr_delta = 0);
+                 Matches* p_matched,int32_t method,bool use_prior,Matrix *Tr_delta = 0);
 
   // outlier removal
-  void removeOutliers (std::vector<Matcher::p_match> &p_matched,int32_t method);
+  void removeOutliers (Matches* p_matched,int32_t method);
 
   // parabolic fitting
   bool parabolicFitting(const uint8_t* I1_du,const uint8_t* I1_dv,const int32_t* dims1,
@@ -236,45 +201,13 @@ private:
                        const float &u1,const float &v1,
                        float       &u2,float       &v2,
                        uint8_t* desc_buffer);
-  void refinement (std::vector<Matcher::p_match> &p_matched,int32_t method);
+  void refinement (Matches* p_matched,int32_t method);
 
-  void updatePersistentMatches();
-
-  static bool compareMatches(Matcher::p_match p1, Matcher::p_match p2)
-  {
-    int32_t ageDiscrim = 3;
-    if (p1.age > p2.age && p1.age <= ageDiscrim)
-      return true;
-    
-    if (p2.age > p1.age && p2.age <= ageDiscrim)
-      return false;
-    
-    if (p1.max1.c == 0 || p1.max1.c ==2) // class 0 and 2 are minima so negative val
-    {
-      if (p1.max1.val < p2.max1.val)
-        return true;
-
-      if (p2.max1.val < p1.max1.val)
-        return false;
-    }
-    else
-    {
-      if (p1.max1.val > p2.max1.val)
-        return true;
-
-      if (p2.max1.val > p1.max1.val)
-        return false;
-    }
-    
-    
-    return (p1.i1p > p2.i1p);  
-  };
-
+  //void updatePersistentMatches();
 
   // mean for gain computation
   inline float mean(const uint8_t* I,const int32_t &bpl,const int32_t &u_min,const int32_t &u_max,const int32_t &v_min,const int32_t &v_max);
 
-  void ageFeaturePoints();
   // parameters
   parameters param;
   int32_t    margin;
@@ -290,10 +223,12 @@ private:
   uint8_t *I1p_dv_full,*I2p_dv_full,*I1c_dv_full,*I2c_dv_full; // half-res matching
   int32_t dims_p[3],dims_c[3];
 
-  std::vector<Matcher::p_match> p_matched_1;
-  std::vector<Matcher::p_match> p_matched_2;
-  std::vector<Matcher::p_match> p_matched_p; // persisted matches
+  std::vector<Matches::p_match> p_matched_1;
+  std::vector<Matches::p_match> p_matched_2;
+  //std::vector<Matcher::p_match> p_matched_p; // persisted matches
   std::vector<Matcher::range>   ranges;
+
+  Matches* p_matched_p;
 };
 
 #endif

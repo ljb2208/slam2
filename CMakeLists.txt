@@ -41,6 +41,7 @@ set(slam_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/Odometry/Feature.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Filter.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Matcher.cpp
+    ${PROJECT_SOURCE_DIR}/src/Odometry/Matches.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Triangle.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Matrix.cpp
     ${PROJECT_SOURCE_DIR}/src/Util/Timer.cpp

@@ -7,7 +7,7 @@ Mapping::Mapping(SlamViewer* viewer)
     running = true;
 }
 
-void Mapping::addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, std::vector<Matcher::p_match> p_matched)
+void Mapping::addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, std::vector<Matches::p_match> p_matched)
 {
     KeyFrame* keyFrame = new KeyFrame();
     keyFrame->index = leftImage->index;

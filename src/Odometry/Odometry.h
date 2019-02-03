@@ -58,7 +58,7 @@ class Odometry
             }
         };
 
-        std::vector<Matcher::p_match>  p_matched;  // feature point matches
+        std::vector<Matches::p_match>  p_matched;  // feature point matches
         Timer* timer;
 
     private:
@@ -99,9 +99,9 @@ class Odometry
         std::vector<double> estimateMotion ();
         Matrix transformationVectorToMatrix (std::vector<double> tr);
         std::vector<int32_t> getRandomSample(int32_t N,int32_t num);
-        Odometry::result updateParameters(std::vector<Matcher::p_match> &p_matched,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps);
-        std::vector<int32_t> getInlier(std::vector<Matcher::p_match> &p_matched, std::vector<double> &tr);
-        void computeObservations(std::vector<Matcher::p_match> &p_matched,std::vector<int32_t> &active);
+        Odometry::result updateParameters(std::vector<Matches::p_match> &p_matched,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps);
+        std::vector<int32_t> getInlier(std::vector<Matches::p_match> &p_matched, std::vector<double> &tr);
+        void computeObservations(std::vector<Matches::p_match> &p_matched,std::vector<int32_t> &active);
         void computeResidualsAndJacobian(std::vector<double> &tr,std::vector<int32_t> &active);
         // returns the number of successfully matched points, after bucketing
         int32_t getNumberOfMatches () { return p_matched.size(); }

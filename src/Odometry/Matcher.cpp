@@ -58,6 +58,8 @@ Matcher::Matcher(parameters param) : param(param) {
   // adjust match radius on half resolution
   if (param.half_resolution)
     this->param.match_radius /= 2;
+
+    p_matched_p = new Matches();
 }
 
 // deconstructor
@@ -174,7 +176,7 @@ void Matcher::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace
     }
   }
 
-  ageFeaturePoints();
+  //ageFeaturePoints();
 
   // compute new features for current frame
   computeFeatures(I1c,dims_c,m1c1,n1c1,m1c2,n1c2,I1c_du,I1c_dv,I1c_du_full,I1c_dv_full);
@@ -215,122 +217,131 @@ void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
 
   // clear old matches
   p_matched_1.clear();
-  p_matched_2.clear();
+  p_matched_2.clear();  
+
+  p_matched_p->clear();
 
   // double pass matching
   if (param.multi_stage) {
 
     // 1st pass (sparse matches)
-    matching(m1p1,m2p1,m1c1,m2c1,n1p1,n2p1,n1c1,n2c1,p_matched_1,method,false,Tr_delta);
-    removeOutliers(p_matched_1,method);
+    matching(m1p1,m2p1,m1c1,m2c1,n1p1,n2p1,n1c1,n2c1,p_matched_p,method,false,Tr_delta);
+    printf("Matching1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+    removeOutliers(p_matched_p,method);
+    printf("removeOutliers1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
     
     // compute search range prior statistics (used for speeding up 2nd pass)
-    computePriorStatistics(p_matched_1,method);      
+    computePriorStatistics(p_matched_p,method);      
+    printf("computePriorStats1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
 
     // 2nd pass (dense matches)
-    matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,p_matched_2,method,true,Tr_delta);
+    matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,p_matched_p,method,true,Tr_delta);
+    printf("matching2. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
     if (param.refinement>0)
-      refinement(p_matched_2,method);
-    removeOutliers(p_matched_2,method);
+      refinement(p_matched_p,method);
 
-    updatePersistentMatches();
+    printf("refinement. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+    removeOutliers(p_matched_p,method);
+    printf("removeOutliers2. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+
+    //updatePersistentMatches();
   // single pass matching
   } else {
-    matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,p_matched_2,method,false,Tr_delta);
+    matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,p_matched_p,method,false,Tr_delta);
     if (param.refinement>0)
-      refinement(p_matched_2,method);
-    removeOutliers(p_matched_2,method);
+      refinement(p_matched_p,method);
+    removeOutliers(p_matched_p,method);
   }
 }
 
-void Matcher::updatePersistentMatches()
-{
-  printf("match2 count: %i \n", static_cast<int>(p_matched_2.size()));
-  printf("Persisent Match Count pre: %i \n", static_cast<int>(p_matched_p.size()));
+// void Matcher::updatePersistentMatches()
+// {
+//   printf("match2 count: %i \n", static_cast<int>(p_matched_2.size()));
+//   printf("Persisent Match Count pre: %i \n", static_cast<int>(p_matched_p.size()));
 
-  //update all matches to false
-  for (vector<p_match>::iterator it=p_matched_p.begin(); it!=p_matched_p.end(); it++)
-  {
-    it->matched = false;
-    it->age++;
-  }
-  int32_t maxAge = 0;
-  int32_t fnd = 0;
+//   //update all matches to false
+//   for (vector<p_match>::iterator it=p_matched_p.begin(); it!=p_matched_p.end(); it++)
+//   {
+//     it->matched = false;
+//     it->age++;
+//   }
+//   int32_t maxAge = 0;
+//   int32_t fnd = 0;
 
-  for (vector<p_match>::iterator it=p_matched_2.begin(); it!= p_matched_2.end(); it++)
-  {
-    // find matching persistent match - if found update
-    bool found = false;
-    for (vector<p_match>::iterator itp=p_matched_p.begin(); itp!=p_matched_p.end(); itp++)
-    {
+//   for (vector<p_match>::iterator it=p_matched_2.begin(); it!= p_matched_2.end(); it++)
+//   {
+//     // find matching persistent match - if found update
+//     bool found = false;
+//     for (vector<p_match>::iterator itp=p_matched_p.begin(); itp!=p_matched_p.end(); itp++)
+//     {
 
-      float u1c = roundf(itp->u1c);
-      float u1p = roundf(it->u1p);
+//       float u1c = roundf(itp->u1c);
+//       float u1p = roundf(it->u1p);
 
-      float v1c = roundf(itp->v1c);// * 100) / 100;
-      float v1p = roundf(it->v1p);// * 100) / 100;
+//       float v1c = roundf(itp->v1c);// * 100) / 100;
+//       float v1p = roundf(it->v1p);// * 100) / 100;
 
-      if (u1c == u1p && v1c == v1p && itp->i1c == it->i1p)
-      {
-        itp->matched = true;
-        itp->u1p = it->u1p;
-        itp->v1p = it->v1p;
-        itp->i1p = it->i1p;
-        itp->u2p = it->u2p;
-        itp->v2p = it->v2p;
-        itp->i2p = it->i2p;
-        itp->u1c = it->u1c;
-        itp->v1c = it->v1c;
-        itp->i1c = it->i1c;
-        itp->u2c = it->u2c;
-        itp->v2c = it->v2c;
-        itp->i2c = it->i2c;
-        itp->max1 = it->max1;
-        itp->max2 = it->max2;        
+//       if (u1c == u1p && v1c == v1p && itp->i1c == it->i1p)
+//       {
+//         itp->matched = true;
+//         itp->u1p = it->u1p;
+//         itp->v1p = it->v1p;
+//         itp->i1p = it->i1p;
+//         itp->u2p = it->u2p;
+//         itp->v2p = it->v2p;
+//         itp->i2p = it->i2p;
+//         itp->u1c = it->u1c;
+//         itp->v1c = it->v1c;
+//         itp->i1c = it->i1c;
+//         itp->u2c = it->u2c;
+//         itp->v2c = it->v2c;
+//         itp->i2c = it->i2c;
+//         itp->max1 = it->max1;
+//         itp->max2 = it->max2;        
 
-        if (itp->age > maxAge)
-          maxAge = itp->age;
+//         if (itp->age > maxAge)
+//           maxAge = itp->age;
 
-        fnd++;
-        break;
-      }
-    }
+//         fnd++;
+//         break;
+//       }
+//     }
     
-    // if not found create new persisent match and add
-    if (!found)
-    {
-      Matcher::p_match mtch(it->u1p, it->v1p, it->i1p, it->u2p, it->v2p, it->i2p,
-      it->u1c, it->v1c, it->i1c, it->u2c, it->v2c, it->i2c);
-      mtch.imax1 = it->max1;
-      mtch.max1 = it->max1;
+//     // if not found create new persisent match and add
+//     if (!found)
+//     {
+//       Matches::p_match mtch(it->u1p, it->v1p, it->i1p, it->u2p, it->v2p, it->i2p,
+//       it->u1c, it->v1c, it->i1c, it->u2c, it->v2c, it->i2c);
+//       mtch.imax1 = it->max1;
+//       mtch.max1 = it->max1;
 
-      mtch.imax2 = it->max2;
-      mtch.max2 = it->max2;
+//       mtch.imax2 = it->max2;
+//       mtch.max2 = it->max2;
 
-      mtch.matched = true;
+//       mtch.matched = true;
 
-      //need to update maxima ma1 and max2
-      p_matched_p.push_back(mtch);
-    }
-  }
+//       //need to update maxima ma1 and max2
+//       p_matched_p.push_back(mtch);
+//     }
+//   }
 
-  printf("Persisent Match Count found: %i \n", fnd);
-  printf("Persisent Match Count pre remove: %i \n", static_cast<int>(p_matched_p.size()));
+  // printf("Persisent Match Count found: %i \n", fnd);
+  // printf("Persisent Match Count pre remove: %i \n", static_cast<int>(p_matched_p.size()));
 
-  // remove where no current matches
-  p_matched_p.erase(std::remove_if(p_matched_p.begin(), p_matched_p.end(),
-          [](p_match pm){ return pm.matched == false;}), p_matched_p.end());  
+  // // remove where no current matches
+  // p_matched_p.erase(std::remove_if(p_matched_p.begin(), p_matched_p.end(),
+  //         [](p_match pm){ return pm.matched == false;}), p_matched_p.end());  
 
-  printf("Persisent Match Count post remove: %i \n", static_cast<int>(p_matched_p.size()));
-  printf("Max age: %i\n", maxAge);
-}
+  // printf("Persisent Match Count post remove: %i \n", static_cast<int>(p_matched_p.size()));
+  // printf("Max age: %i\n", maxAge);
+//}
 
 void Matcher::bucketFeatures(int32_t max_features,float bucket_width,float bucket_height) {
 
   // find max values
   float u_max = 0;
   float v_max = 0;
-  for (vector<p_match>::iterator it = p_matched_2.begin(); it!=p_matched_2.end(); it++) {
+  for (vector<Matches::p_match>::iterator it = p_matched_2.begin(); it!=p_matched_2.end(); it++) {
     if (it->u1c>u_max) u_max=it->u1c;
     if (it->v1c>v_max) v_max=it->v1c;
   }
@@ -338,10 +349,10 @@ void Matcher::bucketFeatures(int32_t max_features,float bucket_width,float bucke
   // allocate number of buckets needed
   int32_t bucket_cols = (int32_t)floor(u_max/bucket_width)+1;
   int32_t bucket_rows = (int32_t)floor(v_max/bucket_height)+1;
-  vector<p_match> *buckets = new vector<p_match>[bucket_cols*bucket_rows];
+  vector<Matches::p_match> *buckets = new vector<Matches::p_match>[bucket_cols*bucket_rows];
 
   // assign matches to their buckets
-  for (vector<p_match>::iterator it=p_matched_2.begin(); it!=p_matched_2.end(); it++) {
+  for (vector<Matches::p_match>::iterator it=p_matched_2.begin(); it!=p_matched_2.end(); it++) {
     int32_t u = (int32_t)floor(it->u1c/bucket_width);
     int32_t v = (int32_t)floor(it->v1c/bucket_height);
     buckets[v*bucket_cols+u].push_back(*it);
@@ -356,7 +367,7 @@ void Matcher::bucketFeatures(int32_t max_features,float bucket_width,float bucke
     
     // add up to max_features features from this bucket to p_matched
     int32_t k=0;
-    for (vector<p_match>::iterator it=buckets[i].begin(); it!=buckets[i].end(); it++) {
+    for (vector<Matches::p_match>::iterator it=buckets[i].begin(); it!=buckets[i].end(); it++) {
       p_matched_2.push_back(*it);
       k++;
       if (k>=max_features)
@@ -370,76 +381,77 @@ void Matcher::bucketFeatures(int32_t max_features,float bucket_width,float bucke
 
 void Matcher::bucketFeaturesSTA(int32_t max_features,float bucket_width,float bucket_height) {
 
+  p_matched_p->bucketFeatures(max_features, bucket_width, bucket_height);
   // find max values
-  float u_max = 0;
-  float v_max = 0;
-  for (vector<p_match>::iterator it = p_matched_p.begin(); it!=p_matched_p.end(); it++) {
-    if (it->u1c>u_max) u_max=it->u1c;
-    if (it->v1c>v_max) v_max=it->v1c;
-  }
+  // float u_max = 0;
+  // float v_max = 0;
+  // for (vector<Matches::p_match>::iterator it = p_matched_p.begin(); it!=p_matched_p.end(); it++) {
+  //   if (it->u1c>u_max) u_max=it->u1c;
+  //   if (it->v1c>v_max) v_max=it->v1c;
+  // }
 
-  // allocate number of buckets needed
-  int32_t bucket_cols = (int32_t)floor(u_max/bucket_width)+1;
-  int32_t bucket_rows = (int32_t)floor(v_max/bucket_height)+1;
-  vector<p_match> *buckets = new vector<p_match>[bucket_cols*bucket_rows*4];
+  // // allocate number of buckets needed
+  // int32_t bucket_cols = (int32_t)floor(u_max/bucket_width)+1;
+  // int32_t bucket_rows = (int32_t)floor(v_max/bucket_height)+1;
+  // vector<Matches::p_match> *buckets = new vector<Matches::p_match>[bucket_cols*bucket_rows*4];
 
-  printf("umax: %f vmax: %f bucket cols: %i rows: %i\n", u_max, v_max, bucket_cols, bucket_rows);
+  // printf("umax: %f vmax: %f bucket cols: %i rows: %i\n", u_max, v_max, bucket_cols, bucket_rows);
 
-  // assign matches to their buckets
-  for (vector<p_match>::iterator it=p_matched_p.begin(); it!=p_matched_p.end(); it++) {    
-    int32_t u = (int32_t)floor(it->u1c/bucket_width);
-    int32_t v = (int32_t)floor(it->v1c/bucket_height);
-    //bucketsByType[it->max1.c][v*bucket_cols+u].push_back(*it);
-    buckets[v*bucket_cols+u+it->max1.c*bucket_cols].push_back(*it);
-  }
+  // // assign matches to their buckets
+  // for (vector<Matches::p_match>::iterator it=p_matched_p.begin(); it!=p_matched_p.end(); it++) {    
+  //   int32_t u = (int32_t)floor(it->u1c/bucket_width);
+  //   int32_t v = (int32_t)floor(it->v1c/bucket_height);
+  //   //bucketsByType[it->max1.c][v*bucket_cols+u].push_back(*it);
+  //   buckets[v*bucket_cols+u+it->max1.c*bucket_cols].push_back(*it);
+  // }
 
-  // refill p_matched from buckets
-  p_matched_2.clear();
-  for (int32_t c=0; c<bucket_cols; c++) 
-  {
-    for (int32_t r=0; r<bucket_rows; r++)  
-    {
+  // // refill p_matched from buckets
+  // p_matched_2.clear();
+  // for (int32_t c=0; c<bucket_cols; c++) 
+  // {
+  //   for (int32_t r=0; r<bucket_rows; r++)  
+  //   {
       
-      int32_t ind = r*bucket_cols +c;
-      // sort buckets       
-      std::sort(buckets[ind].begin(), buckets[ind].end(), compareMatches);
-      std::sort(buckets[ind+1*bucket_cols].begin(), buckets[ind+1*bucket_cols].end(), compareMatches);
-      std::sort(buckets[ind+2*bucket_cols].begin(), buckets[ind+2*bucket_cols].end(), compareMatches);
-      std::sort(buckets[ind+3*bucket_cols].begin(), buckets[ind+3*bucket_cols].end(), compareMatches);
+  //     int32_t ind = r*bucket_cols +c;
+  //     // sort buckets       
+  //     std::sort(buckets[ind].begin(), buckets[ind].end(), compareMatches);
+  //     std::sort(buckets[ind+1*bucket_cols].begin(), buckets[ind+1*bucket_cols].end(), compareMatches);
+  //     std::sort(buckets[ind+2*bucket_cols].begin(), buckets[ind+2*bucket_cols].end(), compareMatches);
+  //     std::sort(buckets[ind+3*bucket_cols].begin(), buckets[ind+3*bucket_cols].end(), compareMatches);
       
-      // add up to max_features features from this bucket to p_matched
-      int32_t k=0;
+  //     // add up to max_features features from this bucket to p_matched
+  //     int32_t k=0;
 
-      int32_t cnt0 = buckets[ind].size();
-      int32_t cnt1 = buckets[ind+1*bucket_cols].size();
-      int32_t cnt2 = buckets[ind+2*bucket_cols].size();
-      int32_t cnt3 = buckets[ind+3*bucket_cols].size();
+  //     int32_t cnt0 = buckets[ind].size();
+  //     int32_t cnt1 = buckets[ind+1*bucket_cols].size();
+  //     int32_t cnt2 = buckets[ind+2*bucket_cols].size();
+  //     int32_t cnt3 = buckets[ind+3*bucket_cols].size();
 
-      while  (cnt0 >k || cnt1 >k || cnt2 > k || cnt3 >k)
-      {
-        if (cnt0 > k)
-          p_matched_2.push_back(buckets[ind].at(k));
+  //     while  (cnt0 >k || cnt1 >k || cnt2 > k || cnt3 >k)
+  //     {
+  //       if (cnt0 > k)
+  //         p_matched_2.push_back(buckets[ind].at(k));
 
-        if (cnt1 > k)
-          p_matched_2.push_back(buckets[ind + 1*bucket_cols].at(k));
+  //       if (cnt1 > k)
+  //         p_matched_2.push_back(buckets[ind + 1*bucket_cols].at(k));
 
-        if (cnt2 > k)
-          p_matched_2.push_back(buckets[ind + 2*bucket_cols].at(k));
+  //       if (cnt2 > k)
+  //         p_matched_2.push_back(buckets[ind + 2*bucket_cols].at(k));
         
-        if (cnt3 > k)
-          p_matched_2.push_back(buckets[ind + 3*bucket_cols].at(k));
+  //       if (cnt3 > k)
+  //         p_matched_2.push_back(buckets[ind + 3*bucket_cols].at(k));
 
-        k++;
+  //       k++;
 
-        if (k >= (max_features/2))
-          break;
+  //       if (k >= (max_features/2))
+  //         break;
         
-      }      
-    }
-  }
+  //     }      
+  //   }
+  // }
 
-  // free buckets
-  delete []buckets;
+  // // free buckets
+  // delete []buckets;
 }
 
 
@@ -489,7 +501,7 @@ float Matcher::getGain (vector<int32_t> inliers) {
 // PRIVATE FUNCTIONS //
 ///////////////////////
 
-void Matcher::nonMaximumSuppression (int16_t* I_f1,int16_t* I_f2,const int32_t* dims,vector<Matcher::maximum> &maxima,int32_t nms_n) {
+void Matcher::nonMaximumSuppression (int16_t* I_f1,int16_t* I_f2,const int32_t* dims,vector<Matches::maximum> &maxima,int32_t nms_n) {
   
   // extract parameters
   int32_t width  = dims[0];
@@ -550,7 +562,7 @@ void Matcher::nonMaximumSuppression (int16_t* I_f1,int16_t* I_f2,const int32_t* 
         }
       }
       if (f1minval<=-tau)
-        maxima.push_back(Matcher::maximum(f1mini,f1minj,f1minval,0));
+        maxima.push_back(Matches::maximum(f1mini,f1minj,f1minval,0));
       failed_f1min:;
 
       // f1 maximum
@@ -562,7 +574,7 @@ void Matcher::nonMaximumSuppression (int16_t* I_f1,int16_t* I_f2,const int32_t* 
         }
       }
       if (f1maxval>=tau)
-        maxima.push_back(Matcher::maximum(f1maxi,f1maxj,f1maxval,1));
+        maxima.push_back(Matches::maximum(f1maxi,f1maxj,f1maxval,1));
       failed_f1max:;
       
       // f2 minimum
@@ -574,7 +586,7 @@ void Matcher::nonMaximumSuppression (int16_t* I_f1,int16_t* I_f2,const int32_t* 
         }
       }
       if (f2minval<=-tau)
-        maxima.push_back(Matcher::maximum(f2mini,f2minj,f2minval,2));
+        maxima.push_back(Matches::maximum(f2mini,f2minj,f2minval,2));
       failed_f2min:;
 
       // f2 maximum
@@ -586,7 +598,7 @@ void Matcher::nonMaximumSuppression (int16_t* I_f1,int16_t* I_f2,const int32_t* 
         }
       }
       if (f2maxval>=tau)
-        maxima.push_back(Matcher::maximum(f2maxi,f2maxj,f2maxval,3));
+        maxima.push_back(Matches::maximum(f2maxi,f2maxj,f2maxval,3));
       failed_f2max:;
     }
   }
@@ -667,14 +679,14 @@ inline void Matcher::computeSmallDescriptor (const uint8_t* I_du,const uint8_t* 
   desc_addr[k++] = I_dv[addr3];
 }
 
-void Matcher::computeDescriptors (uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,std::vector<Matcher::maximum> &maxima) {
+void Matcher::computeDescriptors (uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,std::vector<Matches::maximum> &maxima) {
   
   // loop variables
   int32_t u,v;
   uint8_t *desc_addr;
   
   // for all maxima do
-  for (vector<Matcher::maximum>::iterator it=maxima.begin(); it!=maxima.end(); it++) {
+  for (vector<Matches::maximum>::iterator it=maxima.begin(); it!=maxima.end(); it++) {
     u = (*it).u;
     v = (*it).v;
     desc_addr = (uint8_t*)(&((*it).d1));
@@ -842,7 +854,7 @@ void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int
   }
   
   // extract sparse maxima (1st pass) via non-maximum suppression
-  vector<Matcher::maximum> maxima1;
+  vector<Matches::maximum> maxima1;
   if (param.multi_stage) {
     int32_t nms_n_sparse = param.nms_n*3;
     if (nms_n_sparse>10)
@@ -852,7 +864,7 @@ void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int
   }
   
   // extract dense maxima (2nd pass) via non-maximum suppression
-  vector<Matcher::maximum> maxima2;
+  vector<Matches::maximum> maxima2;
   nonMaximumSuppression(I_f1,I_f2,dims_matching,maxima2,param.nms_n);
   computeDescriptors(I_du,I_dv,dims_matching[2],maxima2);
 
@@ -872,9 +884,9 @@ void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int
 
   // return sparse maxima as 16-bytes aligned memory
   if (num1!=0) {
-    max1 = (int32_t*)_mm_malloc(sizeof(Matcher::maximum)*num1,16);
+    max1 = (int32_t*)_mm_malloc(sizeof(Matches::maximum)*num1,16);
     int32_t k=0;
-    for (vector<Matcher::maximum>::iterator it=maxima1.begin(); it!=maxima1.end(); it++) {
+    for (vector<Matches::maximum>::iterator it=maxima1.begin(); it!=maxima1.end(); it++) {
       *(max1+k++) = it->u*s;  *(max1+k++) = it->v*s;  *(max1+k++) = 0;        *(max1+k++) = it->c;
       *(max1+k++) = it->d1;   *(max1+k++) = it->d2;   *(max1+k++) = it->d3;   *(max1+k++) = it->d4;
       *(max1+k++) = it->d5;   *(max1+k++) = it->d6;   *(max1+k++) = it->d7;   *(max1+k++) = it->d8;
@@ -883,9 +895,9 @@ void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int
   
   // return dense maxima as 16-bytes aligned memory
   if (num2!=0) {
-    max2 = (int32_t*)_mm_malloc(sizeof(Matcher::maximum)*num2,16);
+    max2 = (int32_t*)_mm_malloc(sizeof(Matches::maximum)*num2,16);
     int32_t k=0;
-    for (vector<Matcher::maximum>::iterator it=maxima2.begin(); it!=maxima2.end(); it++) {
+    for (vector<Matches::maximum>::iterator it=maxima2.begin(); it!=maxima2.end(); it++) {
       *(max2+k++) = it->u*s;  *(max2+k++) = it->v*s;  *(max2+k++) = 0;        *(max2+k++) = it->c;
       *(max2+k++) = it->d1;   *(max2+k++) = it->d2;   *(max2+k++) = it->d3;   *(max2+k++) = it->d4;
       *(max2+k++) = it->d5;   *(max2+k++) = it->d6;   *(max2+k++) = it->d7;   *(max2+k++) = it->d8;
@@ -893,7 +905,7 @@ void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int
   }
 }
 
-void Matcher::computePriorStatistics (vector<Matcher::p_match> &p_matched,int32_t method) {
+void Matcher::computePriorStatistics (Matches* p_matched,int32_t method) {
    
   // compute number of bins
   int32_t u_bin_num = (int32_t)ceil((float)dims_c[0]/(float)param.match_binsize);
@@ -910,7 +922,10 @@ void Matcher::computePriorStatistics (vector<Matcher::p_match> &p_matched,int32_
   
   // fill bin accumulator
   Matcher::delta delta_curr;
-  for (vector<Matcher::p_match>::iterator it=p_matched.begin(); it!=p_matched.end(); it++) {
+  for (vector<Matches::p_match>::iterator it=p_matched->p_matched.begin(); it!=p_matched->p_matched.end(); it++) {
+
+    if (!it->active || it->outlier)
+      continue;
 
     // method flow: compute position delta
     if (method==0) {
@@ -1032,7 +1047,7 @@ void Matcher::computePriorStatistics (vector<Matcher::p_match> &p_matched,int32_
 void Matcher::createIndexVector (int32_t* m,int32_t n,vector<int32_t> *k,const int32_t &u_bin_num,const int32_t &v_bin_num) {
 
   // descriptor step size
-  int32_t step_size = sizeof(Matcher::maximum)/sizeof(int32_t);
+  int32_t step_size = sizeof(Matches::maximum)/sizeof(int32_t);
   
   // for all points do
   for (int32_t i=0; i<n; i++) {
@@ -1127,10 +1142,10 @@ inline void Matcher::findMatch (int32_t* m1,const int32_t &i1,int32_t* m2,const 
 
 void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
                         int32_t n1p,int32_t n2p,int32_t n1c,int32_t n2c,
-                        vector<Matcher::p_match> &p_matched,int32_t method,bool use_prior,Matrix *Tr_delta) {
+                        Matches* p_matched,int32_t method,bool use_prior,Matrix *Tr_delta) {
 
   // descriptor step size (number of int32_t elements in struct)
-  int32_t step_size = sizeof(Matcher::maximum)/sizeof(int32_t);
+  int32_t step_size = sizeof(Matches::maximum)/sizeof(int32_t);
   
   // compute number of bins
   int32_t u_bin_num = (int32_t)ceil((float)dims_c[0]/(float)param.match_binsize);
@@ -1200,7 +1215,7 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
 
         // add match if this pixel isn't matched yet
         if (*(M+getAddressOffsetImage(u1c,v1c,dims_c[0]))==0) {
-          p_matched.push_back(Matcher::p_match(u1p,v1p,i1p,-1,-1,-1,u1c,v1c,i1c,-1,-1,-1));
+          p_matched->push_back(Matches::p_match(u1p,v1p,i1p,-1,-1,-1,u1c,v1c,i1c,-1,-1,-1));
           *(M+getAddressOffsetImage(u1c,v1c,dims_c[0])) = 1;
         }
       }
@@ -1242,7 +1257,7 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
 
           // add match if this pixel isn't matched yet
           if (*(M+getAddressOffsetImage(u1c,v1c,dims_c[0]))==0) {
-            p_matched.push_back(Matcher::p_match(-1,-1,-1,-1,-1,-1,u1c,v1c,i1c,u2c,v2c,i2c));
+            p_matched->push_back(Matches::p_match(-1,-1,-1,-1,-1,-1,u1c,v1c,i1c,u2c,v2c,i2c));
             *(M+getAddressOffsetImage(u1c,v1c,dims_c[0])) = 1;
           }
         }
@@ -1331,7 +1346,7 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
         if (u1p>=u2p && u1c>=u2c) {
           
           // add match
-          Matcher::p_match match(u1p,v1p,i1p,u2p,v2p,i2p,
+          Matches::p_match match(u1p,v1p,i1p,u2p,v2p,i2p,
                                                u1c,v1c,i1c,u2c,v2c,i2c);                                               
           
           match.max1.c = c1; 
@@ -1360,7 +1375,7 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
           match.max2.d7 = d27;
           match.max2.d8 = d28;
 
-          p_matched.push_back(match);
+          p_matched->push_back(match);
         }
       }
     }
@@ -1417,25 +1432,28 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
   delete []k2c;
 }
 
-void Matcher::removeOutliers (vector<Matcher::p_match> &p_matched,int32_t method) {
+void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
 
   // do we have enough points for outlier removal?
-  if (p_matched.size()<=3)
+  if (p_matched->getActiveMatches()<=3)
     return;
 
   // input/output structure for triangulation
   struct triangulateio in, out;
 
   // inputs
-  in.numberofpoints = p_matched.size();
+  in.numberofpoints = p_matched->getActiveMatches();
   in.pointlist = (float*)malloc(in.numberofpoints*2*sizeof(float));
   int32_t k=0;
   
   // create copy of p_matched, init vector with number of support points
   // and fill triangle point vector for delaunay triangulation
-  vector<Matcher::p_match> p_matched_copy;  
+  vector<Matches::p_match> p_matched_copy;  
   vector<int32_t> num_support;
-  for (vector<Matcher::p_match>::iterator it=p_matched.begin(); it!=p_matched.end(); it++) {
+  for (vector<Matches::p_match>::iterator it=p_matched->p_matched.begin(); it!=p_matched->p_matched.end(); it++) {
+    if (!it->active || it->outlier)
+      continue;
+
     p_matched_copy.push_back(*it);
     num_support.push_back(0);
     in.pointlist[k++] = it->u1c;
@@ -1578,10 +1596,13 @@ void Matcher::removeOutliers (vector<Matcher::p_match> &p_matched,int32_t method
   }
   
   // refill p_matched
-  p_matched.clear();
+  //p_matched->clear();
   for (int i=0; i<in.numberofpoints; i++)
     if (num_support[i]>=4)
-      p_matched.push_back(p_matched_copy[i]);
+      p_matched->setOutlierFlag(true, p_matched_copy[i]);
+    else
+      p_matched->setOutlierFlag(false, p_matched_copy[i]);
+      //p_matched->push_back(p_matched_copy[i]);
   
   // free memory used for triangulation
   free(in.pointlist);
@@ -1706,14 +1727,14 @@ void Matcher::relocateMinimum(const uint8_t* I1_du,const uint8_t* I1_dv,const in
   v2 += (float)(min_ind/5)-2.0;
 }
 
-void Matcher::refinement (vector<Matcher::p_match> &p_matched,int32_t method) {
+void Matcher::refinement (Matches* p_matched,int32_t method) {
   
   // allocate aligned memory (32 bytes for 1 descriptors)
   uint8_t* desc_buffer = (uint8_t*)_mm_malloc(32*sizeof(uint8_t),16);
   
   // copy vector (for refill)
-  vector<Matcher::p_match> p_matched_copy = p_matched;
-  p_matched.clear();
+  //vector<Matches::p_match> p_matched_copy = p_matched;
+  //p_matched.clear();
   
   // create matrices for least square fitting
   FLOAT A_data[9*6] = { 1, 1, 1,-1,-1, 1,
@@ -1749,7 +1770,10 @@ void Matcher::refinement (vector<Matcher::p_match> &p_matched,int32_t method) {
   }
   
   // for all matches do
-  for (vector<Matcher::p_match>::iterator it=p_matched_copy.begin(); it!=p_matched_copy.end(); it++) {
+  for (vector<Matches::p_match>::iterator it=p_matched->p_matched.begin(); it!=p_matched->p_matched.end(); it++) {
+
+    if (!it->active || it->outlier)
+      continue;
     
     // method: flow or quad matching
     if (method==0 || method==2) {
@@ -1788,7 +1812,7 @@ void Matcher::refinement (vector<Matcher::p_match> &p_matched,int32_t method) {
     }
 
     // add this match
-    p_matched.push_back(*it);
+    //p_matched.push_back(*it);
   }
   
   // free memory
@@ -1803,15 +1827,3 @@ float Matcher::mean(const uint8_t* I,const int32_t &bpl,const int32_t &u_min,con
   return
     mean /= (float)((u_max-u_min+1)*(v_max-v_min+1));
 }
-
-void Matcher::ageFeaturePoints()
-{
-  for (int i=0; i < p_matched_p.size(); i++)
-  {
-    p_matched_p[i].u1p3 = p_matched_p[i].u1p2;
-    p_matched_p[i].v1p3 = p_matched_p[i].v1p2;
-    p_matched_p[i].u1p2 = p_matched_p[i].u1p;
-    p_matched_p[i].v1p2 = p_matched_p[i].v1p;
-  }
-}
-
