@@ -700,7 +700,7 @@ bool Odometry::convertRotations()
         qEss2 = eig;
 
         qRs2 = qR2.inverse() * qEss2;
-        Eigen::Quaternionf qTemp = sqrt(qR.inverse() * qRs2);
+        //Eigen::Quaternionf qTemp = sqrt(qR.inverse() * qRs2);
         //qR = qR * (^0.5);
     }
 
