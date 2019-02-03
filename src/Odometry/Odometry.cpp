@@ -14,6 +14,8 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     this->viewer = viewer;
     this->mapping = mapping;
 
+    matches = new Matches();
+
     Tr_valid = false;
     features = new Features();
 
@@ -26,20 +28,15 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     param.calib.cu = cameraMatrix.at<float>(0, 2);
     param.calib.cv = cameraMatrix.at<float>(1, 2);
 
-    matcher = new Matcher(Matcher::parameters());
+    matcher = new Matcher(Matcher::parameters(), matches);
     matcher->setIntrinsics(param.calib.f, param.calib.cu, param.calib.cv, param.base);
 
     timer = new Timer();
 
-    ImageFolderReader* imReader = new ImageFolderReader();
-    groundTruth = imReader->getGroundTruth();
-    delete imReader;
-
     outputFile.open("outputs.csv", std::ios::trunc);
     outputFile << "Index,NumMatches,NumInliers,";
     outputFile << "pose00,pose01,pose02,pose03,pose10,pose11,pose12,pose13,pose20,pose21,pose22,pose23,pose30,pose31,pose32,pose33,";
-    outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33,";
-    outputFile << "errorR, errorT";
+    outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";
     outputFile << std::endl;
 }
 
@@ -73,9 +70,9 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         matcher->bucketFeaturesSTA(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
         timer->stopTimer();
 
-        timer->startTimer("getMatches");
-        p_matched = matcher->getMatches();
-        timer->stopTimer();
+        // timer->startTimer("getMatches");
+        // p_matched = matcher->getMatches();
+        // timer->stopTimer();
     }
 
     // match features and update motion
@@ -92,7 +89,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         timer->stopTimer();
     }
 
-    printf("Num matches pre bucket: %i\n", static_cast<int>(matcher->getMatches().size()));
+    printf("Num matches pre bucket: %i\n", matches->getActiveMatches());
     
 
     timer->startTimer("bucketFeatures2");
@@ -100,22 +97,13 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     matcher->bucketFeaturesSTA(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
     timer->stopTimer();
 
-    timer->startTimer("getMatches");
-    p_matched = matcher->getMatches();
-    timer->stopTimer();
+    // timer->startTimer("getMatches");
+    // p_matched = matcher->getMatches();
+    // timer->stopTimer();
 
     timer->startTimer("updateMotion");
     bool result = updateMotion();
     timer->stopTimer();
-
-    // if (estimateRotation())
-    // {
-    //     convertRotations();
-
-    //     printf("Est and conv Rotations: depth: %i\n", rotationDepth);
-    //     printf("Calc rotation\n");
-    //     std::cout << qR.toRotationMatrix() << std::endl << std::endl;
-    // }
 
     //float maxDepth, minDepth;
     //updateDepth(&maxDepth, &minDepth);
@@ -192,8 +180,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         outputFile << motion.val[0][3] << ",";
         outputFile << motion.val[1][3] << ",";
         outputFile << motion.val[2][3] << ",";
-        outputFile << motion.val[3][3] << ",";
-        outputFile << getRotationError(image->index) << "," << getTranslationError(image->index) << std::endl;
+        outputFile << motion.val[3][3] << std::endl;
 
         mapping->addFrame(pose, image, imageRight, p_matched);
     }
@@ -277,14 +264,18 @@ std::vector<double> Odometry::estimateMotion ()
 
     // compute minimum distance for RANSAC samples
     double width=0,height=0;
-    for (std::vector<Matches::p_match>::iterator it=p_matched.begin(); it!=p_matched.end(); it++) {
+    for (std::vector<Matches::p_match>::iterator it=matches->p_matched.begin(); it!=matches->p_matched.end(); it++) {
+        if (!it->active || it->outlier || !it->matched)
+            continue;
+        
         if (it->u1c>width)  width  = it->u1c;
         if (it->v1c>height) height = it->v1c;
     }
     double min_dist = std::min(width,height)/3.0;
     
     // get number of matches
-    int32_t N  = p_matched.size();
+    //int32_t N  = p_matched.size();
+    int32_t N  = matches->getActiveMatches();
     if (N<6)
     {
         return std::vector<double>();
@@ -298,14 +289,27 @@ std::vector<double> Odometry::estimateMotion ()
     p_observe  = new double[4*N];
     p_residual = new double[4*N];
 
-    // project matches of previous image into 3d
-    for (int32_t i=0; i<N; i++) {
-        double d = std::max(p_matched[i].u1p - p_matched[i].u2p,0.0001f);
-        X[i] = (p_matched[i].u1p-param.calib.cu)*param.base/d;
-        Y[i] = (p_matched[i].v1p-param.calib.cv)*param.base/d;
+    int i =0;
+    for (std::vector<Matches::p_match>::iterator it=matches->p_matched.begin(); it!=matches->p_matched.end(); it++) {
+        if (!it->active || it->outlier || !it->matched)
+            continue;
+
+        double d = std::max(it->u1p - it->u2p,0.0001f);
+        X[i] = (it->u1p-param.calib.cu)*param.base/d;
+        Y[i] = (it->v1p-param.calib.cv)*param.base/d;
         Z[i] = param.calib.f*param.base/d;
-        p_matched[i].depth = param.calib.f*param.base/d;
+        it->depth = param.calib.f*param.base/d;
+        i++;
     }
+
+    // // project matches of previous image into 3d
+    // for (int32_t i=0; i<N; i++) {
+    //     double d = std::max(p_matched[i].u1p - p_matched[i].u2p,0.0001f);
+    //     X[i] = (p_matched[i].u1p-param.calib.cu)*param.base/d;
+    //     Y[i] = (p_matched[i].v1p-param.calib.cv)*param.base/d;
+    //     Z[i] = param.calib.f*param.base/d;
+    //     p_matched[i].depth = param.calib.f*param.base/d;
+    // }
 
     // loop variables
     std::vector<double> tr_delta;
@@ -329,14 +333,14 @@ std::vector<double> Odometry::estimateMotion ()
         result res = UPDATED;
         int32_t iter=0;
         while (res==UPDATED) {
-        res = updateParameters(p_matched,active,tr_delta_curr,1,1e-6);
+        res = updateParameters(matches,active,tr_delta_curr,1,1e-6);
         if (iter++ > 20 || res==CONVERGED)
             break;
         }
 
         // overwrite best parameters if we have more inliers
         if (res !=FAILED) {
-        std::vector<int32_t> inliers_curr = getInlier(p_matched,tr_delta_curr);
+        std::vector<int32_t> inliers_curr = getInlier(matches,tr_delta_curr);
         if (inliers_curr.size()>inliers.size()) {
             inliers = inliers_curr;
             tr_delta = tr_delta_curr;
@@ -349,7 +353,7 @@ std::vector<double> Odometry::estimateMotion ()
         int32_t iter=0;
         result res = UPDATED;
         while (res==UPDATED) {     
-        res = updateParameters(p_matched,inliers,tr_delta,1,1e-8);
+        res = updateParameters(matches,inliers,tr_delta,1,1e-8);
         if (iter++ > 100 || res==CONVERGED)
             break;
         }
@@ -404,14 +408,14 @@ std::vector<int32_t> Odometry::getRandomSample(int32_t N,int32_t num)
     return sample;
 }
 
-Odometry::result Odometry::updateParameters(std::vector<Matches::p_match> &p_matched,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps)
+Odometry::result Odometry::updateParameters(Matches* matches,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps)
 {
     // we need at least 3 observations
     if (active.size()<3)
         return FAILED;
     
     // extract observations and compute predictions
-    computeObservations(p_matched,active);
+    computeObservations(matches,active);
     computeResidualsAndJacobian(tr,active);
 
     // init
@@ -451,34 +455,46 @@ Odometry::result Odometry::updateParameters(std::vector<Matches::p_match> &p_mat
     }
 }
 
-std::vector<int32_t> Odometry::getInlier(std::vector<Matches::p_match> &p_matched, std::vector<double> &tr)
+std::vector<int32_t> Odometry::getInlier(Matches* matches, std::vector<double> &tr)
 {
      // mark all observations active
     std::vector<int32_t> active;
-    for (int32_t i=0; i<(int32_t)p_matched.size(); i++)
+    for (int32_t i=0; i<(int32_t)matches->p_matched.size(); i++)
+    {
+        if (!matches->p_matched[i].active || !matches->p_matched[i].matched
+                || matches->p_matched[i].outlier)
+                continue;
+
         active.push_back(i);
+    }
 
     // extract observations and compute predictions
-    computeObservations(p_matched,active);
+    computeObservations(matches,active);
     computeResidualsAndJacobian(tr,active);
 
     // compute inliers
     std::vector<int32_t> inliers;
-    for (int32_t i=0; i<(int32_t)p_matched.size(); i++)
+    for (int32_t i=0; i<(int32_t)matches->p_matched.size(); i++)
+    {
+        if (!matches->p_matched[i].active || !matches->p_matched[i].matched
+                || matches->p_matched[i].outlier)
+                continue;
+
         if (pow(p_observe[4*i+0]-p_predict[4*i+0],2)+pow(p_observe[4*i+1]-p_predict[4*i+1],2) +
             pow(p_observe[4*i+2]-p_predict[4*i+2],2)+pow(p_observe[4*i+3]-p_predict[4*i+3],2) < param.inlier_threshold*param.inlier_threshold)
         inliers.push_back(i);
+    }
     return inliers;
 }
 
-void Odometry::computeObservations(std::vector<Matches::p_match> &p_matched,std::vector<int32_t> &active)
+void Odometry::computeObservations(Matches* matches,std::vector<int32_t> &active)
 {
     // set all observations
     for (int32_t i=0; i<(int32_t)active.size(); i++) {
-        p_observe[4*i+0] = p_matched[active[i]].u1c; // u1
-        p_observe[4*i+1] = p_matched[active[i]].v1c; // v1
-        p_observe[4*i+2] = p_matched[active[i]].u2c; // u2
-        p_observe[4*i+3] = p_matched[active[i]].v2c; // v2
+        p_observe[4*i+0] = matches->p_matched[active[i]].u1c; // u1
+        p_observe[4*i+1] = matches->p_matched[active[i]].v1c; // v1
+        p_observe[4*i+2] = matches->p_matched[active[i]].u2c; // u2
+        p_observe[4*i+3] = matches->p_matched[active[i]].v2c; // v2
     }  
 }
 
@@ -723,52 +739,12 @@ bool Odometry::convertRotations()
     {
         Eigen::Matrix3f eig;
         cv::cv2eigen(essMat3, eig);
-        qEss3 = eig;
-
-        qRs3 = qR3 * qR2;
-        qRs3 = qRs3.inverse() * qEss3;
+        qEss3 = eig; 
     }
-
     return true;
 }
 
-float Odometry::getRotationError(int index)
+int32_t Odometry::getNumberOfMatches ()
 {
-    if (groundTruth.size() <= index)
-        return 9999999;
-
-     // get rotation angle between this keyframe and last keyframe on stack    
-    Matrix rA = pose.getMat(0, 0, 2, 2);
-    Matrix rB = groundTruth[index].getMat(0, 0, 2, 2);
-
-    Matrix rAT = rA.operator~();
-    Matrix rAB = rAT.operator*(rB);
-
-    // calculate trace
-    float trace = rAB.val[0][0] + rAB.val[1][1] + rAB.val[2][2];
-
-    if (trace > 3)
-        trace = 3;
-
-    float f1 = acos((trace - 1) / 2);
-    float f2 = (f1 * 180) / M_PI;
-
-    //printf("trace: %f, f1: %f f2:%f f5: %f f6: %f\n", trace, f1, f2, f5, f6);
-
-    return f2;
-}
-    
-float Odometry::getTranslationError(int index)
-{
-    if (groundTruth.size() <= index)
-        return 9999999;
-
-    // get euclidian distance between this keyframe and last keyframe on stack
-    float f1, f2, f3;
-
-    f1 = pose.val[0][3] - groundTruth[index].val[0][3];
-    f2 = pose.val[1][3] - groundTruth[index].val[1][3];
-    f3 = pose.val[2][3] - groundTruth[index].val[2][3];
-
-    return fabs(sqrt(f1*f1 + f2*f2 + f3*f3));    
+    return matches->getActiveMatches();
 }

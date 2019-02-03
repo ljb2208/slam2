@@ -27,6 +27,21 @@ void Matches::resetMatches()
     }
 
     activeMatches = 0;
+    inliers = 0;
+}
+
+bool Matches::includeMatch(Matches::p_match* match)
+{
+    if (!match->active)
+        return false;
+
+    if (match->outlier)
+        return false;
+
+    if (!match->matched)
+        return false;
+
+    return true;
 }
 
 void Matches::setActiveFlag(bool active, Matches::p_match match)
@@ -50,8 +65,19 @@ void Matches::setOutlierFlag(bool outlier, Matches::p_match match)
     // find match object
     Matches::p_match* pm = map_matched[getKey(match)];
 
+    if (pm->outlier != outlier)
+    {
+        if (!outlier)
+            inliers++;
+    }
+
     //if (pm != NULL)
-        pm->outlier = outlier;
+    pm->outlier = outlier;
+}
+
+int32_t Matches::getInlierCount()
+{
+    return inliers;
 }
 
 
@@ -80,7 +106,6 @@ bool Matches::push_back(Matches::p_match match)
         activeMatches++;
         p_matched.push_back(*mtch);
         map_matched[getKey(*mtch)] = mtch;
-        printf("Add match. Active: %i Total: %i\n", getActiveMatches(), getTotalMatches());
     }    
 }
 
@@ -94,10 +119,8 @@ bool Matches::matchExists(Matches::p_match match)
     prior_match->matched = true;
 
     if (!prior_match->active)
-    {        
         activeMatches++;
-        printf("Prior match not active. Active: %i Total: %i\n", getActiveMatches(), getTotalMatches());
-    }
+        
     prior_match->active = true;    
     prior_match->outlier = false;
     prior_match->u1p = match.u1p;
@@ -150,7 +173,7 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
     float u_max = 0;
     float v_max = 0;
     for (std::vector<Matches::p_match>::iterator it = p_matched.begin(); it!=p_matched.end(); it++) {
-        if (!it->matched)
+        if (!it->matched || !it->active || it->outlier)
             continue;
 
         if (it->u1c>u_max) u_max=it->u1c;
@@ -166,7 +189,7 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
 
     // assign matches to their buckets
     for (std::vector<Matches::p_match>::iterator it=p_matched.begin(); it!=p_matched.end(); it++) {    
-        if (!it->matched)
+        if (!it->matched || !it->active || it->outlier)
             continue;
 
         int32_t u = (int32_t)floor(it->u1c/bucket_width);

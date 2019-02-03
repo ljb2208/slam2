@@ -4,6 +4,7 @@
 #include "Pangolin/SlamViewer.h"
 #include "Features.h"
 #include "Matcher.h"
+#include "Matches.h"
 #include "Util/Timer.h"
 #include "Mapping/Mapping.h"
 #include <cv.h>
@@ -64,7 +65,8 @@ class Odometry
     private:
         SlamViewer* viewer;
         Features* features;
-        Matcher* matcher;        
+        Matcher* matcher;
+        Matches* matches;        
         Mapping* mapping;
 
         double *X,*Y,*Z;    // 3d points
@@ -99,12 +101,12 @@ class Odometry
         std::vector<double> estimateMotion ();
         Matrix transformationVectorToMatrix (std::vector<double> tr);
         std::vector<int32_t> getRandomSample(int32_t N,int32_t num);
-        Odometry::result updateParameters(std::vector<Matches::p_match> &p_matched,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps);
-        std::vector<int32_t> getInlier(std::vector<Matches::p_match> &p_matched, std::vector<double> &tr);
-        void computeObservations(std::vector<Matches::p_match> &p_matched,std::vector<int32_t> &active);
+        Odometry::result updateParameters(Matches* matches,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps);
+        std::vector<int32_t> getInlier(Matches* matches, std::vector<double> &tr);
+        void computeObservations(Matches* matches,std::vector<int32_t> &active);
         void computeResidualsAndJacobian(std::vector<double> &tr,std::vector<int32_t> &active);
         // returns the number of successfully matched points, after bucketing
-        int32_t getNumberOfMatches () { return p_matched.size(); }
+        int32_t getNumberOfMatches (); //{ return p_matched.size(); }
         
         // returns the number of inliers: num_inliers <= num_matched
         int32_t getNumberOfInliers () { return inliers.size(); }

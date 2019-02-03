@@ -106,7 +106,7 @@ std::vector<Matrix> ImageFolderReader::getGroundTruth()
     std::vector<Matrix> matrix_result;
 
         // show ground truth
-    std::string gtPath = "/home/ljb2208/development/odometry/poses/00.txt";
+    std::string gtPath = "/home/lbarnett/development/odometry/poses/00.txt";
     std::ifstream ReadFile(gtPath.c_str());
     std::string temp;
     std::string delim (" ");

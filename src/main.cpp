@@ -17,9 +17,9 @@
 #include <opencv2/imgproc.hpp>
 #include "boost/thread.hpp"
 
-std::string source = "/home/ljb2208/development/odometry/00";
-std::string calib = "/home/ljb2208/development/odometry/00/param/camera.txt";
-std::string param = "/home/ljb2208/development/odometry/00/param/camera.txt";
+std::string source = "/home/lbarnett/development/odometry/00";
+std::string calib = "/home/lbarnett/development/odometry/00/param/camera.txt";
+std::string param = "/home/lbarnett/development/odometry/00/param/camera.txt";
 
 int width = 0;
 int height = 0;

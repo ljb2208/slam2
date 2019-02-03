@@ -73,7 +73,7 @@ public:
   };
 
   // constructor (with default parameters)
-  Matcher(parameters param);
+  Matcher(parameters param, Matches* matches);
 
   // deconstructor
   ~Matcher();
@@ -120,7 +120,7 @@ public:
   void bucketFeaturesSTA(int32_t max_features,float bucket_width,float bucket_height);
 
   // return vector with matched feature points and indices
-  std::vector<Matches::p_match> getMatches() { return p_matched_2; }
+  //std::vector<Matches::p_match> getMatches(); { return p_matched_2; }
 
   // given a vector of inliers computes gain factor between the current and
   // the previous frame. this function is useful if you want to reconstruct 3d

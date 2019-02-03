@@ -57,11 +57,14 @@ class Matches
         void resetMatches();
         int32_t getActiveMatches();
         int32_t getTotalMatches();
+        int32_t getInlierCount();
         void setActiveFlag(bool active, Matches::p_match match);
         void setOutlierFlag(bool outlier, Matches::p_match match);
         bool push_back(Matches::p_match match);
         void clear();
         void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
+
+        bool includeMatch(Matches::p_match* match);
 
         std::vector<Matches::p_match> p_matched;
 
@@ -75,6 +78,7 @@ class Matches
         std::map<int32_t, Matches::p_match*> map_matched;
 
         int32_t activeMatches = 0;
+        int32_t inliers = 0;
 
         static bool compareMatches(Matches::p_match p1, Matches::p_match p2)
         {

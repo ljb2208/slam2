@@ -30,7 +30,7 @@ using namespace std;
 //////////////////////
 
 // constructor (with default parameters)
-Matcher::Matcher(parameters param) : param(param) {
+Matcher::Matcher(parameters param, Matches* matches) : param(param) {
 
   // init match ring buffer to zero
   m1p1 = 0; n1p1 = 0;
@@ -59,7 +59,7 @@ Matcher::Matcher(parameters param) : param(param) {
   if (param.half_resolution)
     this->param.match_radius /= 2;
 
-    p_matched_p = new Matches();
+    p_matched_p = matches;
 }
 
 // deconstructor
