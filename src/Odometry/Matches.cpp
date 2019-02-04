@@ -2,7 +2,6 @@
 
 Matches::Matches()
 {
-    activeMatches = 0;
 }
 
 void Matches::ageFeaturePoints()
@@ -26,8 +25,8 @@ void Matches::resetMatches()
       p_matched[i].outlier = false;
     }
 
-    activeMatches = 0;
-    inliers = 0;
+    activeMatches.clear();
+    inlierMatches.clear();
 }
 
 bool Matches::includeMatch(Matches::p_match* match)
@@ -52,38 +51,42 @@ void Matches::setActiveFlag(bool active, Matches::p_match match)
     if (pm->active != active)
     {
         if (active)
-            activeMatches++;
-        else
-            activeMatches--;
+            activeMatches.push_back(pm); 
     }
 
     pm->active = active;
+
+    activeMatches.erase(std::remove_if(activeMatches.begin(), activeMatches.end(),
+                [](Matches::p_match* pm) { return !pm->active;}), activeMatches.end());
 }
 
-void Matches::setOutlierFlag(bool outlier, Matches::p_match match)
+void Matches::setOutlierFlag(bool outlier, Matches::p_match* match)
 {
     // find match object
-    Matches::p_match* pm = map_matched[getKey(match)];
+    Matches::p_match* pm = map_matched[getKey(*match)];
 
     if (pm->outlier != outlier)
     {
         if (!outlier)
-            inliers++;
+            inlierMatches.push_back(pm);
     }
 
     //if (pm != NULL)
     pm->outlier = outlier;
+
+    inlierMatches.erase(std::remove_if(inlierMatches.begin(), inlierMatches.end(),
+                [](Matches::p_match* pm) { return pm->outlier;}), inlierMatches.end());
 }
 
 int32_t Matches::getInlierCount()
 {
-    return inliers;
+    return inlierMatches.size();
 }
 
 
 int32_t Matches::getActiveMatches()
 {
-    return activeMatches;
+    return activeMatches.size();
 }
 
 int32_t Matches::getTotalMatches()
@@ -103,7 +106,8 @@ bool Matches::push_back(Matches::p_match match)
         mtch->matched = true;
         mtch->active = true;
         mtch->outlier = false;
-        activeMatches++;
+        activeMatches.push_back(mtch);
+        inlierMatches.push_back(mtch);
         p_matched.push_back(*mtch);
         map_matched[getKey(*mtch)] = mtch;
     }    
@@ -119,7 +123,10 @@ bool Matches::matchExists(Matches::p_match match)
     prior_match->matched = true;
 
     if (!prior_match->active)
-        activeMatches++;
+    {
+        activeMatches.push_back(prior_match);
+        activeMatches.push_back(prior_match);
+    }
         
     prior_match->active = true;    
     prior_match->outlier = false;

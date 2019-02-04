@@ -226,25 +226,24 @@ void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
 
     // 1st pass (sparse matches)
     matching(m1p1,m2p1,m1c1,m2c1,n1p1,n2p1,n1c1,n2c1,p_matched_p,method,false,Tr_delta);
-    printf("Matching1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+    //printf("Matching1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
     removeOutliers(p_matched_p,method);
-    printf("removeOutliers1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+    //printf("removeOutliers1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
     
     // compute search range prior statistics (used for speeding up 2nd pass)
     computePriorStatistics(p_matched_p,method);      
-    printf("computePriorStats1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+    //printf("computePriorStats1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
 
     // 2nd pass (dense matches)
     matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,p_matched_p,method,true,Tr_delta);
-    printf("matching2. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+    //printf("matching2. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
     if (param.refinement>0)
       refinement(p_matched_p,method);
 
-    printf("refinement. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+    //printf("refinement. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
     removeOutliers(p_matched_p,method);
-    printf("removeOutliers2. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+    //printf("removeOutliers2. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
 
-    //updatePersistentMatches();
   // single pass matching
   } else {
     matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,p_matched_p,method,false,Tr_delta);
@@ -253,88 +252,6 @@ void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
     removeOutliers(p_matched_p,method);
   }
 }
-
-// void Matcher::updatePersistentMatches()
-// {
-//   printf("match2 count: %i \n", static_cast<int>(p_matched_2.size()));
-//   printf("Persisent Match Count pre: %i \n", static_cast<int>(p_matched_p.size()));
-
-//   //update all matches to false
-//   for (vector<p_match>::iterator it=p_matched_p.begin(); it!=p_matched_p.end(); it++)
-//   {
-//     it->matched = false;
-//     it->age++;
-//   }
-//   int32_t maxAge = 0;
-//   int32_t fnd = 0;
-
-//   for (vector<p_match>::iterator it=p_matched_2.begin(); it!= p_matched_2.end(); it++)
-//   {
-//     // find matching persistent match - if found update
-//     bool found = false;
-//     for (vector<p_match>::iterator itp=p_matched_p.begin(); itp!=p_matched_p.end(); itp++)
-//     {
-
-//       float u1c = roundf(itp->u1c);
-//       float u1p = roundf(it->u1p);
-
-//       float v1c = roundf(itp->v1c);// * 100) / 100;
-//       float v1p = roundf(it->v1p);// * 100) / 100;
-
-//       if (u1c == u1p && v1c == v1p && itp->i1c == it->i1p)
-//       {
-//         itp->matched = true;
-//         itp->u1p = it->u1p;
-//         itp->v1p = it->v1p;
-//         itp->i1p = it->i1p;
-//         itp->u2p = it->u2p;
-//         itp->v2p = it->v2p;
-//         itp->i2p = it->i2p;
-//         itp->u1c = it->u1c;
-//         itp->v1c = it->v1c;
-//         itp->i1c = it->i1c;
-//         itp->u2c = it->u2c;
-//         itp->v2c = it->v2c;
-//         itp->i2c = it->i2c;
-//         itp->max1 = it->max1;
-//         itp->max2 = it->max2;        
-
-//         if (itp->age > maxAge)
-//           maxAge = itp->age;
-
-//         fnd++;
-//         break;
-//       }
-//     }
-    
-//     // if not found create new persisent match and add
-//     if (!found)
-//     {
-//       Matches::p_match mtch(it->u1p, it->v1p, it->i1p, it->u2p, it->v2p, it->i2p,
-//       it->u1c, it->v1c, it->i1c, it->u2c, it->v2c, it->i2c);
-//       mtch.imax1 = it->max1;
-//       mtch.max1 = it->max1;
-
-//       mtch.imax2 = it->max2;
-//       mtch.max2 = it->max2;
-
-//       mtch.matched = true;
-
-//       //need to update maxima ma1 and max2
-//       p_matched_p.push_back(mtch);
-//     }
-//   }
-
-  // printf("Persisent Match Count found: %i \n", fnd);
-  // printf("Persisent Match Count pre remove: %i \n", static_cast<int>(p_matched_p.size()));
-
-  // // remove where no current matches
-  // p_matched_p.erase(std::remove_if(p_matched_p.begin(), p_matched_p.end(),
-  //         [](p_match pm){ return pm.matched == false;}), p_matched_p.end());  
-
-  // printf("Persisent Match Count post remove: %i \n", static_cast<int>(p_matched_p.size()));
-  // printf("Max age: %i\n", maxAge);
-//}
 
 void Matcher::bucketFeatures(int32_t max_features,float bucket_width,float bucket_height) {
 
@@ -1448,16 +1365,14 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
   
   // create copy of p_matched, init vector with number of support points
   // and fill triangle point vector for delaunay triangulation
-  vector<Matches::p_match> p_matched_copy;  
+  vector<Matches::p_match*> p_matched_copy;  
   vector<int32_t> num_support;
-  for (vector<Matches::p_match>::iterator it=p_matched->p_matched.begin(); it!=p_matched->p_matched.end(); it++) {
-    if (!it->active || it->outlier)
-      continue;
-
-    p_matched_copy.push_back(*it);
+  for (int i=0; i < p_matched->activeMatches.size(); i++)
+  {
+    p_matched_copy.push_back(p_matched->activeMatches[i]);
     num_support.push_back(0);
-    in.pointlist[k++] = it->u1c;
-    in.pointlist[k++] = it->v1c;
+    in.pointlist[k++] = p_matched->activeMatches[i]->u1c;
+    in.pointlist[k++] = p_matched->activeMatches[i]->v1c;
   }
   
   // input parameters
@@ -1498,16 +1413,16 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
     if (method==0) {
       
       // 1. corner disparity and flow
-      float p1_flow_u = p_matched_copy[p1].u1c-p_matched_copy[p1].u1p;
-      float p1_flow_v = p_matched_copy[p1].v1c-p_matched_copy[p1].v1p;
+      float p1_flow_u = p_matched_copy[p1]->u1c-p_matched_copy[p1]->u1p;
+      float p1_flow_v = p_matched_copy[p1]->v1c-p_matched_copy[p1]->v1p;
 
       // 2. corner disparity and flow
-      float p2_flow_u = p_matched_copy[p2].u1c-p_matched_copy[p2].u1p;
-      float p2_flow_v = p_matched_copy[p2].v1c-p_matched_copy[p2].v1p;
+      float p2_flow_u = p_matched_copy[p2]->u1c-p_matched_copy[p2]->u1p;
+      float p2_flow_v = p_matched_copy[p2]->v1c-p_matched_copy[p2]->v1p;
 
       // 3. corner disparity and flow
-      float p3_flow_u = p_matched_copy[p3].u1c-p_matched_copy[p3].u1p;
-      float p3_flow_v = p_matched_copy[p3].v1c-p_matched_copy[p3].v1p;
+      float p3_flow_u = p_matched_copy[p3]->u1c-p_matched_copy[p3]->u1p;
+      float p3_flow_v = p_matched_copy[p3]->v1c-p_matched_copy[p3]->v1p;
 
       // consistency of 1. edge
       if (fabs(p1_flow_u-p2_flow_u)+fabs(p1_flow_v-p2_flow_v)<param.outlier_flow_tolerance) {
@@ -1531,13 +1446,13 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
     } else if (method==1) {
       
       // 1. corner disparity and flow
-      float p1_disp   = p_matched_copy[p1].u1c-p_matched_copy[p1].u2c;
+      float p1_disp   = p_matched_copy[p1]->u1c-p_matched_copy[p1]->u2c;
 
       // 2. corner disparity and flow
-      float p2_disp   = p_matched_copy[p2].u1c-p_matched_copy[p2].u2c;
+      float p2_disp   = p_matched_copy[p2]->u1c-p_matched_copy[p2]->u2c;
 
       // 3. corner disparity and flow
-      float p3_disp   = p_matched_copy[p3].u1c-p_matched_copy[p3].u2c;
+      float p3_disp   = p_matched_copy[p3]->u1c-p_matched_copy[p3]->u2c;
 
       // consistency of 1. edge
       if (fabs(p1_disp-p2_disp)<param.outlier_disp_tolerance) {
@@ -1561,19 +1476,19 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
     } else {
       
       // 1. corner disparity and flow
-      float p1_flow_u = p_matched_copy[p1].u1c-p_matched_copy[p1].u1p;
-      float p1_flow_v = p_matched_copy[p1].v1c-p_matched_copy[p1].v1p;
-      float p1_disp   = p_matched_copy[p1].u1p-p_matched_copy[p1].u2p;
+      float p1_flow_u = p_matched_copy[p1]->u1c-p_matched_copy[p1]->u1p;
+      float p1_flow_v = p_matched_copy[p1]->v1c-p_matched_copy[p1]->v1p;
+      float p1_disp   = p_matched_copy[p1]->u1p-p_matched_copy[p1]->u2p;
 
       // 2. corner disparity and flow
-      float p2_flow_u = p_matched_copy[p2].u1c-p_matched_copy[p2].u1p;
-      float p2_flow_v = p_matched_copy[p2].v1c-p_matched_copy[p2].v1p;
-      float p2_disp   = p_matched_copy[p2].u1p-p_matched_copy[p2].u2p;
+      float p2_flow_u = p_matched_copy[p2]->u1c-p_matched_copy[p2]->u1p;
+      float p2_flow_v = p_matched_copy[p2]->v1c-p_matched_copy[p2]->v1p;
+      float p2_disp   = p_matched_copy[p2]->u1p-p_matched_copy[p2]->u2p;
 
       // 3. corner disparity and flow
-      float p3_flow_u = p_matched_copy[p3].u1c-p_matched_copy[p3].u1p;
-      float p3_flow_v = p_matched_copy[p3].v1c-p_matched_copy[p3].v1p;
-      float p3_disp   = p_matched_copy[p3].u1p-p_matched_copy[p3].u2p;
+      float p3_flow_u = p_matched_copy[p3]->u1c-p_matched_copy[p3]->u1p;
+      float p3_flow_v = p_matched_copy[p3]->v1c-p_matched_copy[p3]->v1p;
+      float p3_disp   = p_matched_copy[p3]->u1p-p_matched_copy[p3]->u2p;
 
       // consistency of 1. edge
       if (fabs(p1_disp-p2_disp)<param.outlier_disp_tolerance && fabs(p1_flow_u-p2_flow_u)+fabs(p1_flow_v-p2_flow_v)<param.outlier_flow_tolerance) {
