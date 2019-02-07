@@ -59,13 +59,9 @@ class Matches
         int32_t getTotalMatches();
         int32_t getInlierCount();
         int32_t getSelectedCount();
-        //void setActiveFlag(bool active, Matches::p_match match);
-        //void setOutlierFlag(bool outlier, Matches::p_match match);
         bool push_back(Matches::p_match match, bool current);
         void clear();
         void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
-
-        bool includeMatch(Matches::p_match* match);
         void clearOutliers();
 
         std::vector<Matches::p_match> p_matched;
@@ -79,9 +75,6 @@ class Matches
         int32_t getKey(Matches::p_match match);
         int32_t getPriorKey(Matches::p_match match);
         void deleteStaleMatches();
-
-        
-        std::map<int32_t, Matches::p_match*> map_matched;
 
         static bool compareMatches(Matches::p_match* p1, Matches::p_match* p2)
         {

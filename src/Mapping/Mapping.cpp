@@ -7,13 +7,16 @@ Mapping::Mapping(SlamViewer* viewer)
     running = true;
 }
 
-void Mapping::addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, std::vector<Matches::p_match> p_matched)
+void Mapping::addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches)
 {
     KeyFrame* keyFrame = new KeyFrame();
     keyFrame->index = leftImage->index;
     keyFrame->pose = Matrix(pose);
     keyFrame->temporary = false;
-    keyFrame->p_matched = p_matched;
+    
+    
+    // Need to fix
+    //keyFrame->p_matched = p_matched;
     keyFrame->image = new SLImage(leftImage->w, leftImage->h, leftImage->timestamp, keyFrame->index);
     keyFrame->imageRight = new SLImage(rightImage->w, rightImage->h, rightImage->timestamp, keyFrame->index);
 

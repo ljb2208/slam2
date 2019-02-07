@@ -223,9 +223,6 @@ private:
   uint8_t *I1p_dv_full,*I2p_dv_full,*I1c_dv_full,*I2c_dv_full; // half-res matching
   int32_t dims_p[3],dims_c[3];
 
-  std::vector<Matches::p_match> p_matched_1;
-  std::vector<Matches::p_match> p_matched_2;
-  //std::vector<Matcher::p_match> p_matched_p; // persisted matches
   std::vector<Matcher::range>   ranges;
 
   Matches* p_matched_p;

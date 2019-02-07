@@ -102,18 +102,10 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     matcher->bucketFeaturesSTA(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
     timer->stopTimer();
 
-    // timer->startTimer("getMatches");
-    // p_matched = matcher->getMatches();
-    // timer->stopTimer();
-
     timer->startTimer("updateMotion");
     bool result = updateMotion();
     timer->stopTimer();
 
-    //float maxDepth, minDepth;
-    //updateDepth(&maxDepth, &minDepth);
-
-    //printf("Max depth: %f min depth: %f\n", maxDepth, minDepth);
     int maxAge = -1;
 
     for (int i=0; i < matches->selectedMatches.size(); i++)
@@ -195,7 +187,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         outputFile << getRotationError(image->index) << "," << getTranslationError(image->index) << std::endl;
         
 
-        mapping->addFrame(pose, image, imageRight, p_matched);
+        mapping->addFrame(pose, image, imageRight, matches);
     }
     else
     {
@@ -640,10 +632,10 @@ bool Odometry::estimateRotation()
     std::vector<cv::Point> points2;
     cv::Mat mask;
 
-    for (int i=0; i < p_matched.size(); i++)
+    for (int i=0; i < matches->inlierMatches.size(); i++)
     {
-        points1.push_back(cv::Point(p_matched[i].u1c, p_matched[i].v1c));
-        points2.push_back(cv::Point(p_matched[i].u1p, p_matched[i].v1p));
+        points1.push_back(cv::Point(matches->inlierMatches[i]->u1c, matches->inlierMatches[i]->v1c));
+        points2.push_back(cv::Point(matches->inlierMatches[i]->u1p, matches->inlierMatches[i]->v1p));
     }
 
     if (points1.size() < 5)
@@ -658,12 +650,12 @@ bool Odometry::estimateRotation()
     points1.clear();
     points2.clear();
 
-    for (int i=0; i < p_matched.size(); i++)
+    for (int i=0; i < matches->inlierMatches.size(); i++)
     {
-        if (p_matched[i].age > 1)
+        if (matches->inlierMatches[i]->age > 1)
         {
-            points1.push_back(cv::Point(p_matched[i].u1c, p_matched[i].v1c));
-            points2.push_back(cv::Point(p_matched[i].u1p2, p_matched[i].v1p2));
+            points1.push_back(cv::Point(matches->inlierMatches[i]->u1c, matches->inlierMatches[i]->v1c));
+            points2.push_back(cv::Point(matches->inlierMatches[i]->u1p2, matches->inlierMatches[i]->v1p2));
         }
     }
 
@@ -679,12 +671,12 @@ bool Odometry::estimateRotation()
     points1.clear();
     points2.clear();
 
-    for (int i=0; i < p_matched.size(); i++)
+    for (int i=0; i < matches->inlierMatches.size(); i++)
     {
-        if (p_matched[i].age > 2)
+        if (matches->inlierMatches[i]->age > 2)
         {
-            points1.push_back(cv::Point(p_matched[i].u1c, p_matched[i].v1c));
-            points2.push_back(cv::Point(p_matched[i].u1p3, p_matched[i].v1p3));
+            points1.push_back(cv::Point(matches->inlierMatches[i]->u1c, matches->inlierMatches[i]->v1c));
+            points2.push_back(cv::Point(matches->inlierMatches[i]->u1p3, matches->inlierMatches[i]->v1p3));
         }
     }
 

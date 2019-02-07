@@ -176,8 +176,6 @@ void Matcher::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace
     }
   }
 
-  //ageFeaturePoints();
-
   // compute new features for current frame
   computeFeatures(I1c,dims_c,m1c1,n1c1,m1c2,n1c2,I1c_du,I1c_dv,I1c_du_full,I1c_dv_full);
   if (I2!=0)
@@ -215,61 +213,24 @@ void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
         return;    
   }
 
-  // clear old matches
-  p_matched_1.clear();
-  p_matched_2.clear();  
-
   p_matched_p->clear();
 
   // double pass matching
-  if (param.multi_stage) {
-
-    if (p_matched_p->inlierMatches.size() > 43)
-      printf("1: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
-    
+  if (param.multi_stage) {    
     // 1st pass (sparse matches)
     matching(m1p1,m2p1,m1c1,m2c1,n1p1,n2p1,n1c1,n2c1,p_matched_p,method,false,Tr_delta);
-
-    if (p_matched_p->inlierMatches.size() > 43)
-      printf("2: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
-    
-    //printf("Matching1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
     removeOutliers(p_matched_p,method);
-    //printf("removeOutliers1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
-    if (p_matched_p->inlierMatches.size() > 43)
-      printf("3: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
-    
 
     // compute search range prior statistics (used for speeding up 2nd pass)
     computePriorStatistics(p_matched_p,method);      
-    //printf("computePriorStats1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
-
-    if (p_matched_p->inlierMatches.size() > 43)
-      printf("4: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
-    
 
     // 2nd pass (dense matches)
     matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,p_matched_p,method,true,Tr_delta);
 
-    if (p_matched_p->inlierMatches.size() > 43)
-      printf("5: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
-    
-    //printf("matching2. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
     if (param.refinement>0)
       refinement(p_matched_p,method);
 
-    if (p_matched_p->inlierMatches.size() > 43)
-      printf("6: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
-    
-
-    //printf("refinement. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
-    printf("2nd removeoutliers\n");
     removeOutliers(p_matched_p,method);
-
-    if (p_matched_p->inlierMatches.size() > 43)
-      printf("7: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
-    
-    //printf("removeOutliers2. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
 
   // single pass matching
   } else {
@@ -282,54 +243,10 @@ void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
 
 void Matcher::bucketFeatures(int32_t max_features,float bucket_width,float bucket_height) {
 
-  // find max values
-  float u_max = 0;
-  float v_max = 0;
-  for (vector<Matches::p_match>::iterator it = p_matched_2.begin(); it!=p_matched_2.end(); it++) {
-    if (it->u1c>u_max) u_max=it->u1c;
-    if (it->v1c>v_max) v_max=it->v1c;
-  }
-
-  // allocate number of buckets needed
-  int32_t bucket_cols = (int32_t)floor(u_max/bucket_width)+1;
-  int32_t bucket_rows = (int32_t)floor(v_max/bucket_height)+1;
-  vector<Matches::p_match> *buckets = new vector<Matches::p_match>[bucket_cols*bucket_rows];
-
-  // assign matches to their buckets
-  for (vector<Matches::p_match>::iterator it=p_matched_2.begin(); it!=p_matched_2.end(); it++) {
-    int32_t u = (int32_t)floor(it->u1c/bucket_width);
-    int32_t v = (int32_t)floor(it->v1c/bucket_height);
-    buckets[v*bucket_cols+u].push_back(*it);
-  }
-  
-  // refill p_matched from buckets
-  p_matched_2.clear();
-  for (int32_t i=0; i<bucket_cols*bucket_rows; i++) {
-    
-    // shuffle bucket indices randomly
-    std::random_shuffle(buckets[i].begin(),buckets[i].end());
-    
-    // add up to max_features features from this bucket to p_matched
-    int32_t k=0;
-    for (vector<Matches::p_match>::iterator it=buckets[i].begin(); it!=buckets[i].end(); it++) {
-      p_matched_2.push_back(*it);
-      k++;
-      if (k>=max_features)
-        break;
-    }
-  }
-
-  // free buckets
-  delete []buckets;
-}
-
-void Matcher::bucketFeaturesSTA(int32_t max_features,float bucket_width,float bucket_height) {
-
-  p_matched_p->bucketFeatures(max_features, bucket_width, bucket_height);
-  // find max values
+  // // find max values
   // float u_max = 0;
   // float v_max = 0;
-  // for (vector<Matches::p_match>::iterator it = p_matched_p.begin(); it!=p_matched_p.end(); it++) {
+  // for (vector<Matches::p_match>::iterator it = p_matched_2.begin(); it!=p_matched_2.end(); it++) {
   //   if (it->u1c>u_max) u_max=it->u1c;
   //   if (it->v1c>v_max) v_max=it->v1c;
   // }
@@ -337,60 +254,29 @@ void Matcher::bucketFeaturesSTA(int32_t max_features,float bucket_width,float bu
   // // allocate number of buckets needed
   // int32_t bucket_cols = (int32_t)floor(u_max/bucket_width)+1;
   // int32_t bucket_rows = (int32_t)floor(v_max/bucket_height)+1;
-  // vector<Matches::p_match> *buckets = new vector<Matches::p_match>[bucket_cols*bucket_rows*4];
-
-  // printf("umax: %f vmax: %f bucket cols: %i rows: %i\n", u_max, v_max, bucket_cols, bucket_rows);
+  // vector<Matches::p_match> *buckets = new vector<Matches::p_match>[bucket_cols*bucket_rows];
 
   // // assign matches to their buckets
-  // for (vector<Matches::p_match>::iterator it=p_matched_p.begin(); it!=p_matched_p.end(); it++) {    
+  // for (vector<Matches::p_match>::iterator it=p_matched_2.begin(); it!=p_matched_2.end(); it++) {
   //   int32_t u = (int32_t)floor(it->u1c/bucket_width);
   //   int32_t v = (int32_t)floor(it->v1c/bucket_height);
-  //   //bucketsByType[it->max1.c][v*bucket_cols+u].push_back(*it);
-  //   buckets[v*bucket_cols+u+it->max1.c*bucket_cols].push_back(*it);
+  //   buckets[v*bucket_cols+u].push_back(*it);
   // }
-
+  
   // // refill p_matched from buckets
   // p_matched_2.clear();
-  // for (int32_t c=0; c<bucket_cols; c++) 
-  // {
-  //   for (int32_t r=0; r<bucket_rows; r++)  
-  //   {
-      
-  //     int32_t ind = r*bucket_cols +c;
-  //     // sort buckets       
-  //     std::sort(buckets[ind].begin(), buckets[ind].end(), compareMatches);
-  //     std::sort(buckets[ind+1*bucket_cols].begin(), buckets[ind+1*bucket_cols].end(), compareMatches);
-  //     std::sort(buckets[ind+2*bucket_cols].begin(), buckets[ind+2*bucket_cols].end(), compareMatches);
-  //     std::sort(buckets[ind+3*bucket_cols].begin(), buckets[ind+3*bucket_cols].end(), compareMatches);
-      
-  //     // add up to max_features features from this bucket to p_matched
-  //     int32_t k=0;
-
-  //     int32_t cnt0 = buckets[ind].size();
-  //     int32_t cnt1 = buckets[ind+1*bucket_cols].size();
-  //     int32_t cnt2 = buckets[ind+2*bucket_cols].size();
-  //     int32_t cnt3 = buckets[ind+3*bucket_cols].size();
-
-  //     while  (cnt0 >k || cnt1 >k || cnt2 > k || cnt3 >k)
-  //     {
-  //       if (cnt0 > k)
-  //         p_matched_2.push_back(buckets[ind].at(k));
-
-  //       if (cnt1 > k)
-  //         p_matched_2.push_back(buckets[ind + 1*bucket_cols].at(k));
-
-  //       if (cnt2 > k)
-  //         p_matched_2.push_back(buckets[ind + 2*bucket_cols].at(k));
-        
-  //       if (cnt3 > k)
-  //         p_matched_2.push_back(buckets[ind + 3*bucket_cols].at(k));
-
-  //       k++;
-
-  //       if (k >= (max_features/2))
-  //         break;
-        
-  //     }      
+  // for (int32_t i=0; i<bucket_cols*bucket_rows; i++) {
+    
+  //   // shuffle bucket indices randomly
+  //   std::random_shuffle(buckets[i].begin(),buckets[i].end());
+    
+  //   // add up to max_features features from this bucket to p_matched
+  //   int32_t k=0;
+  //   for (vector<Matches::p_match>::iterator it=buckets[i].begin(); it!=buckets[i].end(); it++) {
+  //     p_matched_2.push_back(*it);
+  //     k++;
+  //     if (k>=max_features)
+  //       break;
   //   }
   // }
 
@@ -398,12 +284,17 @@ void Matcher::bucketFeaturesSTA(int32_t max_features,float bucket_width,float bu
   // delete []buckets;
 }
 
+void Matcher::bucketFeaturesSTA(int32_t max_features,float bucket_width,float bucket_height) {
+
+  p_matched_p->bucketFeatures(max_features, bucket_width, bucket_height);
+}
+
 
 
 float Matcher::getGain (vector<int32_t> inliers) {
 
   // check if two images are provided and matched
-  if (I1p==0 || I1c==0 || p_matched_2.size()==0 || inliers.size()==0)
+  if (I1p==0 || I1c==0 || p_matched_p->inlierMatches.size()==0 || inliers.size()==0)
     return 1;
 
   int32_t window_size = 3;
@@ -413,20 +304,20 @@ float Matcher::getGain (vector<int32_t> inliers) {
   float   mean_prev,mean_curr;
 
   for (vector<int32_t>::iterator it=inliers.begin(); it!=inliers.end(); it++) {
-    if (*it<(int32_t)p_matched_2.size()) {
+    if (*it<(int32_t)p_matched_p->inlierMatches.size()) {
 
       // mean in previous image
-      u_min = min(max((int32_t)p_matched_2[*it].u1p-window_size,0),dims_p[0]);
-      u_max = min(max((int32_t)p_matched_2[*it].u1p+window_size,0),dims_p[0]);
-      v_min = min(max((int32_t)p_matched_2[*it].v1p-window_size,0),dims_p[1]);
-      v_max = min(max((int32_t)p_matched_2[*it].v1p+window_size,0),dims_p[1]);
+      u_min = min(max((int32_t)p_matched_p->inlierMatches[*it]->u1p-window_size,0),dims_p[0]);
+      u_max = min(max((int32_t)p_matched_p->inlierMatches[*it]->u1p+window_size,0),dims_p[0]);
+      v_min = min(max((int32_t)p_matched_p->inlierMatches[*it]->v1p-window_size,0),dims_p[1]);
+      v_max = min(max((int32_t)p_matched_p->inlierMatches[*it]->v1p+window_size,0),dims_p[1]);
       mean_prev = mean(I1p,dims_p[2],u_min,u_max,v_min,v_max);
 
       // mean in current image
-      u_min = min(max((int32_t)p_matched_2[*it].u1c-window_size,0),dims_p[0]);
-      u_max = min(max((int32_t)p_matched_2[*it].u1c+window_size,0),dims_p[0]);
-      v_min = min(max((int32_t)p_matched_2[*it].v1c-window_size,0),dims_p[1]);
-      v_max = min(max((int32_t)p_matched_2[*it].v1c+window_size,0),dims_p[1]);
+      u_min = min(max((int32_t)p_matched_p->inlierMatches[*it]->u1c-window_size,0),dims_p[0]);
+      u_max = min(max((int32_t)p_matched_p->inlierMatches[*it]->u1c+window_size,0),dims_p[0]);
+      v_min = min(max((int32_t)p_matched_p->inlierMatches[*it]->v1c-window_size,0),dims_p[1]);
+      v_max = min(max((int32_t)p_matched_p->inlierMatches[*it]->v1c+window_size,0),dims_p[1]);
       mean_curr = mean(I1c,dims_c[2],u_min,u_max,v_min,v_max);
 
       if (mean_prev>10) {
@@ -1395,10 +1286,6 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
   // and fill triangle point vector for delaunay triangulation
   //vector<Matches::p_match> p_matched_copy;  
   vector<int32_t> num_support;
-  float maxu1c = 0;
-  float maxv1c = 0;
-  float minu1c = 600;
-  float minv1c = 600;
 
   for (int i=0; i < p_matched->inlierMatches.size(); i++)
   {
@@ -1406,26 +1293,8 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
     num_support.push_back(0);
     in.pointlist[k++] = p_matched->inlierMatches[i]->u1c;
     in.pointlist[k++] = p_matched->inlierMatches[i]->v1c;
-
-    if (p_matched->inlierMatches[i]->u1c > maxu1c)
-      maxu1c = p_matched->inlierMatches[i]->u1c;
-
-    if (p_matched->inlierMatches[i]->u1c < minu1c)
-      minu1c = p_matched->inlierMatches[i]->u1c;
-    
-    if (p_matched->inlierMatches[i]->v1c > maxv1c)
-      maxv1c = p_matched->inlierMatches[i]->v1c;
-
-    if (p_matched->inlierMatches[i]->v1c < minv1c)
-      minv1c = p_matched->inlierMatches[i]->v1c;
-
-  
-    if (p_matched->inlierMatches[i]->u1c < 0 || p_matched->inlierMatches[i]->u1c > 1000)
-      printf("Error in inlier matches at %i\n", i);
   }
 
-  printf("maxu1c: %f min: %f maxv1c: %f min: %f\n", maxu1c, minu1c, maxv1c, minv1c);
-  
   // input parameters
   in.numberofpointattributes = 0;
   in.pointattributelist      = NULL;

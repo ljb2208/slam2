@@ -30,59 +30,6 @@ void Matches::resetMatches()
     selectedMatches.clear();
 }
 
-bool Matches::includeMatch(Matches::p_match* match)
-{
-    if (!match->active)
-        return false;
-
-    if (match->outlier)
-        return false;
-
-    if (!match->matched)
-        return false;
-
-    return true;
-}
-
-// void Matches::setActiveFlag(bool active, Matches::p_match match)
-// {
-//     // find match object
-//     Matches::p_match* pm = map_matched[getKey(match)];
-
-//     if (pm->active != active)
-//     {
-//         if (active)
-//             activeMatches.push_back(pm); 
-//     }
-
-//     pm->active = active;
-
-//     activeMatches.erase(std::remove_if(activeMatches.begin(), activeMatches.end(),
-//                 [](Matches::p_match* pm) { return !pm->active;}), activeMatches.end());
-// }
-
-// void Matches::setOutlierFlag(bool outlier, Matches::p_match match)
-// {
-//     // find match object
-//     Matches::p_match* pm = map_matched[getKey(match)];
-
-//     printf("Outlier val: %d\n", outlier);
-
-//     if (pm == NULL)
-//         printf("Null value\n");
-
-//     if (pm->outlier != outlier)
-//     {
-//         if (outlier == false)
-//             inlierMatches.push_back(pm);
-//     }
-
-//     //if (pm != NULL)
-//     pm->outlier = outlier;
-
-//     inlierMatches.erase(std::remove_if(inlierMatches.begin(), inlierMatches.end(),
-//                 [](Matches::p_match* pmatch) { return pmatch->outlier;}), inlierMatches.end());
-// }
 void Matches::clearOutliers()
 {
     inlierMatches.erase(std::remove_if(inlierMatches.begin(), inlierMatches.end(),
@@ -126,18 +73,11 @@ bool Matches::push_back(Matches::p_match match, bool current)
         activeMatches.push_back(mtch);
         inlierMatches.push_back(mtch);
         p_matched.push_back(*mtch);
-
-
-        //map_matched[getKey(*mtch)] = mtch;
     }    
 }
 
 bool Matches::matchExists(Matches::p_match match, bool current)
 {
-
-    if (match.u1c < 0 || match.u1c > 1000)
-        printf("Invalid match in existing\n");
-
     bool found = false;
     for (int i=0; i < p_matched.size(); i++)
     {
@@ -184,107 +124,19 @@ bool Matches::matchExists(Matches::p_match match, bool current)
     }
 
     return false;
-
-    int32_t priorKey = getPriorKey(match);
-    if (map_matched.find(priorKey) == map_matched.end())
-        return false;
-
-    Matches::p_match* prior_match = map_matched[priorKey];
-    prior_match->matched = true;
-
-    if (!prior_match->active)
-    {
-        activeMatches.push_back(prior_match);
-        inlierMatches.push_back(prior_match);
-    }
-        
-    prior_match->active = true;    
-    prior_match->outlier = false;
-    prior_match->u1p = match.u1p;
-    prior_match->v1p = match.v1p;
-    prior_match->i1p = match.i1p;
-    prior_match->u2p = match.u2p;
-    prior_match->v2p = match.v2p;
-    prior_match->i2p = match.i2p;
-    prior_match->u1c = match.u1c;
-    prior_match->v1c = match.v1c;
-    prior_match->i1c = match.i1c;
-    prior_match->u2c = match.u2c;
-    prior_match->v2c = match.v2c;
-    prior_match->i2c = match.i2c;
-    prior_match->max1 = match.max1;
-    prior_match->max2 = match.max2;        
-    return true;
 }
 
 void Matches::clear()
 {
-
-    std::map<int, int> keycheck;
-
-    for (int i=0; i < p_matched.size(); i++)
-    {
-        int key = getKey(p_matched[i]) ;
-        if (keycheck.find(key) == keycheck.end())    
-            keycheck[getKey(p_matched[i])] = 1;
-        else
-            keycheck[getKey(p_matched[i])]++;
-    }
-
-    int dupeCount = 0;
-    std::map<int, int>::iterator it = keycheck.begin();
-    while (it != keycheck.end())
-    {
-        if (it->second > 1)
-        {
-            dupeCount+= it->second -1;
-            //printf("Duplicate key: %i count: %i\n", it->first, it->second);
-        }
-        it++;
-    }
-
-    printf("Total dupe count: %i\n", dupeCount);
-    printf("Match count pre. Map: %i Vector: %i Active: %i Inlier: %i Selected: %i\n",
-            static_cast<int>(map_matched.size()), static_cast<int>(p_matched.size()),
-            static_cast<int>(activeMatches.size()), static_cast<int>(inlierMatches.size()),
-            static_cast<int>(selectedMatches.size()));
-
     deleteStaleMatches();
     resetMatches();
     ageFeaturePoints();
-
-
-    printf("Match count post. Map: %i Vector: %i Active: %i Inlier: %i Selected: %i\n",
-            static_cast<int>(map_matched.size()), static_cast<int>(p_matched.size()),
-            static_cast<int>(activeMatches.size()), static_cast<int>(inlierMatches.size()),
-            static_cast<int>(selectedMatches.size()));
-
 }
 
 void Matches::deleteStaleMatches()
 {
     if (p_matched.empty())
         return;
-
-    // std::map<int32_t, Matches::p_match*>::iterator it = map_matched.begin();
-
-    // while (it != map_matched.end())
-    // //for (auto it = map_matched.begin(); it != map_matched.end();)
-    // {
-    //     if (it->second->matched == false)
-    //     {
-    //         it = map_matched.erase(it);
-    //     }
-    //     else    
-    //         it++;
-    // }
-    
-    // for (int i=0; i < p_matched.size(); i++)
-    // {
-    //     if (!p_matched[i].matched)
-    //         map_matched.erase(getKey(p_matched[i]));
-        
-    // }
 
     // remove where no current matches
     p_matched.erase(std::remove_if(p_matched.begin(), p_matched.end(),

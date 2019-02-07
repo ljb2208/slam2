@@ -14,7 +14,7 @@ class Mapping
     public:
         Mapping(SlamViewer* viewer);
 
-        void addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, std::vector<Matches::p_match> p_matched);
+        void addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches);
 
         void run();
 	    void close();

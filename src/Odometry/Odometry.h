@@ -59,7 +59,7 @@ class Odometry
             }
         };
 
-        std::vector<Matches::p_match>  p_matched;  // feature point matches
+        //std::vector<Matches::p_match>  p_matched;  // feature point matches
         Timer* timer;
 
     private:
