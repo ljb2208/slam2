@@ -224,24 +224,51 @@ void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
   // double pass matching
   if (param.multi_stage) {
 
+    if (p_matched_p->inlierMatches.size() > 43)
+      printf("1: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
+    
     // 1st pass (sparse matches)
     matching(m1p1,m2p1,m1c1,m2c1,n1p1,n2p1,n1c1,n2c1,p_matched_p,method,false,Tr_delta);
+
+    if (p_matched_p->inlierMatches.size() > 43)
+      printf("2: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
+    
     //printf("Matching1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
     removeOutliers(p_matched_p,method);
     //printf("removeOutliers1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+    if (p_matched_p->inlierMatches.size() > 43)
+      printf("3: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
     
+
     // compute search range prior statistics (used for speeding up 2nd pass)
     computePriorStatistics(p_matched_p,method);      
     //printf("computePriorStats1. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
 
+    if (p_matched_p->inlierMatches.size() > 43)
+      printf("4: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
+    
+
     // 2nd pass (dense matches)
     matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,p_matched_p,method,true,Tr_delta);
+
+    if (p_matched_p->inlierMatches.size() > 43)
+      printf("5: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
+    
     //printf("matching2. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
     if (param.refinement>0)
       refinement(p_matched_p,method);
 
+    if (p_matched_p->inlierMatches.size() > 43)
+      printf("6: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
+    
+
     //printf("refinement. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
+    printf("2nd removeoutliers\n");
     removeOutliers(p_matched_p,method);
+
+    if (p_matched_p->inlierMatches.size() > 43)
+      printf("7: u1c %f v1c %f i1c %i\n",p_matched_p->inlierMatches[42]->u1c, p_matched_p->inlierMatches[42]->v1c, p_matched_p->inlierMatches[42]->i1c);
+    
     //printf("removeOutliers2. total: %i active: %i\n", p_matched_p->getTotalMatches(), p_matched_p->getActiveMatches());
 
   // single pass matching
@@ -839,10 +866,10 @@ void Matcher::computePriorStatistics (Matches* p_matched,int32_t method) {
   
   // fill bin accumulator
   Matcher::delta delta_curr;
-  for (vector<Matches::p_match>::iterator it=p_matched->p_matched.begin(); it!=p_matched->p_matched.end(); it++) {
-
-    if (!it->active || it->outlier)
-      continue;
+  //for (vector<Matches::p_match>::iterator it=p_matched->p_matched.begin(); it!=p_matched->p_matched.end(); it++) {
+  for (int i=0; i < p_matched->inlierMatches.size(); i++)
+  {
+    Matches::p_match* it = p_matched->inlierMatches[i];
 
     // method flow: compute position delta
     if (method==0) {
@@ -1132,7 +1159,7 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
 
         // add match if this pixel isn't matched yet
         if (*(M+getAddressOffsetImage(u1c,v1c,dims_c[0]))==0) {
-          p_matched->push_back(Matches::p_match(u1p,v1p,i1p,-1,-1,-1,u1c,v1c,i1c,-1,-1,-1));
+          p_matched->push_back(Matches::p_match(u1p,v1p,i1p,-1,-1,-1,u1c,v1c,i1c,-1,-1,-1), use_prior);
           *(M+getAddressOffsetImage(u1c,v1c,dims_c[0])) = 1;
         }
       }
@@ -1174,7 +1201,7 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
 
           // add match if this pixel isn't matched yet
           if (*(M+getAddressOffsetImage(u1c,v1c,dims_c[0]))==0) {
-            p_matched->push_back(Matches::p_match(-1,-1,-1,-1,-1,-1,u1c,v1c,i1c,u2c,v2c,i2c));
+            p_matched->push_back(Matches::p_match(-1,-1,-1,-1,-1,-1,u1c,v1c,i1c,u2c,v2c,i2c), use_prior);
             *(M+getAddressOffsetImage(u1c,v1c,dims_c[0])) = 1;
           }
         }
@@ -1292,7 +1319,7 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
           match.max2.d7 = d27;
           match.max2.d8 = d28;
 
-          p_matched->push_back(match);
+          p_matched->push_back(match, use_prior);
         }
       }
     }
@@ -1352,28 +1379,52 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
 void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
 
   // do we have enough points for outlier removal?
-  if (p_matched->getActiveMatches()<=3)
+  if (p_matched->getInlierCount()<=3)
     return;
+
 
   // input/output structure for triangulation
   struct triangulateio in, out;
 
   // inputs
-  in.numberofpoints = p_matched->getActiveMatches();
+  in.numberofpoints = p_matched->getInlierCount();
   in.pointlist = (float*)malloc(in.numberofpoints*2*sizeof(float));
   int32_t k=0;
   
   // create copy of p_matched, init vector with number of support points
   // and fill triangle point vector for delaunay triangulation
-  vector<Matches::p_match*> p_matched_copy;  
+  //vector<Matches::p_match> p_matched_copy;  
   vector<int32_t> num_support;
-  for (int i=0; i < p_matched->activeMatches.size(); i++)
+  float maxu1c = 0;
+  float maxv1c = 0;
+  float minu1c = 600;
+  float minv1c = 600;
+
+  for (int i=0; i < p_matched->inlierMatches.size(); i++)
   {
-    p_matched_copy.push_back(p_matched->activeMatches[i]);
+    //p_matched_copy.push_back(*p_matched->activeMatches[i]);
     num_support.push_back(0);
-    in.pointlist[k++] = p_matched->activeMatches[i]->u1c;
-    in.pointlist[k++] = p_matched->activeMatches[i]->v1c;
+    in.pointlist[k++] = p_matched->inlierMatches[i]->u1c;
+    in.pointlist[k++] = p_matched->inlierMatches[i]->v1c;
+
+    if (p_matched->inlierMatches[i]->u1c > maxu1c)
+      maxu1c = p_matched->inlierMatches[i]->u1c;
+
+    if (p_matched->inlierMatches[i]->u1c < minu1c)
+      minu1c = p_matched->inlierMatches[i]->u1c;
+    
+    if (p_matched->inlierMatches[i]->v1c > maxv1c)
+      maxv1c = p_matched->inlierMatches[i]->v1c;
+
+    if (p_matched->inlierMatches[i]->v1c < minv1c)
+      minv1c = p_matched->inlierMatches[i]->v1c;
+
+  
+    if (p_matched->inlierMatches[i]->u1c < 0 || p_matched->inlierMatches[i]->u1c > 1000)
+      printf("Error in inlier matches at %i\n", i);
   }
+
+  printf("maxu1c: %f min: %f maxv1c: %f min: %f\n", maxu1c, minu1c, maxv1c, minv1c);
   
   // input parameters
   in.numberofpointattributes = 0;
@@ -1413,16 +1464,16 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
     if (method==0) {
       
       // 1. corner disparity and flow
-      float p1_flow_u = p_matched_copy[p1]->u1c-p_matched_copy[p1]->u1p;
-      float p1_flow_v = p_matched_copy[p1]->v1c-p_matched_copy[p1]->v1p;
+      float p1_flow_u = p_matched->inlierMatches[p1]->u1c-p_matched->inlierMatches[p1]->u1p;
+      float p1_flow_v = p_matched->inlierMatches[p1]->v1c-p_matched->inlierMatches[p1]->v1p;
 
       // 2. corner disparity and flow
-      float p2_flow_u = p_matched_copy[p2]->u1c-p_matched_copy[p2]->u1p;
-      float p2_flow_v = p_matched_copy[p2]->v1c-p_matched_copy[p2]->v1p;
+      float p2_flow_u = p_matched->inlierMatches[p2]->u1c-p_matched->inlierMatches[p2]->u1p;
+      float p2_flow_v = p_matched->inlierMatches[p2]->v1c-p_matched->inlierMatches[p2]->v1p;
 
       // 3. corner disparity and flow
-      float p3_flow_u = p_matched_copy[p3]->u1c-p_matched_copy[p3]->u1p;
-      float p3_flow_v = p_matched_copy[p3]->v1c-p_matched_copy[p3]->v1p;
+      float p3_flow_u = p_matched->inlierMatches[p3]->u1c-p_matched->inlierMatches[p3]->u1p;
+      float p3_flow_v = p_matched->inlierMatches[p3]->v1c-p_matched->inlierMatches[p3]->v1p;
 
       // consistency of 1. edge
       if (fabs(p1_flow_u-p2_flow_u)+fabs(p1_flow_v-p2_flow_v)<param.outlier_flow_tolerance) {
@@ -1446,13 +1497,13 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
     } else if (method==1) {
       
       // 1. corner disparity and flow
-      float p1_disp   = p_matched_copy[p1]->u1c-p_matched_copy[p1]->u2c;
+      float p1_disp   = p_matched->inlierMatches[p1]->u1c-p_matched->inlierMatches[p1]->u2c;
 
       // 2. corner disparity and flow
-      float p2_disp   = p_matched_copy[p2]->u1c-p_matched_copy[p2]->u2c;
+      float p2_disp   = p_matched->inlierMatches[p2]->u1c-p_matched->inlierMatches[p2]->u2c;
 
       // 3. corner disparity and flow
-      float p3_disp   = p_matched_copy[p3]->u1c-p_matched_copy[p3]->u2c;
+      float p3_disp   = p_matched->inlierMatches[p3]->u1c-p_matched->inlierMatches[p3]->u2c;
 
       // consistency of 1. edge
       if (fabs(p1_disp-p2_disp)<param.outlier_disp_tolerance) {
@@ -1476,19 +1527,19 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
     } else {
       
       // 1. corner disparity and flow
-      float p1_flow_u = p_matched_copy[p1]->u1c-p_matched_copy[p1]->u1p;
-      float p1_flow_v = p_matched_copy[p1]->v1c-p_matched_copy[p1]->v1p;
-      float p1_disp   = p_matched_copy[p1]->u1p-p_matched_copy[p1]->u2p;
+      float p1_flow_u = p_matched->inlierMatches[p1]->u1c-p_matched->inlierMatches[p1]->u1p;
+      float p1_flow_v = p_matched->inlierMatches[p1]->v1c-p_matched->inlierMatches[p1]->v1p;
+      float p1_disp   = p_matched->inlierMatches[p1]->u1p-p_matched->inlierMatches[p1]->u2p;
 
       // 2. corner disparity and flow
-      float p2_flow_u = p_matched_copy[p2]->u1c-p_matched_copy[p2]->u1p;
-      float p2_flow_v = p_matched_copy[p2]->v1c-p_matched_copy[p2]->v1p;
-      float p2_disp   = p_matched_copy[p2]->u1p-p_matched_copy[p2]->u2p;
+      float p2_flow_u = p_matched->inlierMatches[p2]->u1c-p_matched->inlierMatches[p2]->u1p;
+      float p2_flow_v = p_matched->inlierMatches[p2]->v1c-p_matched->inlierMatches[p2]->v1p;
+      float p2_disp   = p_matched->inlierMatches[p2]->u1p-p_matched->inlierMatches[p2]->u2p;
 
       // 3. corner disparity and flow
-      float p3_flow_u = p_matched_copy[p3]->u1c-p_matched_copy[p3]->u1p;
-      float p3_flow_v = p_matched_copy[p3]->v1c-p_matched_copy[p3]->v1p;
-      float p3_disp   = p_matched_copy[p3]->u1p-p_matched_copy[p3]->u2p;
+      float p3_flow_u = p_matched->inlierMatches[p3]->u1c-p_matched->inlierMatches[p3]->u1p;
+      float p3_flow_v = p_matched->inlierMatches[p3]->v1c-p_matched->inlierMatches[p3]->v1p;
+      float p3_disp   = p_matched->inlierMatches[p3]->u1p-p_matched->inlierMatches[p3]->u2p;
 
       // consistency of 1. edge
       if (fabs(p1_disp-p2_disp)<param.outlier_disp_tolerance && fabs(p1_flow_u-p2_flow_u)+fabs(p1_flow_v-p2_flow_v)<param.outlier_flow_tolerance) {
@@ -1514,11 +1565,12 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
   //p_matched->clear();
   for (int i=0; i<in.numberofpoints; i++)
     if (num_support[i]>=4)
-      p_matched->setOutlierFlag(true, p_matched_copy[i]);
+      p_matched->inlierMatches[i]->outlier = false;
     else
-      p_matched->setOutlierFlag(false, p_matched_copy[i]);
-      //p_matched->push_back(p_matched_copy[i]);
-  
+      p_matched->inlierMatches[i]->outlier = true;
+
+  p_matched->clearOutliers();
+
   // free memory used for triangulation
   free(in.pointlist);
   free(out.pointlist);
@@ -1685,11 +1737,11 @@ void Matcher::refinement (Matches* p_matched,int32_t method) {
   }
   
   // for all matches do
-  for (vector<Matches::p_match>::iterator it=p_matched->p_matched.begin(); it!=p_matched->p_matched.end(); it++) {
+  //for (vector<Matches::p_match*>::iterator it=p_matched->inlierMatches.begin(); it!=p_matched->inlierMatches.end(); it++) {
+  for (int i=0; i < p_matched->inlierMatches.size(); i++)
+  {
+    Matches::p_match* it = p_matched->inlierMatches[i];
 
-    if (!it->active || it->outlier)
-      continue;
-    
     // method: flow or quad matching
     if (method==0 || method==2) {
       if (param.refinement==2) {

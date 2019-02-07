@@ -33,10 +33,15 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
 
     timer = new Timer();
 
+    ImageFolderReader* reader = new ImageFolderReader();
+    groundTruth = reader->getGroundTruth();
+    delete reader;
+
     outputFile.open("outputs.csv", std::ios::trunc);
     outputFile << "Index,NumMatches,NumInliers,";
     outputFile << "pose00,pose01,pose02,pose03,pose10,pose11,pose12,pose13,pose20,pose21,pose22,pose23,pose30,pose31,pose32,pose33,";
     outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";
+    outputFile << "errorR, errorT";
     outputFile << std::endl;
 }
 
@@ -109,14 +114,20 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     //updateDepth(&maxDepth, &minDepth);
 
     //printf("Max depth: %f min depth: %f\n", maxDepth, minDepth);
+    int maxAge = -1;
 
-    for (int i=0; i < matches->inlierMatches.size(); i++)
+    for (int i=0; i < matches->selectedMatches.size(); i++)
     {
-        cv::Point2f matchPoint(matches->inlierMatches[i]->u1c, matches->inlierMatches[i]->v1c);
-        cv::Point2f matchPointRight(matches->inlierMatches[i]->u2c, matches->inlierMatches[i]->v2c);
-        cv::circle(image->imageColor, matchPoint, 4, getColorFromDepth(matches->inlierMatches[i]->depth), -1, 8, 0);
+        cv::Point2f matchPoint(matches->selectedMatches[i]->u1c, matches->selectedMatches[i]->v1c);
+        cv::Point2f matchPointRight(matches->selectedMatches[i]->u2c, matches->selectedMatches[i]->v2c);
+        cv::circle(image->imageColor, matchPoint, 4, getColorFromDepth(matches->selectedMatches[i]->depth), -1, 8, 0);
         cv::circle(imageRight->imageColor, matchPointRight, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
+
+        if (matches->selectedMatches[i]->age > maxAge)
+            maxAge = matches->selectedMatches[i]->age;
     }
+
+    printf("Max age: %i\n", maxAge);
 
     std::string imageIndex = std::to_string(image->index);
     cv::putText(image->imageColor, imageIndex.c_str(), cv::Point(40, 40), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0,0,255), 1, 8, false);
@@ -137,7 +148,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         pose = pose * Matrix::inv(motion);
         
         // output some statistics
-        double num_matches = getNumberOfMatches();
+        double num_matches = matches->getSelectedCount();
         double num_inliers = getNumberOfInliers();
         std::cout << "Index: " << image->index;
         std::cout << ", Matches: " << num_matches;
@@ -180,7 +191,9 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         outputFile << motion.val[0][3] << ",";
         outputFile << motion.val[1][3] << ",";
         outputFile << motion.val[2][3] << ",";
-        outputFile << motion.val[3][3] << std::endl;
+        outputFile << motion.val[3][3] << ",";
+        outputFile << getRotationError(image->index) << "," << getTranslationError(image->index) << std::endl;
+        
 
         mapping->addFrame(pose, image, imageRight, p_matched);
     }
@@ -264,17 +277,17 @@ std::vector<double> Odometry::estimateMotion ()
 
     // compute minimum distance for RANSAC samples
     double width=0,height=0;
-    for (int i=0; i < matches->activeMatches.size(); i++)
+    for (int i=0; i < matches->selectedMatches.size(); i++)
     {     
-        if (matches->activeMatches[i]->u1c>width)  width  = matches->activeMatches[i]->u1c;
-        if (matches->activeMatches[i]->v1c>height) height = matches->activeMatches[i]->v1c;
+        if (matches->selectedMatches[i]->u1c>width)  width  = matches->selectedMatches[i]->u1c;
+        if (matches->selectedMatches[i]->v1c>height) height = matches->selectedMatches[i]->v1c;
     }
 
     double min_dist = std::min(width,height)/3.0;
     
     // get number of matches
     //int32_t N  = p_matched.size();
-    int32_t N  = matches->getActiveMatches();
+    int32_t N  = matches->getSelectedCount();
     if (N<6)
     {
         return std::vector<double>();
@@ -288,13 +301,13 @@ std::vector<double> Odometry::estimateMotion ()
     p_observe  = new double[4*N];
     p_residual = new double[4*N];
 
-    for (int i=0; i < matches->activeMatches.size(); i++)
+    for (int i=0; i < matches->selectedMatches.size(); i++)
     {
-        double d = std::max(matches->activeMatches[i]->u1p - matches->activeMatches[i]->u2p,0.0001f);
-        X[i] = (matches->activeMatches[i]->u1p-param.calib.cu)*param.base/d;
-        Y[i] = (matches->activeMatches[i]->v1p-param.calib.cv)*param.base/d;
+        double d = std::max(matches->selectedMatches[i]->u1p - matches->selectedMatches[i]->u2p,0.0001f);
+        X[i] = (matches->selectedMatches[i]->u1p-param.calib.cu)*param.base/d;
+        Y[i] = (matches->selectedMatches[i]->v1p-param.calib.cv)*param.base/d;
         Z[i] = param.calib.f*param.base/d;
-        matches->activeMatches[i]->depth = param.calib.f*param.base/d;
+        matches->selectedMatches[i]->depth = param.calib.f*param.base/d;
     }
 
     // // project matches of previous image into 3d
@@ -455,7 +468,7 @@ std::vector<int32_t> Odometry::getInlier(Matches* matches, std::vector<double> &
 {
      // mark all observations active
     std::vector<int32_t> active;
-    for (int i=0; i < matches->activeMatches.size(); i++)
+    for (int i=0; i < matches->selectedMatches.size(); i++)
     {
         active.push_back(i);
     }
@@ -466,7 +479,7 @@ std::vector<int32_t> Odometry::getInlier(Matches* matches, std::vector<double> &
 
     // compute inliers
     std::vector<int32_t> inliers;
-    for (int32_t i=0; i<(int32_t)matches->activeMatches.size(); i++)
+    for (int32_t i=0; i<(int32_t)matches->selectedMatches.size(); i++)
     {
         if (pow(p_observe[4*i+0]-p_predict[4*i+0],2)+pow(p_observe[4*i+1]-p_predict[4*i+1],2) +
             pow(p_observe[4*i+2]-p_predict[4*i+2],2)+pow(p_observe[4*i+3]-p_predict[4*i+3],2) < param.inlier_threshold*param.inlier_threshold)
@@ -479,10 +492,10 @@ void Odometry::computeObservations(Matches* matches,std::vector<int32_t> &active
 {
     // set all observations
     for (int32_t i=0; i<(int32_t)active.size(); i++) {
-        p_observe[4*i+0] = matches->activeMatches[active[i]]->u1c; // u1
-        p_observe[4*i+1] = matches->activeMatches[active[i]]->v1c; // v1
-        p_observe[4*i+2] = matches->activeMatches[active[i]]->u2c; // u2
-        p_observe[4*i+3] = matches->activeMatches[active[i]]->v2c; // v2
+        p_observe[4*i+0] = matches->selectedMatches[active[i]]->u1c; // u1
+        p_observe[4*i+1] = matches->selectedMatches[active[i]]->v1c; // v1
+        p_observe[4*i+2] = matches->selectedMatches[active[i]]->u2c; // u2
+        p_observe[4*i+3] = matches->selectedMatches[active[i]]->v2c; // v2
     }  
 }
 
@@ -735,4 +748,45 @@ bool Odometry::convertRotations()
 int32_t Odometry::getNumberOfMatches ()
 {
     return matches->getActiveMatches();
+}
+
+float Odometry::getRotationError(int index)
+{
+    if (groundTruth.size() <= index)
+        return 9999999;
+
+     // get rotation angle between this keyframe and last keyframe on stack    
+    Matrix rA = pose.getMat(0, 0, 2, 2);
+    Matrix rB = groundTruth[index].getMat(0, 0, 2, 2);
+
+    Matrix rAT = rA.operator~();
+    Matrix rAB = rAT.operator*(rB);
+
+    // calculate trace
+    float trace = rAB.val[0][0] + rAB.val[1][1] + rAB.val[2][2];
+
+    if (trace > 3)
+        trace = 3;
+
+    float f1 = acos((trace - 1) / 2);
+    float f2 = (f1 * 180) / M_PI;
+
+    //printf("trace: %f, f1: %f f2:%f f5: %f f6: %f\n", trace, f1, f2, f5, f6);
+
+    return f2;
+}
+    
+float Odometry::getTranslationError(int index)
+{
+    if (groundTruth.size() <= index)
+        return 9999999;
+
+    // get euclidian distance between this keyframe and last keyframe on stack
+    float f1, f2, f3;
+
+    f1 = pose.val[0][3] - groundTruth[index].val[0][3];
+    f2 = pose.val[1][3] - groundTruth[index].val[1][3];
+    f3 = pose.val[2][3] - groundTruth[index].val[2][3];
+
+    return fabs(sqrt(f1*f1 + f2*f2 + f3*f3));    
 }

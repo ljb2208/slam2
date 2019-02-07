@@ -49,7 +49,7 @@ class Matches
             p_match(float u1p,float v1p,int32_t i1p,float u2p,float v2p,int32_t i2p,
                     float u1c,float v1c,int32_t i1c,float u2c,float v2c,int32_t i2c):
                     u1p(u1p),v1p(v1p),i1p(i1p),u2p(u2p),v2p(v2p),i2p(i2p),
-                    u1c(u1c),v1c(v1c),i1c(i1c),u2c(u2c),v2c(v2c),i2c(i2c) { age = -1; matched = false; outlier=0; noMatchCount=0;depth =0.0;selected=false;active=false;outlier==false;}
+                    u1c(u1c),v1c(v1c),i1c(i1c),u2c(u2c),v2c(v2c),i2c(i2c) { age = 0; matched = false; outlier=0; noMatchCount=0;depth =0.0;selected=false;active=false;outlier==false;}
         };
 
 
@@ -58,20 +58,24 @@ class Matches
         int32_t getActiveMatches();
         int32_t getTotalMatches();
         int32_t getInlierCount();
-        void setActiveFlag(bool active, Matches::p_match match);
-        void setOutlierFlag(bool outlier, Matches::p_match* match);
-        bool push_back(Matches::p_match match);
+        int32_t getSelectedCount();
+        //void setActiveFlag(bool active, Matches::p_match match);
+        //void setOutlierFlag(bool outlier, Matches::p_match match);
+        bool push_back(Matches::p_match match, bool current);
         void clear();
         void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
 
         bool includeMatch(Matches::p_match* match);
+        void clearOutliers();
 
         std::vector<Matches::p_match> p_matched;
         std::vector<Matches::p_match*> activeMatches;
         std::vector<Matches::p_match*> inlierMatches;
+        std::vector<Matches::p_match*> selectedMatches;
 
     private:
-        bool matchExists(Matches::p_match match);
+        bool matchExists(Matches::p_match match, bool current);
+        int32_t getKey(Matches::p_match* match);
         int32_t getKey(Matches::p_match match);
         int32_t getPriorKey(Matches::p_match match);
         void deleteStaleMatches();
@@ -79,34 +83,34 @@ class Matches
         
         std::map<int32_t, Matches::p_match*> map_matched;
 
-        static bool compareMatches(Matches::p_match p1, Matches::p_match p2)
+        static bool compareMatches(Matches::p_match* p1, Matches::p_match* p2)
         {
             int32_t ageDiscrim = 3;
-            if (p1.age > p2.age && p1.age <= ageDiscrim)
+            if (p1->age > p2->age && p1->age <= ageDiscrim)
             return true;
             
-            if (p2.age > p1.age && p2.age <= ageDiscrim)
+            if (p2->age > p1->age && p2->age <= ageDiscrim)
             return false;
             
-            if (p1.max1.c == 0 || p1.max1.c ==2) // class 0 and 2 are minima so negative val
+            if (p1->max1.c == 0 || p1->max1.c ==2) // class 0 and 2 are minima so negative val
             {
-            if (p1.max1.val < p2.max1.val)
+            if (p1->max1.val < p2->max1.val)
                 return true;
 
-            if (p2.max1.val < p1.max1.val)
+            if (p2->max1.val < p1->max1.val)
                 return false;
             }
             else
             {
-            if (p1.max1.val > p2.max1.val)
+            if (p1->max1.val > p2->max1.val)
                 return true;
 
-            if (p2.max1.val > p1.max1.val)
+            if (p2->max1.val > p1->max1.val)
                 return false;
             }
             
             
-            return (p1.i1p > p2.i1p);  
+            return (p1->i1p > p2->i1p);  
         };
 
 };
