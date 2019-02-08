@@ -1289,7 +1289,6 @@ void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
 
   for (int i=0; i < p_matched->inlierMatches.size(); i++)
   {
-    //p_matched_copy.push_back(*p_matched->activeMatches[i]);
     num_support.push_back(0);
     in.pointlist[k++] = p_matched->inlierMatches[i]->u1c;
     in.pointlist[k++] = p_matched->inlierMatches[i]->v1c;

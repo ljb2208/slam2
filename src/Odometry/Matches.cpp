@@ -1,4 +1,4 @@
-# include "Matches.h"
+#include "Matches.h"
 
 Matches::Matches()
 {
@@ -25,7 +25,6 @@ void Matches::resetMatches()
       p_matched[i].outlier = false;
     }
 
-    activeMatches.clear();
     inlierMatches.clear();
     selectedMatches.clear();
 }
@@ -39,12 +38,6 @@ void Matches::clearOutliers()
 int32_t Matches::getInlierCount()
 {
     return inlierMatches.size();
-}
-
-
-int32_t Matches::getActiveMatches()
-{
-    return activeMatches.size();
 }
 
 int32_t Matches::getTotalMatches()
@@ -61,16 +54,11 @@ bool Matches::push_back(Matches::p_match match, bool current)
 
         std::memcpy(mtch, &match, sizeof(Matches::p_match));
 
-
-        if (match.u1c < 0 || match.u1c > 1000)
-            printf("Invalid match\n");
-
         mtch->matched = true;
         mtch->active = true;
         mtch->outlier = false;
         mtch->imax1 = mtch->max1;
         mtch->imax2 = mtch->max2;
-        activeMatches.push_back(mtch);
         inlierMatches.push_back(mtch);
         p_matched.push_back(*mtch);
     }    
@@ -112,7 +100,6 @@ bool Matches::matchExists(Matches::p_match match, bool current)
                     
             if (p_matched[i].active == false)
             {
-                activeMatches.push_back(&p_matched[i]);
                 inlierMatches.push_back(&p_matched[i]);
             }
 
@@ -193,19 +180,15 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
             {
                 if (cnt0 > k)
                     selectedMatches.push_back(buckets[ind].at(k));
-                   //buckets[ind].at(k).selected = true;
 
                 if (cnt1 > k)
                     selectedMatches.push_back(buckets[ind + 1*bucket_cols].at(k));
-                    //buckets[ind + 1*bucket_cols].at(k).selected = true;
 
                 if (cnt2 > k)
                     selectedMatches.push_back(buckets[ind + 2*bucket_cols].at(k));
-                    //buckets[ind + 2*bucket_cols].at(k).selected = true;
                 
                 if (cnt3 > k)
                     selectedMatches.push_back(buckets[ind + 3*bucket_cols].at(k));
-                    //buckets[ind + 3*bucket_cols].at(k).selected = true;
 
                 k++;
 
@@ -227,9 +210,6 @@ int32_t Matches::getSelectedCount()
 int32_t Matches::getKey(Matches::p_match match)
 {
     return getKey(&match);
-    // float u1c = roundf(match.u1c);
-    // float v1c = roundf(match.v1c);
-    // return (match.max1.c * 1000000 + u1c * 10000 + v1c);
 }
 
 int32_t Matches::getKey(Matches::p_match* match)

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <stdio.h>
 #include <cstring>
+#include "Util/Settings.h"
 
 class Matches
 {
@@ -55,7 +56,6 @@ class Matches
 
         void ageFeaturePoints();
         void resetMatches();
-        int32_t getActiveMatches();
         int32_t getTotalMatches();
         int32_t getInlierCount();
         int32_t getSelectedCount();
@@ -65,7 +65,6 @@ class Matches
         void clearOutliers();
 
         std::vector<Matches::p_match> p_matched;
-        std::vector<Matches::p_match*> activeMatches;
         std::vector<Matches::p_match*> inlierMatches;
         std::vector<Matches::p_match*> selectedMatches;
 
@@ -78,11 +77,10 @@ class Matches
 
         static bool compareMatches(Matches::p_match* p1, Matches::p_match* p2)
         {
-            int32_t ageDiscrim = 3;
-            if (p1->age > p2->age && p1->age <= ageDiscrim)
+            if (p1->age > p2->age && p1->age <= settings_featureAgeDiscrim)
             return true;
             
-            if (p2->age > p1->age && p2->age <= ageDiscrim)
+            if (p2->age > p1->age && p2->age <= settings_featureAgeDiscrim)
             return false;
             
             if (p1->max1.c == 0 || p1->max1.c ==2) // class 0 and 2 are minima so negative val

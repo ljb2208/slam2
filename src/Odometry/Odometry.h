@@ -105,9 +105,7 @@ class Odometry
         std::vector<int32_t> getInlier(Matches* matches, std::vector<double> &tr);
         void computeObservations(Matches* matches,std::vector<int32_t> &active);
         void computeResidualsAndJacobian(std::vector<double> &tr,std::vector<int32_t> &active);
-        // returns the number of successfully matched points, after bucketing
-        int32_t getNumberOfMatches (); //{ return p_matched.size(); }
-        
+           
         // returns the number of inliers: num_inliers <= num_matched
         int32_t getNumberOfInliers () { return inliers.size(); }
         Matrix getMotion () { return Tr_delta; }      

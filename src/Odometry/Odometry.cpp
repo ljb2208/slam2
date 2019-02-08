@@ -41,7 +41,7 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     outputFile << "Index,NumMatches,NumInliers,";
     outputFile << "pose00,pose01,pose02,pose03,pose10,pose11,pose12,pose13,pose20,pose21,pose22,pose23,pose30,pose31,pose32,pose33,";
     outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";
-    outputFile << "errorR, errorT";
+    outputFile << ",errorR, errorT";
     outputFile << std::endl;
 }
 
@@ -94,7 +94,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         timer->stopTimer();
     }
 
-    printf("Num matches pre bucket: %i\n", matches->getActiveMatches());
+    printf("Num matches pre bucket: %i\n", matches->getInlierCount());
     
 
     timer->startTimer("bucketFeatures2");
@@ -735,11 +735,6 @@ bool Odometry::convertRotations()
         qEss3 = eig; 
     }
     return true;
-}
-
-int32_t Odometry::getNumberOfMatches ()
-{
-    return matches->getActiveMatches();
 }
 
 float Odometry::getRotationError(int index)
