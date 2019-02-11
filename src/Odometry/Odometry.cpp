@@ -75,7 +75,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
 
         timer->startTimer("bucketFeatures");        
         //matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
-        matcher->bucketFeaturesSTA(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
+        matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
         timer->stopTimer();
 
         // timer->startTimer("getMatches");
@@ -102,7 +102,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
 
     timer->startTimer("bucketFeatures2");
     //matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
-    matcher->bucketFeaturesSTA(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
+    matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
     timer->stopTimer();
 
     timer->startTimer("updateMotion");

@@ -111,16 +111,9 @@ public:
   void matchFeatures(int32_t method, Matrix *Tr_delta = 0);
 
   // feature bucketing: keeps only max_features per bucket, where the domain
-  // is split into buckets of size (bucket_width,bucket_height)
-  void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
-
-  // feature bucketing: keeps only max_features per bucket, where the domain
   // is split into buckets of size (bucket_width,bucket_height) but considering
   // feature strength, type and age
-  void bucketFeaturesSTA(int32_t max_features,float bucket_width,float bucket_height);
-
-  // return vector with matched feature points and indices
-  //std::vector<Matches::p_match> getMatches(); { return p_matched_2; }
+  void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
 
   // given a vector of inliers computes gain factor between the current and
   // the previous frame. this function is useful if you want to reconstruct 3d
