@@ -9,15 +9,14 @@
 
 using namespace std::chrono;
 
-Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine)
+Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine, int imageHeight, int imageWidth)
 {
     this->viewer = viewer;
     this->mapping = mapping;
 
-    matches = new Matches();
+    matches = new Matches(imageWidth, imageHeight);
 
-    Tr_valid = false;
-    features = new Features();
+    Tr_valid = false;    
 
     // f_x = 0,0
     // f_y = 1,1
@@ -43,10 +42,14 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";
     outputFile << ",errorR, errorT";
     outputFile << std::endl;
+
+    groundTruthMotionError = 0;
+    frameProcessedCount = 0;
 }
 
 Odometry::~Odometry()
 {
+    printf("Translation Error avg: %f\n", groundTruthMotionError/frameProcessedCount);
     outputFile.close();
     timer->outputAll();
     delete timer;
@@ -186,6 +189,8 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         outputFile << motion.val[3][3] << ",";
         outputFile << getRotationError(image->index) << "," << getTranslationError(image->index) << std::endl;
         
+        groundTruthMotionError += getTranslationError(image->index);
+        frameProcessedCount++;
 
         mapping->addFrame(pose, image, imageRight, matches);
     }

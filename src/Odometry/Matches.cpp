@@ -1,7 +1,21 @@
 #include "Matches.h"
+#include <stdlib.h>
 
-Matches::Matches()
+
+Matches::Matches(int imageWidth, int imageHeight)
 {
+    printf("Sizeof p_match: %i\n", sizeof(Matches::p_match*));
+    this->imageHeight = imageHeight;
+    this->imageWidth = imageWidth;
+    map_matched = (Matches::p_match**)calloc(imageWidth*imageHeight*8, sizeof(Matches::p_match*));
+    //map_matched = (Matches::p_match**)aligned_alloc(16, imageWidth*imageHeight*4*sizeof(Matches::p_match*));
+
+    printf("mem allocated: %i\n", imageWidth*imageHeight*4*sizeof(Matches::p_match*));
+}
+
+Matches::~Matches()
+{
+    free(map_matched);
 }
 
 void Matches::ageFeaturePoints()
@@ -61,7 +75,40 @@ bool Matches::push_back(Matches::p_match match, bool current)
         mtch->imax2 = mtch->max2;
         inlierMatches.push_back(mtch);
         p_matched.push_back(*mtch);
+        addToMap(*mtch);
     }    
+}
+
+void Matches::addToMap(Matches::p_match match)
+{
+    int32_t u,v;
+    u = (int32_t) match.u1c;
+    v = (int32_t) match.v1c;    
+    int32_t addr = getAddressOffsetMatches(u, v, match.max1.c, imageWidth, imageHeight, 0);
+    map_matched[addr] = &match;    
+
+    u = (int32_t) match.u2c;
+    v = (int32_t) match.v2c;    
+    addr = getAddressOffsetMatches(u, v, match.max2.c, imageWidth, imageHeight, 1);
+    map_matched[addr] = &match;    
+    
+}
+
+void Matches::clearMap()
+{
+    for (int i=0; i < imageHeight * imageWidth * 4; i++)
+        map_matched[i] = NULL;
+}
+
+Matches::p_match* Matches::getMatchbyMaxima(Matches::maximum max, bool right)
+{
+    int32_t right_val = 0;
+
+    if (right)
+        right_val = 1;
+    Matches::p_match* result = map_matched[getAddressOffsetMatches(max.u, max.v, max.c, imageWidth, imageHeight, right_val)];
+
+    return result;
 }
 
 bool Matches::matchExists(Matches::p_match match, bool current)
@@ -101,6 +148,7 @@ bool Matches::matchExists(Matches::p_match match, bool current)
             if (p_matched[i].active == false)
             {
                 inlierMatches.push_back(&p_matched[i]);
+                addToMap(p_matched[i]);
             }
 
             p_matched[i].active = true;    

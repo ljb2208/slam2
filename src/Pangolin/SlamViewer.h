@@ -28,8 +28,7 @@ class SlamViewer{
 
         void pushKeyFrame(KeyFrame keyFrame);
         void pushDepthImageFrame(cv::Mat image);
-        void pushLiveImageFrame(cv::Mat image, cv::Mat imageRight);
-        void VideoSample(const std::string uri);
+        void pushLiveImageFrame(cv::Mat image, cv::Mat imageRight);        
 
     private:
         int width, height;

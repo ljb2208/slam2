@@ -93,7 +93,7 @@ int main( int argc, char** argv )
 
     SlamViewer* slamViewer = new SlamViewer(width, height);
     Mapping* mapping = new Mapping(slamViewer);
-    Odometry* odom = new Odometry(slamViewer, mapping, cameraMatrix, baseLine);
+    Odometry* odom = new Odometry(slamViewer, mapping, cameraMatrix, baseLine, height, width);
 
     std::thread runthread([&]() {
 
@@ -183,6 +183,7 @@ int main( int argc, char** argv )
     mappingThread->join();
     mapping->close();
 
+    printf("Deleting..\n");
     delete imageReader;
     delete imageReaderRight;
     delete reader;

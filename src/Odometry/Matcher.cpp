@@ -177,9 +177,9 @@ void Matcher::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace
   }
 
   // compute new features for current frame
-  computeFeatures(I1c,dims_c,m1c1,n1c1,m1c2,n1c2,I1c_du,I1c_dv,I1c_du_full,I1c_dv_full);
+  computeFeatures(I1c,dims_c,m1c1,n1c1,m1c2,n1c2,I1c_du,I1c_dv,I1c_du_full,I1c_dv_full, false);
   if (I2!=0)
-    computeFeatures(I2c,dims_c,m2c1,n2c1,m2c2,n2c2,I2c_du,I2c_dv,I2c_du_full,I2c_dv_full);
+    computeFeatures(I2c,dims_c,m2c1,n2c1,m2c2,n2c2,I2c_du,I2c_dv,I2c_du_full,I2c_dv_full, true);
 }
 
 void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
@@ -514,7 +514,7 @@ inline void Matcher::computeSmallDescriptor (const uint8_t* I_du,const uint8_t* 
   desc_addr[k++] = I_dv[addr3];
 }
 
-void Matcher::computeDescriptors (uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,std::vector<Matches::maximum> &maxima) {
+void Matcher::computeDescriptors (uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,std::vector<Matches::maximum> &maxima, bool rightImage) {
   
   // loop variables
   int32_t u,v;
@@ -655,7 +655,7 @@ uint8_t* Matcher::createHalfResolutionImage(uint8_t *I,const int32_t* dims) {
   return I_half;
 }
 
-void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int32_t &num1,int32_t* &max2,int32_t &num2,uint8_t* &I_du,uint8_t* &I_dv,uint8_t* &I_du_full,uint8_t* &I_dv_full) {
+void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int32_t &num1,int32_t* &max2,int32_t &num2,uint8_t* &I_du,uint8_t* &I_dv,uint8_t* &I_du_full,uint8_t* &I_dv_full, bool rightImage) {
   
   int16_t *I_f1;
   int16_t *I_f2;
@@ -695,13 +695,13 @@ void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int
     if (nms_n_sparse>10)
       nms_n_sparse = max(param.nms_n,10);
     nonMaximumSuppression(I_f1,I_f2,dims_matching,maxima1,nms_n_sparse);
-    computeDescriptors(I_du,I_dv,dims_matching[2],maxima1);
+    computeDescriptors(I_du,I_dv,dims_matching[2],maxima1, rightImage);
   }
   
   // extract dense maxima (2nd pass) via non-maximum suppression
   vector<Matches::maximum> maxima2;
   nonMaximumSuppression(I_f1,I_f2,dims_matching,maxima2,param.nms_n);
-  computeDescriptors(I_du,I_dv,dims_matching[2],maxima2);
+  computeDescriptors(I_du,I_dv,dims_matching[2],maxima2, rightImage);
 
   // release filter images
   _mm_free(I_f1);

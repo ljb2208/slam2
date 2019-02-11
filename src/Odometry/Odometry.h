@@ -2,7 +2,6 @@
 
 #include "Util/SLImage.h"
 #include "Pangolin/SlamViewer.h"
-#include "Features.h"
 #include "Matcher.h"
 #include "Matches.h"
 #include "Util/Timer.h"
@@ -14,7 +13,7 @@
 class Odometry
 {
     public:
-        Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine);
+        Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine, int imageHeight, int imageWidth);
         ~Odometry();
         bool addStereoFrames(SLImage* image, SLImage* imageRight);
 
@@ -63,8 +62,7 @@ class Odometry
         Timer* timer;
 
     private:
-        SlamViewer* viewer;
-        Features* features;
+        SlamViewer* viewer;        
         Matcher* matcher;
         Matches* matches;        
         Mapping* mapping;
@@ -120,6 +118,8 @@ class Odometry
         float getTranslationError(int index);
 
         std::vector<Matrix> groundTruth;
+        double groundTruthMotionError;
+        int frameProcessedCount;
 
         std::ofstream outputFile;
 };
