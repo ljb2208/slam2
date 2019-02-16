@@ -746,6 +746,9 @@ bool Odometry::convertRotations()
         Eigen::Matrix3f eig;
         cv::cv2eigen(essMat3, eig);
         qEss3 = eig; 
+
+        qRs3 = qR3.inverse() * qEss3;
+        qR = qR.slerp(0.3333333, qRs3); 
     }
 
     
