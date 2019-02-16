@@ -54,7 +54,8 @@ public:
     int32_t half_resolution;        // 0=disabled,1=match at half resolution, refine at full resolution
     int32_t refinement;             // refinement (0=none,1=pixel,2=subpixel)
     double  f,cu,cv,base;           // calibration (only for match prediction)
-    int32_t age_discriminator;      // up to this age is preferred to strength of feature
+    int32_t ncc_size;
+    float   ncc_tolerance;
     
     // default settings
     parameters () {
@@ -68,7 +69,8 @@ public:
       multi_stage            = 1;
       half_resolution        = 1; // default is 1
       refinement             = 2; // default is 1
-      age_discriminator      = 3;
+      ncc_size               = 5;
+      ncc_tolerance          = 0.9;
     }
   };
 
@@ -147,6 +149,10 @@ private:
   // Alexander Neubeck and Luc Van Gool: Efficient Non-Maximum Suppression, ICPR'06, algorithm 4
   void nonMaximumSuppression (int16_t* I_f1,int16_t* I_f2,const int32_t* dims,std::vector<Matches::maximum> &maxima,int32_t nms_n);
 
+  float calculateNCC(const uint8_t* img1, const uint8_t* img2, const int32_t u1, const int32_t v1, const int32_t u2, const int32_t v2, const int32_t imageWidth, const int32_t imageHeight);
+  float correlationValue( float SumI, float SumISq, float SumIT, float SumT, float cPixels, float fDenomExp );
+  uint8_t readPixel(const uint8_t* image, int width, int height, int x, int y );
+
   // descriptor functions
   inline uint8_t saturate(int16_t in);
   void filterImageAll (uint8_t* I,uint8_t* I_du,uint8_t* I_dv,int16_t* I_f1,int16_t* I_f2,const int* dims);
@@ -181,6 +187,7 @@ private:
 
   // outlier removal
   void removeOutliers (Matches* p_matched,int32_t method);
+  void removeOutliersNCC();
 
   // parabolic fitting
   bool parabolicFitting(const uint8_t* I1_du,const uint8_t* I1_dv,const int32_t* dims1,
@@ -195,6 +202,8 @@ private:
                        float       &u2,float       &v2,
                        uint8_t* desc_buffer);
   void refinement (Matches* p_matched,int32_t method);
+
+  int32_t getMatchId();
 
   //void updatePersistentMatches();
 
@@ -216,6 +225,8 @@ private:
   uint8_t *I1p_dv_full,*I2p_dv_full,*I1c_dv_full,*I2c_dv_full; // half-res matching
   int32_t dims_p[3],dims_c[3];
 
+  int32_t imageWidth, imageHeight;
+  int32_t matchId;
   std::vector<Matcher::range>   ranges;
 
   Matches* p_matched_p;

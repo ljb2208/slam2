@@ -40,6 +40,8 @@ class Matches
             maximum imax2;  // initial feature right image
             maximum max1;   // current feature left image
             maximum max2;   // current feature right image
+            maximum max1p;   // current feature left image
+            maximum max2p;   // current feature right image
             int32_t age;  // feature age                   
             float   depth;  // depth
             bool matched;

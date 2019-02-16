@@ -40,16 +40,17 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     outputFile << "Index,NumMatches,NumInliers,";
     outputFile << "pose00,pose01,pose02,pose03,pose10,pose11,pose12,pose13,pose20,pose21,pose22,pose23,pose30,pose31,pose32,pose33,";
     outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";
-    outputFile << ",errorR, errorT";
+    outputFile << ",errorR,errorT,errorM";
     outputFile << std::endl;
 
+    groundTruthTranslationError = 0;
     groundTruthMotionError = 0;
+    totalMotion = 0;
     frameProcessedCount = 0;
 }
 
 Odometry::~Odometry()
 {
-    printf("Translation Error avg: %f\n", groundTruthMotionError/frameProcessedCount);
     outputFile.close();
     timer->outputAll();
     delete timer;
@@ -187,9 +188,12 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         outputFile << motion.val[1][3] << ",";
         outputFile << motion.val[2][3] << ",";
         outputFile << motion.val[3][3] << ",";
-        outputFile << getRotationError(image->index) << "," << getTranslationError(image->index) << std::endl;
+        outputFile << getRotationError(image->index) << ",";
+        outputFile << getTranslationError(image->index) <<  ";";
+        outputFile << getMotionError(image->index) << std::endl;
         
-        groundTruthMotionError += getTranslationError(image->index);
+        groundTruthMotionError += getMotionError(image->index);
+        groundTruthTranslationError += getTranslationError(image->index);
         frameProcessedCount++;
 
         mapping->addFrame(pose, image, imageRight, matches);
@@ -781,4 +785,60 @@ float Odometry::getTranslationError(int index)
     f3 = pose.val[2][3] - groundTruth[index].val[2][3];
 
     return fabs(sqrt(f1*f1 + f2*f2 + f3*f3));    
+}
+
+float Odometry::getMotionError(int index)
+{
+    // get euclidian distance between this keyframe and last keyframe on stack
+    float f1, f2, f3;
+    float r1, r2, r3;
+    float gf1, gf2, gf3;
+
+    if (index == 0)
+    {
+        gf1 = groundTruth[index].val[0][3];
+        gf2 = groundTruth[index].val[1][3];
+        gf3 = groundTruth[index].val[2][3];
+
+        f1 = pose.val[0][3];
+        f2 = pose.val[1][3];
+        f3 = pose.val[2][3];
+    }
+    else
+    {
+        gf1 = groundTruth[index].val[0][3] - groundTruth[index - 1].val[0][3];
+        gf2 = groundTruth[index].val[1][3] - groundTruth[index - 1].val[1][3];
+        gf3 = groundTruth[index].val[2][3] - groundTruth[index - 1].val[2][3];
+
+
+        f1 = pose.val[0][3] - posePrior.val[0][3];
+        f2 = pose.val[1][3] - posePrior.val[1][3];
+        f3 = pose.val[2][3] - posePrior.val[2][3];
+    }
+    
+
+    r1 = f1 - gf1;
+    r2 = f2 - gf2;
+    r3 = f3 - gf3;
+
+    totalMotion += fabs(sqrt(gf1*gf1 + gf2*gf2 + gf3*gf3)); 
+    posePrior = Matrix(pose);
+    //printf("f1: %f f2: %f f3: %f gf1: %f gf2: %f gf3: %f r1: %f r2: %f r3: %f\n", f1, f2, f3, gf1,gf2,gf3,r1,r2,r3);
+
+    return fabs(sqrt(r1*r1 + r2*r2 + r3*r3));    
+}
+
+float Odometry::getAverageTranslationError()
+{
+    return groundTruthTranslationError/frameProcessedCount;
+}
+
+float Odometry::getAverageMotionError()
+{
+    return groundTruthMotionError/frameProcessedCount;
+}
+
+float Odometry::getPercentageMotionError()
+{
+    return getAverageMotionError()/totalMotion * 100;
 }

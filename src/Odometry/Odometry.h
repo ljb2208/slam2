@@ -16,6 +16,9 @@ class Odometry
         Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine, int imageHeight, int imageWidth);
         ~Odometry();
         bool addStereoFrames(SLImage* image, SLImage* imageRight);
+        float getAverageTranslationError();
+        float getAverageMotionError();
+        float getPercentageMotionError();
 
         // camera parameters (all are mandatory / need to be supplied)
         struct calibration {  
@@ -74,6 +77,7 @@ class Odometry
         double *p_predict;  // predicted 2d points
         std::vector<int32_t>           inliers;    // inlier set
         Matrix pose = Matrix::eye(4);
+        Matrix posePrior = Matrix::eye(4);
 
         //essential matricies
         cv::Mat essMat;
@@ -116,9 +120,12 @@ class Odometry
 
         float getRotationError(int index);
         float getTranslationError(int index);
+        float getMotionError(int index);
 
         std::vector<Matrix> groundTruth;
         double groundTruthMotionError;
+        double groundTruthTranslationError;
+        double totalMotion;
         int frameProcessedCount;
 
         std::ofstream outputFile;

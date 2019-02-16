@@ -14,4 +14,4 @@ bool settings_showCurrentCamera = true;
 bool settings_showTrajectory = true;
 bool settings_showGroundTruth = false;
 
-int settings_featureAgeDiscrim = 5;
+int settings_featureAgeDiscrim = 2;

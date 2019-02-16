@@ -4,13 +4,9 @@
 
 Matches::Matches(int imageWidth, int imageHeight)
 {
-    printf("Sizeof p_match: %i\n", sizeof(Matches::p_match*));
     this->imageHeight = imageHeight;
     this->imageWidth = imageWidth;
     map_matched = (Matches::p_match**)calloc(imageWidth*imageHeight*8, sizeof(Matches::p_match*));
-    //map_matched = (Matches::p_match**)aligned_alloc(16, imageWidth*imageHeight*4*sizeof(Matches::p_match*));
-
-    printf("mem allocated: %i\n", imageWidth*imageHeight*4*sizeof(Matches::p_match*));
 }
 
 Matches::~Matches()
@@ -26,6 +22,8 @@ void Matches::ageFeaturePoints()
         p_matched[i].v1p3 = p_matched[i].v1p2;
         p_matched[i].u1p2 = p_matched[i].u1p;
         p_matched[i].v1p2 = p_matched[i].v1p;
+        p_matched[i].max1p = p_matched[i].max1;
+        p_matched[i].max2p = p_matched[i].max2;
         p_matched[i].age++;
     }
 }

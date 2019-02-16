@@ -25,7 +25,7 @@ int width = 0;
 int height = 0;
 int imageOffset = 0;
 
-float playbackSpeed = 1.0;  //1.0
+float playbackSpeed = 0.0;  //1.0
 
 bool running = true;
 
@@ -169,6 +169,8 @@ int main( int argc, char** argv )
         }
 
         odom->timer->outputAll();
+        printf("Average translation error: %f\n", odom->getAverageTranslationError());
+        printf("Average motion error: %f  pcnt: %f\n", odom->getAverageMotionError(), odom->getPercentageMotionError());
 
     });
 

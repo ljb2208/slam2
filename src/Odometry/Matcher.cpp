@@ -22,6 +22,7 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 #include "Matcher.h"
 #include "Triangle.h"
 #include "Filter.h"
+#include <math.h>
 
 using namespace std;
 
@@ -59,7 +60,8 @@ Matcher::Matcher(parameters param, Matches* matches) : param(param) {
   if (param.half_resolution)
     this->param.match_radius /= 2;
 
-    p_matched_p = matches;
+  p_matched_p = matches;
+  matchId = -1;
 }
 
 // deconstructor
@@ -100,6 +102,9 @@ void Matcher::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace
   int32_t width  = dims[0];
   int32_t height = dims[1];
   int32_t bpl    = dims[2];
+
+  imageWidth = width;
+  imageHeight = height;
 
   // sanity check
   if (width<=0 || height<=0 || bpl<width || I1==0) {
@@ -219,8 +224,8 @@ void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
   if (param.multi_stage) {    
     // 1st pass (sparse matches)
     matching(m1p1,m2p1,m1c1,m2c1,n1p1,n2p1,n1c1,n2c1,p_matched_p,method,false,Tr_delta);
-    removeOutliers(p_matched_p,method);
-
+    //removeOutliers(p_matched_p,method);
+    removeOutliersNCC();
     // compute search range prior statistics (used for speeding up 2nd pass)
     computePriorStatistics(p_matched_p,method);      
 
@@ -230,7 +235,8 @@ void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
     if (param.refinement>0)
       refinement(p_matched_p,method);
 
-    removeOutliers(p_matched_p,method);
+    //removeOutliers(p_matched_p,method);
+    removeOutliersNCC();
 
   // single pass matching
   } else {
@@ -1222,6 +1228,81 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
   delete []k2c;
 }
 
+void Matcher::removeOutliersNCC()
+{
+    int removeCount = 0;
+    float fMin, fMax;
+
+    fMin = 1.0;
+    fMax = -1.0;
+
+    for (int i=0; i < p_matched_p->inlierMatches.size(); i++)
+    {
+      if (p_matched_p->inlierMatches[i]->outlier == true)
+        continue;
+
+      int32_t u1, u2, v1, v2;
+      u1 = p_matched_p->inlierMatches[i]->max1.u;
+      v1 = p_matched_p->inlierMatches[i]->max1.v;
+      u2 = p_matched_p->inlierMatches[i]->max2.u;
+      v2 = p_matched_p->inlierMatches[i]->max2.v;
+
+      float min_ncc = 1;
+      
+      float ncc = calculateNCC(I1c, I2c, u1, v1, u2, v2, imageWidth, imageHeight);
+
+      if (ncc < min_ncc)
+        min_ncc = ncc;
+
+      // if (p_matched_p->inlierMatches[i]->age > 0)
+      // {
+      //     u1 = p_matched_p->inlierMatches[i]->max2.u;
+      //     v1 = p_matched_p->inlierMatches[i]->max2.v;
+      //     u2 = p_matched_p->inlierMatches[i]->max2p.u;
+      //     v2 = p_matched_p->inlierMatches[i]->max2p.v;
+      //     ncc = calculateNCC(I2c, I2p, u1, v1, u2, v2, imageWidth, imageHeight);
+
+      //     if (ncc < min_ncc)
+      //       min_ncc = ncc;
+
+      //     u1 = p_matched_p->inlierMatches[i]->max1p.u;
+      //     v1 = p_matched_p->inlierMatches[i]->max1p.v;
+      //     u2 = p_matched_p->inlierMatches[i]->max2p.u;
+      //     v2 = p_matched_p->inlierMatches[i]->max2p.v;
+      //     ncc = calculateNCC(I1p, I2p, u1, v1, u2, v2, imageWidth, imageHeight);
+
+      //     if (ncc < min_ncc)
+      //       min_ncc = ncc;
+
+      //     u1 = p_matched_p->inlierMatches[i]->max1p.u;
+      //     v1 = p_matched_p->inlierMatches[i]->max1p.v;
+      //     u2 = p_matched_p->inlierMatches[i]->max1.u;
+      //     v2 = p_matched_p->inlierMatches[i]->max1.v;
+      //     ncc = calculateNCC(I1p, I1c, u1, v1, u2, v2, imageWidth, imageHeight);
+
+      //     if (ncc < min_ncc)
+      //       min_ncc = ncc;
+      // } 
+
+      if (min_ncc < param.ncc_tolerance)
+      {
+        removeCount++;
+        p_matched_p->inlierMatches[i]->outlier = true;
+      }
+      else
+        p_matched_p->inlierMatches[i]->outlier = false;
+      
+      if (min_ncc > fMax)
+        fMax = min_ncc;
+
+      if (min_ncc < fMin)
+        fMin = min_ncc;
+    }
+
+    p_matched_p->clearOutliers();
+    printf("NCC max: %f min: %f outliers: %i\n", fMax, fMin, removeCount);
+}
+
 void Matcher::removeOutliers (Matches* p_matched,int32_t method) {
 
   // do we have enough points for outlier removal?
@@ -1616,4 +1697,154 @@ float Matcher::mean(const uint8_t* I,const int32_t &bpl,const int32_t &u_min,con
       mean += (float)*(I+getAddressOffsetImage(u,v,bpl));
   return
     mean /= (float)((u_max-u_min+1)*(v_max-v_min+1));
+}
+
+float Matcher::calculateNCC(const uint8_t* img1, const uint8_t* img2, const int32_t u1, const int32_t v1, const int32_t u2, const int32_t v2, const int32_t imageWidth, const int32_t imageHeight)
+{
+  int32_t sumI = 0;
+  int32_t sumT = 0;
+  float sumISq = 0;
+  float sumTSq = 0;
+  int32_t sumIT = 0;
+  int32_t patchSize = param.ncc_size * param.ncc_size;
+
+  int32_t u1adj, v1adj, u2adj, v2adj;
+
+  int32_t patchAdj = (param.ncc_size - 1) / 2;
+
+  u1adj = u1 - patchAdj;
+  v1adj = v1 - patchAdj;
+
+  u2adj = u2 - patchAdj;
+  v2adj = v2 - patchAdj;
+
+  //printf("u1: %i v1: %i u2: %i v2: %i\n", u1adj, v1adj, u2adj, v2adj);
+
+  //calculate mean
+  for (int row=0; row < param.ncc_size; row++)
+  {
+    for (int col=0; col < param.ncc_size; col++)
+    {
+        int32_t I = (int)readPixel(img1, imageWidth, imageHeight, u1adj + col, v1adj+row);
+        int32_t T = (int)readPixel(img2, imageWidth, imageHeight, u2adj + col, v2adj+row);
+
+        sumT += T;
+        sumI += I; 
+    }
+  }
+
+  double Im = sumI/patchSize;
+  double Tm = sumT/patchSize;
+
+  //printf("mean I: %f T: %f\n", Im, Tm);
+
+  double sumIf = 0;
+  double sumTf = 0;
+
+  double sumDiffIf = 0;
+  double sumDiffTf = 0;
+
+  // calculate std dev
+  for (int row=0; row < param.ncc_size; row++)
+  {
+    for (int col=0; col < param.ncc_size; col++)
+    {
+        int32_t I = (int)readPixel(img1, imageWidth, imageHeight, u1adj + col, v1adj+row);
+        int32_t T = (int)readPixel(img2, imageWidth, imageHeight, u2adj + col, v2adj+row);
+
+        float IAdj = I - Im;
+        float TAdj = T - Tm;
+
+        sumDiffIf += IAdj * IAdj;
+        sumDiffTf += TAdj * TAdj;
+    }
+  }
+
+  //printf("sumdiff pre I: %f T: %f\n", sumDiffIf, sumDiffTf);
+  sumDiffIf = sqrt(sumDiffIf/patchSize);
+  sumDiffTf = sqrt(sumDiffTf/patchSize);// - Tm * Tm);
+
+  //printf("sumdiff I: %f T: %f\n", sumDiffIf, sumDiffTf);
+
+  double stddev = 1.0 / (sumDiffIf * sumDiffTf);
+
+  //printf("stddev: %lf\n", stddev);
+  double ncc = 0;
+  // calculate NCC
+  for (int row=0; row < param.ncc_size; row++)
+  {
+    for (int col=0; col < param.ncc_size; col++)
+    {
+        int32_t I = (int)readPixel(img1, imageWidth, imageHeight, u1adj + col, v1adj+row);
+        int32_t T = (int)readPixel(img2, imageWidth, imageHeight, u2adj + col, v2adj+row);
+
+        float IAdj = I - Im;
+        float TAdj = T - Tm;
+
+        ncc += stddev * IAdj * TAdj;
+    }
+  }
+
+  //printf("ncc: %lf\n", ncc);
+  ncc = ncc/patchSize;
+  //printf("postncc: %lf\n", ncc);
+  return ncc;
+
+  float numerator = sumIf * sumTf;
+  float denom = sqrtf(sumISq * sumTSq);
+
+  return numerator / denom;
+  //  for ( int row = 0; row < h; row += 1 ) {
+  //       float *pOut = (float *) (((char *) pCorr)+row*CorrPitch);
+  //       int *pI = (int *) (((char *) _pI)+row*CorrPitch);
+  //       int *pISq = (int *) (((char *) _pISq)+row*CorrPitch);
+  //       int *pIT = (int *) (((char *) _pIT)+row*CorrPitch);
+  //       for ( int col = 0; col < w; col += 1 ) {
+  //           int SumI = 0;
+  //           int SumT = 0;
+  //           int SumISq = 0;
+  //           int SumTSq = 0;
+  //           int SumIT = 0;
+  //           for ( int j = 0; j < cPixels; j++ ) {
+  //               unsigned char I = readPixel( img, imgPitch, w, h, col+poffsetx[j], row+poffsety[j] );
+  //               unsigned char T = readPixel( tmp, tmpPitch, w, h, xTemplate+poffsetx[j], yTemplate+poffsety[j] );
+  //               SumI += I;
+  //               SumT += T;
+  //               SumISq += I*I;
+  //               SumTSq += T*T;
+  //               SumIT += I*T;
+  //           }
+  //           float fDenomExp = float((double) cPixels*SumTSq - (double) SumT*SumT);
+  //           pI[col] = SumI;
+  //           pISq[col] = SumISq;
+  //           pIT[col] = SumIT;
+  //           pOut[col] = correlationValue( (float) SumI, (float) SumISq, (float) SumIT, (float) SumT, (float) cPixels, fDenomExp );
+  //       }
+  // }
+}
+
+float Matcher::correlationValue( float SumI, float SumISq, float SumIT, float SumT, float cPixels, float fDenomExp )
+{
+    float Numerator = cPixels*SumIT - SumI*SumT;
+    float Denominator = 0.0;//rsqrtf( (cPixels*SumISq - SumI*SumI)*fDenomExp );
+    return Numerator * Denominator;
+}
+
+
+uint8_t Matcher::readPixel(const uint8_t* image, int width, int height,  int x, int y )
+{
+    if ( x < 0 ) x = 0;
+    if ( x >= width ) x = width-1;
+    if ( y < 0 ) y = 0;
+    if ( y >= height ) y = height-1;
+    return image[y*width+x];
+}
+
+int32_t Matcher::getMatchId()
+{
+  if (matchId == INT32_MAX)
+    matchId = 0;
+  
+  matchId++;
+  return matchId;
 }
