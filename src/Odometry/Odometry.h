@@ -126,6 +126,8 @@ class Odometry
         double groundTruthMotionError;
         double groundTruthTranslationError;
         double totalMotion;
+        double computedMotion;
+        double groundTruthMotion;
         int frameProcessedCount;
 
         std::ofstream outputFile;

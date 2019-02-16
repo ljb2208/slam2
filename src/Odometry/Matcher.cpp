@@ -1234,7 +1234,7 @@ void Matcher::removeOutliersNCC()
     float fMin, fMax;
 
     fMin = 1.0;
-    fMax = -1.0;
+    fMax = -1.0;    
 
     for (int i=0; i < p_matched_p->inlierMatches.size(); i++)
     {

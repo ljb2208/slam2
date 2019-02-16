@@ -21,9 +21,7 @@ void Matches::ageFeaturePoints()
         p_matched[i].u1p3 = p_matched[i].u1p2;
         p_matched[i].v1p3 = p_matched[i].v1p2;
         p_matched[i].u1p2 = p_matched[i].u1p;
-        p_matched[i].v1p2 = p_matched[i].v1p;
-        p_matched[i].max1p = p_matched[i].max1;
-        p_matched[i].max2p = p_matched[i].max2;
+        p_matched[i].v1p2 = p_matched[i].v1p;        
         p_matched[i].age++;
     }
 }

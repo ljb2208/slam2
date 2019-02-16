@@ -40,7 +40,7 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     outputFile << "Index,NumMatches,NumInliers,";
     outputFile << "pose00,pose01,pose02,pose03,pose10,pose11,pose12,pose13,pose20,pose21,pose22,pose23,pose30,pose31,pose32,pose33,";
     outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";
-    outputFile << ",errorR,errorT,errorM";
+    outputFile << ",errorR,errorT,errorM,motion,gtMotion";
     outputFile << std::endl;
 
     groundTruthTranslationError = 0;
@@ -189,10 +189,13 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         outputFile << motion.val[2][3] << ",";
         outputFile << motion.val[3][3] << ",";
         outputFile << getRotationError(image->index) << ",";
-        outputFile << getTranslationError(image->index) <<  ";";
-        outputFile << getMotionError(image->index) << std::endl;
+        outputFile << getTranslationError(image->index) <<  ",";
+        float motionError = getMotionError(image->index);
+        outputFile << motionError << ",";
+        outputFile << computedMotion << "," << groundTruthMotion << std::endl;
         
-        groundTruthMotionError += getMotionError(image->index);
+        
+        groundTruthMotionError += motionError;
         groundTruthTranslationError += getTranslationError(image->index);
         frameProcessedCount++;
 
@@ -821,11 +824,14 @@ float Odometry::getMotionError(int index)
     r2 = f2 - gf2;
     r3 = f3 - gf3;
 
-    totalMotion += fabs(sqrt(gf1*gf1 + gf2*gf2 + gf3*gf3)); 
+    groundTruthMotion = fabs(sqrt(gf1*gf1 + gf2*gf2 + gf3*gf3)); 
+    computedMotion = fabs(sqrt(f1*f1 + f2*f2 + f3*f3)); 
+    totalMotion += groundTruthMotion;
     posePrior = Matrix(pose);
+    //printf("gtm: %f cm: %f tm: %f return: %f\n", groundTruthMotion, computedMotion, totalMotion,fabs(sqrt(r1*r1 + r2*r2 + r3*r3)));
     //printf("f1: %f f2: %f f3: %f gf1: %f gf2: %f gf3: %f r1: %f r2: %f r3: %f\n", f1, f2, f3, gf1,gf2,gf3,r1,r2,r3);
-
-    return fabs(sqrt(r1*r1 + r2*r2 + r3*r3));    
+    return fabs(sqrt(r1*r1 + r2*r2 + r3*r3));
+    
 }
 
 float Odometry::getAverageTranslationError()
@@ -834,7 +840,7 @@ float Odometry::getAverageTranslationError()
 }
 
 float Odometry::getAverageMotionError()
-{
+{ 
     return groundTruthMotionError/frameProcessedCount;
 }
 

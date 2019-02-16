@@ -131,7 +131,7 @@ int main( int argc, char** argv )
         //    imageCount = 100;
 
         for (int i=0; i < imageCount - imageOffset; i++){
-
+            
             if (!running)
                 exit(1);
             bool skipFrame=false;
