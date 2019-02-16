@@ -736,6 +736,7 @@ bool Odometry::convertRotations()
         qEss2 = eig;
 
         qRs2 = qR2.inverse() * qEss2;
+        qR = qR.slerp(0.5, qRs2); 
         //Eigen::Quaternionf qTemp = sqrt(qR.inverse() * qRs2);
         //qR = qR * (^0.5);
     }
@@ -746,6 +747,8 @@ bool Odometry::convertRotations()
         cv::cv2eigen(essMat3, eig);
         qEss3 = eig; 
     }
+
+    
     return true;
 }
 
