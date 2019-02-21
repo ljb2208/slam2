@@ -45,6 +45,8 @@ set(slam_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/Util/Timer.cpp
     ${PROJECT_SOURCE_DIR}/src/Mapping/Mapping.cpp
     ${PROJECT_SOURCE_DIR}/src/Mapping/KeyFrame.cpp
+    ${PROJECT_SOURCE_DIR}/src/5Point/5point.cpp
+    ${PROJECT_SOURCE_DIR}/src/5Point/Rpoly.cpp
 )
 
 include_directories(

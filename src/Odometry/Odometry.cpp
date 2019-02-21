@@ -47,6 +47,8 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     groundTruthMotionError = 0;
     totalMotion = 0;
     frameProcessedCount = 0;
+
+    createDepthColorArray();
 }
 
 Odometry::~Odometry()
@@ -106,9 +108,24 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
     timer->stopTimer();
 
+    // timer->startTimer("updateMotion");
+    // bool result = updateMotion();
+    // timer->stopTimer();
+
+    bool result;
     timer->startTimer("updateMotion");
-    bool result = updateMotion();
+    if (param.motion_method == 0)
+        result = updateMotion();
+    else if (param.motion_method == 1)
+        result = updateMotion2();
+    else if (param.motion_method == 2)
+        result = updateMotion3();
     timer->stopTimer();
+
+    timer->startTimer("calculateDepth");
+    calculateDepth();
+    timer->stopTimer();
+
 
     int maxAge = -1;
 
@@ -132,7 +149,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     free(right_image);
 
 
-    viewer->pushLiveImageFrame(image->imageColor, imageRight->imageColor);
+    viewer->pushLiveImageFrame(image->imageColor, imageRight->imageColor, image->index);
     
     // possible duplicate
     //bool result = updateMotion();
@@ -142,7 +159,10 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         // on success, update current pose
         Matrix motion = getMotion();
         pose = pose * Matrix::inv(motion);
-        
+
+        //Matrix motion = getMotion2();
+        //pose = pose * Matrix::inv(motion);
+
         // output some statistics
         double num_matches = matches->getSelectedCount();
         double num_inliers = getNumberOfInliers();
@@ -209,52 +229,42 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     return result;
 }
 
+void Odometry::createDepthColorArray()
+{
+    int dist = param.max_depth_display - param.min_depth_diplay;
+    int mid_dist = dist / 2;
+    float scale = 510.0 / (float)dist;
+    int r,g,b;
+
+    for (int i=0; i < dist; i++)
+    {
+        if (i <= mid_dist)
+        {
+            r = 255 - (i * scale);
+            g = 255 - r;
+            b = 0;        
+        }
+        else
+        {
+            r = 0;
+            g = 255 - ((i - mid_dist) * scale);
+            b = 255 - g;
+        }
+
+        depthDisplayVec.push_back(cv::Scalar(r, g, b));
+    }
+}
+
 cv::Scalar Odometry::getColorFromDepth(float depth)
 {
-    int r, g, b;
+    int iDepth = (int) depth;
 
-    if (depth < 10)
-    {
-        b = 255 - depth*25.5;
+    if (iDepth < param.min_depth_diplay)
+        iDepth = param.min_depth_diplay;
+    else if (iDepth > param.max_depth_display)
+        iDepth = param.max_depth_display;
 
-        if (b < 0)
-            b = 0;
-
-        if (b > 255)
-            b = 255;
-
-        g = 255 - b; 
-        r = 0;
-    }
-    else if (depth == 10)
-    {
-        g=255;
-        r=0;
-        b=0;
-    }
-    else
-    {
-        b=0;
-        g = 255 - (depth - 10) * 25.5;
-
-        if (g < 0)
-            g = 0;
-        if (g > 255)
-            g = 255;
-        r = 255 - g;
-    }
-
-    if (r > 255)
-        r = 255;
-
-    if (g > 255)
-        g = 255;
-    
-    if (b > 255)
-        b = 255;
-
-    //printf("depth: %f r: %i g: %i b: %i", depth, r, g, b);
-    return cv::Scalar(r, g, b);
+    return depthDisplayVec[iDepth - param.min_depth_diplay];
 }
 
 bool Odometry::updateMotion()
@@ -274,8 +284,36 @@ bool Odometry::updateMotion()
     return true;
 }
 
+bool Odometry::updateMotion2()
+{
+    // estimate motion
+    std::vector<double> tr_delta = estimateMotion2();
+    
+    // on failure
+    if (tr_delta.size()!=6)
+        return false;
+    
+    // set transformation matrix (previous to current frame)
+    Tr_delta = transformationVectorToMatrix(tr_delta);
+    Tr_valid = true;
+    
+    // success
+    return true;
+}
+
+bool Odometry::updateMotion3()
+{
+    bool result;
+
+    // estimate motion
+    Tr_delta = estimateMotion3(&result);
+    
+    return result;
+}
+
 std::vector<double> Odometry::estimateMotion ()
 {
+    printf("param base: %f\n", param.base);
     // return value
     bool success = true;
 
@@ -311,7 +349,7 @@ std::vector<double> Odometry::estimateMotion ()
         X[i] = (matches->selectedMatches[i]->u1p-param.calib.cu)*param.base/d;
         Y[i] = (matches->selectedMatches[i]->v1p-param.calib.cv)*param.base/d;
         Z[i] = param.calib.f*param.base/d;
-        matches->selectedMatches[i]->depth = param.calib.f*param.base/d;
+        //matches->selectedMatches[i]->depth = Z[i];
     }
 
     // // project matches of previous image into 3d
@@ -398,6 +436,371 @@ std::vector<double> Odometry::estimateMotion ()
     else         
         return std::vector<double>();
 }
+
+std::vector<double> Odometry::estimateMotion2()
+{
+    // get number of matches
+  int32_t N = matches->selectedMatches.size();
+  if (N<10)
+    return std::vector<double>();
+   
+  // create calibration matrix
+  double K_data[9] = {param.calib.f,0,param.calib.cu,0,param.calib.f,param.calib.cv,0,0,1};
+  Matrix K(3,3,K_data);
+    
+  // normalize feature points and return on errors
+  Matrix Tp,Tc;
+  std::vector<Matches::p_match> p_matched_normalized = matches->copySelectedMatches();
+  if (!normalizeFeaturePoints(p_matched_normalized,Tp,Tc))
+    return std::vector<double>();
+
+  // initial RANSAC estimate of F
+  Matrix E,F;
+  inliers.clear();
+  for (int32_t k=0;k<param.mono_ransac_iters;k++) {
+
+    // draw random sample set
+    std::vector<int32_t> active = getRandomSample(N,8);
+
+    // estimate fundamental matrix and get inliers
+    fundamentalMatrix(p_matched_normalized,active,F);
+    std::vector<int32_t> inliers_curr = getInlier(p_matched_normalized,F);
+
+    // update model if we are better
+    if (inliers_curr.size()>inliers.size())
+      inliers = inliers_curr;
+  }
+  
+  // are there enough inliers?
+  if (inliers.size()<10)
+    return std::vector<double>();
+  
+  // refine F using all inliers
+  fundamentalMatrix(p_matched_normalized,inliers,F); 
+  
+  // denormalise and extract essential matrix
+  F = ~Tc*F*Tp;
+  E = ~K*F*K;
+  
+  // re-enforce rank 2 constraint on essential matrix
+  Matrix U,W,V;
+  E.svd(U,W,V);
+  W.val[2][0] = 0;
+  E = U*Matrix::diag(W)*~V;
+  
+  // compute 3d points X and R|t up to scale
+  Matrix X,R,t;
+  EtoRt(E,K,X,R,t);
+  
+  // normalize 3d points and remove points behind image plane
+  X = X/X.getMat(3,0,3,-1);
+  std::vector<int32_t> pos_idx;
+  for (int32_t i=0; i<X.n; i++)
+    if (X.val[2][i]>0)
+      pos_idx.push_back(i);
+  Matrix X_plane = X.extractCols(pos_idx);
+  
+  // we need at least 10 points to proceed
+  if (X_plane.n<10)
+    return std::vector<double>();
+  
+  // get elements closer than median
+  double median;
+  smallerThanMedian(X_plane,median);
+  
+  // return error on large median (litte motion)
+  if (median>param.motion_threshold)
+    return std::vector<double>();
+  
+  // project features to 2d
+  Matrix x_plane(2,X_plane.n);
+  x_plane.setMat(X_plane.getMat(1,0,2,-1),0,0);
+  
+  Matrix n(2,1);
+  n.val[0][0]       = cos(-param.pitch);
+  n.val[1][0]       = sin(-param.pitch);
+  Matrix   d        = ~n*x_plane;
+  double   sigma    = median/50.0;
+  double   weight   = 1.0/(2.0*sigma*sigma);
+  double   best_sum = 0;
+  int32_t  best_idx = 0;
+
+  // find best plane
+  for (int32_t i=0; i<x_plane.n; i++) {
+    if (d.val[0][i]>median/param.motion_threshold) {
+      double sum = 0;
+      for (int32_t j=0; j<x_plane.n; j++) {
+        double dist = d.val[0][j]-d.val[0][i];
+        sum += exp(-dist*dist*weight);
+      }
+      if (sum>best_sum) {
+        best_sum = sum;
+        best_idx = i;
+      }
+    }
+  }
+  t = t*param.height/d.val[0][best_idx];
+  
+  // compute rotation angles
+  double ry = asin(R.val[0][2]);
+  double rx = asin(-R.val[1][2]/cos(ry));
+  double rz = asin(-R.val[0][1]/cos(ry));
+  
+  // return parameter vector
+  std::vector<double> tr_delta;
+  tr_delta.resize(6);
+  tr_delta[0] = rx;
+  tr_delta[1] = ry;
+  tr_delta[2] = rz;
+  tr_delta[3] = t.val[0][0];
+  tr_delta[4] = t.val[1][0];
+  tr_delta[5] = t.val[2][0];
+  return tr_delta;
+}
+
+Matrix Odometry::smallerThanMedian (Matrix &X,double &median) {
+  
+  // set distance and index vector
+  std::vector<double> dist;
+  std::vector<int32_t> idx;
+  for (int32_t i=0; i<X.n; i++) {
+    dist.push_back(fabs(X.val[0][i])+fabs(X.val[1][i])+fabs(X.val[2][i]));
+    idx.push_back(i);
+  }
+  
+  // sort elements
+  std::sort(idx.begin(),idx.end(),idx_cmp<std::vector<double>&>(dist));
+  
+  // get median
+  int32_t num_elem_half = idx.size()/2;
+  median = dist[idx[num_elem_half]];
+  
+  // create matrix containing elements closer than median
+  Matrix X_small(4,num_elem_half+1);
+  for (int32_t j=0; j<=num_elem_half; j++)
+    for (int32_t i=0; i<4; i++)
+      X_small.val[i][j] = X.val[i][idx[j]];
+	return X_small;
+}
+
+bool Odometry::normalizeFeaturePoints(std::vector<Matches::p_match> &p_matched,Matrix &Tp,Matrix &Tc) {
+  
+  // shift origins to centroids
+  double cpu=0,cpv=0,ccu=0,ccv=0;
+  for (std::vector<Matches::p_match>::iterator it = p_matched.begin(); it!=p_matched.end(); it++) {
+    cpu += it->u1p;
+    cpv += it->v1p;
+    ccu += it->u1c;
+    ccv += it->v1c;
+  }
+  cpu /= (double)p_matched.size();
+  cpv /= (double)p_matched.size();
+  ccu /= (double)p_matched.size();
+  ccv /= (double)p_matched.size();
+  for (std::vector<Matches::p_match>::iterator it = p_matched.begin(); it!=p_matched.end(); it++) {
+    it->u1p -= cpu;
+    it->v1p -= cpv;
+    it->u1c -= ccu;
+    it->v1c -= ccv;
+  }
+  
+  // scale features such that mean distance from origin is sqrt(2)
+  double sp=0,sc=0;
+  for (std::vector<Matches::p_match>::iterator it = p_matched.begin(); it!=p_matched.end(); it++) {
+    sp += sqrt(it->u1p*it->u1p+it->v1p*it->v1p);
+    sc += sqrt(it->u1c*it->u1c+it->v1c*it->v1c);
+  }
+  if (fabs(sp)<1e-10 || fabs(sc)<1e-10)
+    return false;
+  sp = sqrt(2.0)*(double)p_matched.size()/sp;
+  sc = sqrt(2.0)*(double)p_matched.size()/sc;
+  for (std::vector<Matches::p_match>::iterator it = p_matched.begin(); it!=p_matched.end(); it++) {
+    it->u1p *= sp;
+    it->v1p *= sp;
+    it->u1c *= sc;
+    it->v1c *= sc;
+  }
+  
+  // compute corresponding transformation matrices
+  double Tp_data[9] = {sp,0,-sp*cpu,0,sp,-sp*cpv,0,0,1};
+  double Tc_data[9] = {sc,0,-sc*ccu,0,sc,-sc*ccv,0,0,1};
+  Tp = Matrix(3,3,Tp_data);
+  Tc = Matrix(3,3,Tc_data);
+  
+  // return true on success
+  return true;
+}
+
+void Odometry::fundamentalMatrix (const std::vector<Matches::p_match> &p_matched,const std::vector<int32_t> &active,Matrix &F) {
+  
+  // number of active p_matched
+  int32_t N = active.size();
+  
+  // create constraint matrix A
+  Matrix A(N,9);
+  for (int32_t i=0; i<N; i++) {
+    Matches::p_match m = p_matched[active[i]];
+    A.val[i][0] = m.u1c*m.u1p;
+    A.val[i][1] = m.u1c*m.v1p;
+    A.val[i][2] = m.u1c;
+    A.val[i][3] = m.v1c*m.u1p;
+    A.val[i][4] = m.v1c*m.v1p;
+    A.val[i][5] = m.v1c;
+    A.val[i][6] = m.u1p;
+    A.val[i][7] = m.v1p;
+    A.val[i][8] = 1;
+  }
+   
+  // compute singular value decomposition of A
+  Matrix U,W,V;
+  A.svd(U,W,V);
+   
+  // extract fundamental matrix from the column of V corresponding to the smallest singular value
+  F = Matrix::reshape(V.getMat(0,8,8,8),3,3);
+  
+  // enforce rank 2
+  F.svd(U,W,V);
+  W.val[2][0] = 0;
+  F = U*Matrix::diag(W)*~V;
+}
+
+std::vector<int32_t> Odometry::getInlier (std::vector<Matches::p_match> &p_matched,Matrix &F) {
+
+  // extract fundamental matrix
+  double f00 = F.val[0][0]; double f01 = F.val[0][1]; double f02 = F.val[0][2];
+  double f10 = F.val[1][0]; double f11 = F.val[1][1]; double f12 = F.val[1][2];
+  double f20 = F.val[2][0]; double f21 = F.val[2][1]; double f22 = F.val[2][2];
+  
+  // loop variables
+  double u1,v1,u2,v2;
+  double x2tFx1;
+  double Fx1u,Fx1v,Fx1w;
+  double Ftx2u,Ftx2v;
+  
+  // vector with inliers
+  std::vector<int32_t> inliers;
+  
+  // for all matches do
+  for (int32_t i=0; i<(int32_t)p_matched.size(); i++) {
+
+    // extract matches
+    u1 = p_matched[i].u1p;
+    v1 = p_matched[i].v1p;
+    u2 = p_matched[i].u1c;
+    v2 = p_matched[i].v1c;
+    
+    // F*x1
+    Fx1u = f00*u1+f01*v1+f02;
+    Fx1v = f10*u1+f11*v1+f12;
+    Fx1w = f20*u1+f21*v1+f22;
+    
+    // F'*x2
+    Ftx2u = f00*u2+f10*v2+f20;
+    Ftx2v = f01*u2+f11*v2+f21;
+    
+    // x2'*F*x1
+    x2tFx1 = u2*Fx1u+v2*Fx1v+Fx1w;
+    
+    // sampson distance
+    double d = x2tFx1*x2tFx1 / (Fx1u*Fx1u+Fx1v*Fx1v+Ftx2u*Ftx2u+Ftx2v*Ftx2v);
+    
+    // check threshold
+    if (fabs(d)<param.mono_inlier_threshold)
+      inliers.push_back(i);
+  }
+
+  // return set of all inliers
+  return inliers;
+}
+
+void Odometry::EtoRt(Matrix &E,Matrix &K,Matrix &X,Matrix &R,Matrix &t) {
+
+  // hartley matrices
+  double W_data[9] = {0,-1,0,+1,0,0,0,0,1};
+  double Z_data[9] = {0,+1,0,-1,0,0,0,0,0};
+  Matrix W(3,3,W_data);
+  Matrix Z(3,3,Z_data); 
+  
+  // extract T,R1,R2 (8 solutions)
+  Matrix U,S,V;
+  E.svd(U,S,V);
+  Matrix T  = U*Z*~U;
+  Matrix Ra = U*W*(~V);
+  Matrix Rb = U*(~W)*(~V);
+  
+  // convert T to t
+  t = Matrix(3,1);
+  t.val[0][0] = T.val[2][1];
+  t.val[1][0] = T.val[0][2];
+  t.val[2][0] = T.val[1][0];
+  
+  // assure determinant to be positive
+  if (Ra.det()<0) Ra = -Ra;
+  if (Rb.det()<0) Rb = -Rb;
+  
+  // create vector containing all 4 solutions
+  std::vector<Matrix> R_vec;
+  std::vector<Matrix> t_vec;
+  R_vec.push_back(Ra); t_vec.push_back( t);
+  R_vec.push_back(Ra); t_vec.push_back(-t);
+  R_vec.push_back(Rb); t_vec.push_back( t);
+  R_vec.push_back(Rb); t_vec.push_back(-t);
+  
+  // try all 4 solutions
+  Matrix X_curr;
+  int32_t max_inliers = 0;
+  for (int32_t i=0; i<4; i++) {
+    int32_t num_inliers = triangulateChieral(K,R_vec[i],t_vec[i],X_curr);
+    if (num_inliers>max_inliers) {
+      max_inliers = num_inliers;
+      X = X_curr;
+      R = R_vec[i];
+      t = t_vec[i];
+    }
+  }
+}
+
+
+int32_t Odometry::triangulateChieral (Matrix &K,Matrix &R,Matrix &t,Matrix &X) {
+  
+  // init 3d point matrix
+  X = Matrix(4,matches->selectedMatches.size());
+  
+  // projection matrices
+  Matrix P1(3,4);
+  Matrix P2(3,4);
+  P1.setMat(K,0,0);
+  P2.setMat(R,0,0);
+  P2.setMat(t,0,3);
+  P2 = K*P2;
+  
+  // triangulation via orthogonal regression
+  Matrix J(4,4);
+  Matrix U,S,V;
+  for (int32_t i=0; i<(int)matches->selectedMatches.size(); i++) {
+    for (int32_t j=0; j<4; j++) {
+      J.val[0][j] = P1.val[2][j]*matches->selectedMatches[i]->u1p - P1.val[0][j];
+      J.val[1][j] = P1.val[2][j]*matches->selectedMatches[i]->v1p - P1.val[1][j];
+      J.val[2][j] = P2.val[2][j]*matches->selectedMatches[i]->u1c - P2.val[0][j];
+      J.val[3][j] = P2.val[2][j]*matches->selectedMatches[i]->v1c - P2.val[1][j];
+    }
+    J.svd(U,S,V);
+    X.setMat(V.getMat(0,3,3,3),0,i);
+  }
+  
+  // compute inliers
+  Matrix  AX1 = P1*X;
+  Matrix  BX1 = P2*X;
+  int32_t num = 0;
+  for (int32_t i=0; i<X.n; i++)
+    if (AX1.val[2][i]*X.val[3][i]>0 && BX1.val[2][i]*X.val[3][i]>0)
+      num++;
+  
+  // return number of inliers
+  return num;
+}
+
+
 
 std::vector<int32_t> Odometry::getRandomSample(int32_t N,int32_t num)
 {
@@ -543,7 +946,7 @@ void Odometry::computeResidualsAndJacobian(std::vector<double> &tr,std::vector<i
         X1c = r00*X1p+r01*Y1p+r02*Z1p+tx;
         Y1c = r10*X1p+r11*Y1p+r12*Z1p+ty;
         Z1c = r20*X1p+r21*Y1p+r22*Z1p+tz;
-        
+
         // weighting
         double weight = 1.0;
         if (param.reweighting)
@@ -853,4 +1256,147 @@ float Odometry::getAverageMotionError()
 float Odometry::getPercentageMotionError()
 {
     return getAverageMotionError()/totalMotion * 100;
+}
+
+void Odometry::calculateDepth()
+{
+    for (int i=0; i < matches->selectedMatches.size(); i++)
+    {
+        double d = std::max(matches->selectedMatches[i]->u1c - matches->selectedMatches[i]->u2c,0.0001f);
+        d = param.calib.f*param.base/d;
+        matches->selectedMatches[i]->depth = d;
+    }   
+}
+
+Matrix Odometry::estimateMotion3(bool* result)
+{
+    printf("estimateMotion3 start\n");
+    // get number of matches
+    Matrix Tr(4,4);
+  int32_t N = matches->selectedMatches.size();
+  if (N<10)
+  {
+    * result = false;
+    return Tr;
+  }
+
+    printf("estimateMotion3 1\n");
+  
+  // initial RANSAC estimate of F
+  inliers.clear();
+  double points1[16];
+  double points2[16];
+
+    std::vector<EMatrix> E; // essential matrix
+    std::vector<PMatrix> P; // 3x4 projection matrix
+    std::vector<int> inl;
+
+    PMatrix bestP;
+
+  for (int32_t k=0;k<param.mono_ransac_iters;k++) {
+
+    // draw random sample 
+    std::vector<int32_t> active = getRandomSample(N,8);
+
+    if (active.size() < 8)
+        break;
+
+    for (int i=0; i < active.size(); i++)
+    {
+        points1[i*2] = matches->selectedMatches[active[i]]->u1p;
+        points1[i*2 + 1] = matches->selectedMatches[active[i]]->v1p;
+
+        points2[i*2] = matches->selectedMatches[active[i]]->u1c;
+        points2[i*2 + 1] = matches->selectedMatches[active[i]]->v1c;
+
+        //printf("points x1:%f y1:%f x2:%f y2:%f\n", points1[i*2], points1[i*2+1], points2[i*2], points2[i*2+1]); 
+    }
+
+    bool ret = Solve5PointEssential(points1, points2, 8, E, P, inl);
+
+    if (!ret)
+        continue;
+
+    EMatrix bestE;
+    PMatrix bestPTemp;
+    int bestInliers = 0;
+
+    for (int z=0; z < E.size(); z++)
+    {
+        if (inl[z] > bestInliers)
+        {
+            //bestE = E[z];
+            bestPTemp = PMatrix(P[z]);
+            bestInliers = inl[z];
+        }
+    }
+    
+    std::vector<int32_t> inliers_curr = getInliers5Point(bestPTemp);
+
+    // update model if we are better
+     if (inliers_curr.size()>inliers.size())
+     {
+       inliers = inliers_curr;
+       bestP = PMatrix(bestPTemp);
+     }
+  }
+
+  printf("estimateMotion3 2\n");
+  
+  if(bestP.block(0,0,3,3).determinant() < 0) {
+      bestP = bestP * -1;
+      printf("estimateMotion3 invert\n");
+    }
+  
+  // are there enough inliers?
+  if (inliers.size()<10)
+  {
+    *result = false;
+    return Tr;
+  }
+
+  printf("estimateMotion3 3\n");
+
+  printf("Updatemotion3: inliers: %i\n", static_cast<int>(inliers.size()));
+
+  *result = true;
+
+    Tr.val[0][0] = bestP(0,0);Tr.val[0][1] = bestP(0,1);Tr.val[0][2] = bestP(0,2);Tr.val[0][3] = bestP(0,3);
+    Tr.val[1][0] = bestP(1,0);Tr.val[1][1] = bestP(1,1);Tr.val[1][2] = bestP(1,2);Tr.val[1][3] = bestP(1,3);
+    Tr.val[2][0] = bestP(2,0);Tr.val[2][1] = bestP(2,1);Tr.val[2][2] = bestP(2,2);Tr.val[2][3] = bestP(2,3);
+    Tr.val[3][0] = 0;               Tr.val[3][1] = 0;               Tr.val[3][2] = 0;      Tr.val[3][3] = 1;
+    return Tr;
+  
+  
+  // return parameter vector
+  //std::vector<double> tr_delta;
+//   tr_delta.resize(6);
+//   tr_delta[0] = rx;
+//   tr_delta[1] = ry;
+//   tr_delta[2] = rz;
+//   tr_delta[3] = t.val[0][0];
+//   tr_delta[4] = t.val[1][0];
+//   tr_delta[5] = t.val[2][0];
+  return Tr;
+}
+
+std::vector<int32_t> Odometry::getInliers5Point(PMatrix P)
+{
+    int best_inliers = 0;
+    bool found = false;
+    PMatrix P_ref = PMatrix::Identity();
+    std::vector<int32_t> inliers;
+
+    for(int i=0; i < matches->selectedMatches.size(); i++) {
+        Matches::p_match* match = matches->selectedMatches[i];
+        Eigen::Vector4d pt3d = TriangulatePoint(match->u1p, match->v1p, match->u1c, match->u2c, P_ref, P);
+        double depth1 = CalcDepth(pt3d, P_ref);
+        double depth2 = CalcDepth(pt3d, P);
+
+        if(depth1 > 0 && depth2 > 0){
+            inliers.push_back(i);
+        }
+    }
+
+    return inliers;
 }

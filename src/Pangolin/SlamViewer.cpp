@@ -10,6 +10,7 @@ SlamViewer::SlamViewer(int width, int height)
 {
     this->width = width;
     this->height = height;
+	currentImageId = 0;
 
     //settings_showTrajectory = Settings::settings_showTrajectory;
 }
@@ -24,6 +25,13 @@ void SlamViewer::run()
 
     running = true;
     videoImageChanged = false;
+
+	if (settings_showGroundTruth)
+	{	
+		ImageFolderReader* reader = new ImageFolderReader();
+		groundTruth = reader->getGroundTruth();
+		delete reader;
+	}
 
     internalVideoImg.create(height, width, CV_8U);
     internalVideoImgRight.create(height, width, CV_8U);
@@ -40,7 +48,7 @@ void SlamViewer::run()
 		);
 
 	pangolin::View& Visualization3D_display = pangolin::CreateDisplay()
-		.SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1.0, -width/(float)height)
+		.SetBounds(0.0, 1.0f, 0 /*pangolin::Attach::Pix(UI_WIDTH)*/, 1.0f, -width/(float)height)
 		.SetHandler(new pangolin::Handler3D(Visualization3D_camera));
 
     pangolin::View& d_kfDepth = pangolin::Display("imgKFDepth")
@@ -141,7 +149,7 @@ void SlamViewer::run()
     exit(1);
 }
 
-void SlamViewer::pushLiveImageFrame(cv::Mat image, cv::Mat imageRight)
+void SlamViewer::pushLiveImageFrame(cv::Mat image, cv::Mat imageRight, int imageId)
 {
     boost::unique_lock<boost::mutex> lk(openImagesMutex);
 
@@ -150,6 +158,7 @@ void SlamViewer::pushLiveImageFrame(cv::Mat image, cv::Mat imageRight)
     //cv::cvtColor(image, internalVideoImg, cv::COLOR_GRAY2RGB);
     //cv::cvtColor(imageRight, internalVideoImgRight, cv::COLOR_GRAY2RGB);
 
+	currentImageId = imageId;
     videoImageChanged = true;
 }
 
@@ -249,13 +258,16 @@ void SlamViewer::drawConstraints()
 
 		glBegin(GL_LINE_STRIP);        
 
-		for(unsigned int i=0;i<matrix_result.size();i++)
-		{                        
+		for(unsigned int i=0;i<groundTruth.size();i++)
+		{    
+			if (i > currentImageId)
+				break;
+
             float f1, f2, f3;
             
-            f1 = matrix_result[i](0, 3);
-            f2 = matrix_result[i](1, 3);
-            f3 = matrix_result[i](2, 3);
+            f1 = groundTruth[i].val[0][3];
+            f2 = groundTruth[i].val[1][3];
+            f3 = groundTruth[i].val[2][3];
             glVertex3f(f1, f2, f3);					                        
 
 		}

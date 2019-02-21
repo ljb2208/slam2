@@ -12,6 +12,6 @@ int benchmark_noiseGridsize = 3;
 bool setting_render_display3D = true;
 bool settings_showCurrentCamera = true;
 bool settings_showTrajectory = true;
-bool settings_showGroundTruth = false;
+bool settings_showGroundTruth = true;
 
 int settings_featureAgeDiscrim = 2;

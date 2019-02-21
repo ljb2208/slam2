@@ -65,10 +65,12 @@ class Matches
         void clearOutliers();
         Matches::p_match* getMatchbyMaxima(Matches::maximum max, bool right);
 
+        std::vector<Matches::p_match> copySelectedMatches();
+
         std::vector<Matches::p_match> p_matched;
         std::vector<Matches::p_match*> inlierMatches;
         std::vector<Matches::p_match*> selectedMatches;
-
+        
     private:
         bool matchExists(Matches::p_match match, bool current);
         int32_t getKey(Matches::p_match* match);

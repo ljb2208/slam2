@@ -28,10 +28,11 @@ class SlamViewer{
 
         void pushKeyFrame(KeyFrame keyFrame);
         void pushDepthImageFrame(cv::Mat image);
-        void pushLiveImageFrame(cv::Mat image, cv::Mat imageRight);        
+        void pushLiveImageFrame(cv::Mat image, cv::Mat imageRight, int imageId);        
 
     private:
         int width, height;
+        int currentImageId;
         bool running;
         bool videoImageChanged;
 
@@ -64,6 +65,6 @@ class SlamViewer{
 
         void drawConstraints();
 
-        std::vector<Sophus::Matrix4f> matrix_result;
+        std::vector<Matrix> groundTruth;
 
 };

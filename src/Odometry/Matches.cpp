@@ -269,3 +269,15 @@ int32_t Matches::getPriorKey(Matches::p_match match)
     float v1p = roundf(match.v1p);
     return (match.max1.c * 10000000 + u1p * 10000 + v1p);
 }
+
+std::vector<Matches::p_match> Matches::copySelectedMatches()
+{
+    std::vector<Matches::p_match> matches;
+
+    for (int i=0; i < selectedMatches.size(); i++)
+    {
+        matches.push_back(*selectedMatches[i]);
+    }
+
+    return matches;
+}
