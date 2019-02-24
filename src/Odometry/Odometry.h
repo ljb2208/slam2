@@ -74,7 +74,7 @@ class Odometry
                 motion_threshold = 100.0;
                 min_depth_diplay = 5;
                 max_depth_display = 120;
-                motion_method = 1;
+                motion_method = 0;
             }
         };
 

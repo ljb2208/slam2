@@ -14,6 +14,22 @@ class Mapping
     public:
         Mapping(SlamViewer* viewer);
 
+         // general parameters
+        struct parameters {
+            double translation_threshold;
+            double rotation_threshold;
+            double search_radius;
+            double search_angle;
+
+            parameters () {
+                translation_threshold = 1.0;
+                rotation_threshold = 0.1;
+                search_radius = 10;
+                search_angle = 15;
+            }
+        };
+
+
         void addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches);
 
         void run();
@@ -26,10 +42,16 @@ class Mapping
 
         boost::mutex keyFramesMutex;
 
-        bool getNextKeyFrame(KeyFrame* keyFrame);
-        float getTranslationDistance(KeyFrame* keyFrame);
-        float getRotationAngle(KeyFrame* keyFrame);
+        bool getLastKeyFrame(KeyFrame* keyFrame);
+        bool getNextKeyFrameFromQueue(KeyFrame* keyFrame);
+        float getTranslationDistance(KeyFrame* keyFrame, KeyFrame* keyFrame2);
+        float getRotationAngle(KeyFrame* keyFrame, KeyFrame* keyFrame2);
+
+        std::vector<KeyFrame> getPotentialLoopClosureKFs(KeyFrame* keyFrame);
         KeyFrame currentKeyFrame;
+
+        // parameters
+        parameters param;
 
         bool running;
 };

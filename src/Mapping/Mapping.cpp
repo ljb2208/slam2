@@ -24,7 +24,17 @@ void Mapping::addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, Mat
     keyFramesQueue.push(*keyFrame);
 }
 
-bool Mapping::getNextKeyFrame(KeyFrame* keyFrame)
+bool Mapping::getLastKeyFrame(KeyFrame* keyFrame)
+{
+    if (keyFrames.size() == 0)
+        return false;
+
+    *keyFrame = keyFrames.back();
+
+    return true;
+}
+
+bool Mapping::getNextKeyFrameFromQueue(KeyFrame* keyFrame)
 {
     boost::unique_lock<boost::mutex> lk(keyFramesMutex);
 
@@ -42,29 +52,40 @@ void Mapping::run()
     while (running)
     {                
         KeyFrame keyFrame;        
-        bool success = getNextKeyFrame(&keyFrame);
+        bool success = getNextKeyFrameFromQueue(&keyFrame);
         
         if (success)
         {
             delete keyFrame.image;
             delete keyFrame.imageRight;
 
-            if (!keyFrames.empty())
+            float distance = 0.0;
+            float angle = 0.0;
+
+            KeyFrame keyFrame2;
+
+            if (getLastKeyFrame(&keyFrame2))
             {
-                float distance = getTranslationDistance(&keyFrame);
-                float angle = getRotationAngle(&keyFrame);
-                printf("Distance between KFs: %f Angle: %f\n", distance, angle);
+                distance = getTranslationDistance(&keyFrame, &keyFrame2);
+                angle = getRotationAngle(&keyFrame, &keyFrame2);
+
+                // discard keyframe if not enough rotation or translation to previous keyframe
+                if (distance < param.translation_threshold && angle < param.rotation_threshold)
+                {
+                    printf("Distance between KFs: %f Angle: %f Discarding keyframe\n", distance, angle);
+                    continue;
+                }                                             
+
+                std::vector<KeyFrame> potentialKeyFrames = getPotentialLoopClosureKFs(&keyFrame);
+
+                if (potentialKeyFrames.size() > 0)
+                    printf("Potential Key frames for loop closure found. Index: %i Count: %i\n", keyFrame.index, static_cast<int>(potentialKeyFrames.size()));
+
             }
 
-            keyFrames.push_back(keyFrame);
+            printf("Distance between KFs: %f Angle: %f\n", distance, angle);
 
-            int count = 0;
-            for(unsigned int i=0;i<keyFrames.size();i++)
-            {
-                if (keyFrames[i].pose.val != 0)
-                    count++;
-            }            
-
+            keyFrames.push_back(keyFrame);            
             viewer->pushKeyFrame(keyFrame);
         }
         else
@@ -77,27 +98,24 @@ void Mapping::close()
     running = false;
 }
 
-float Mapping::getTranslationDistance(KeyFrame* keyFrame)
+float Mapping::getTranslationDistance(KeyFrame* keyFrame, KeyFrame* keyFrame2)
 {
-    // get euclidian distance between this keyframe and last keyframe on stack
-    KeyFrame pKeyFrame = keyFrames.back();
-
+    // get euclidian distance between the two keyframes
     float f1, f2, f3;
 
-    f1 = keyFrame->pose.val[0][3] - pKeyFrame.pose.val[0][3];
-    f2 = keyFrame->pose.val[1][3] - pKeyFrame.pose.val[1][3];
-    f3 = keyFrame->pose.val[2][3] - pKeyFrame.pose.val[2][3];
+    f1 = keyFrame->pose.val[0][3] - keyFrame2->pose.val[0][3];
+    f2 = keyFrame->pose.val[1][3] - keyFrame2->pose.val[1][3];
+    f3 = keyFrame->pose.val[2][3] - keyFrame2->pose.val[2][3];
 
     return fabs(sqrt(f1*f1 + f2*f2 + f3*f3));    
 }
 
-float Mapping::getRotationAngle(KeyFrame* keyFrame)
+float Mapping::getRotationAngle(KeyFrame* keyFrame, KeyFrame* keyFrame2)
 {
-    // get rotation angle between this keyframe and last keyframe on stack
-    KeyFrame pKeyFrame = keyFrames.back();
+    // get rotation angle between the two keyframes    
 
     Matrix rA = keyFrame->pose.getMat(0, 0, 2, 2);
-    Matrix rB = pKeyFrame.pose.getMat(0, 0, 2, 2);
+    Matrix rB = keyFrame2->pose.getMat(0, 0, 2, 2);
 
     Matrix rAT = rA.operator~();
     Matrix rAB = rAT.operator*(rB);
@@ -111,7 +129,33 @@ float Mapping::getRotationAngle(KeyFrame* keyFrame)
     float f1 = acos((trace - 1) / 2);
     float f2 = (f1 * 180) / M_PI;
 
+    printf("rotation angle: %f\n", f2);
+
     //printf("trace: %f, f1: %f f2:%f f5: %f f6: %f\n", trace, f1, f2, f5, f6);
 
     return f2;
+}
+
+std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
+{
+    std::vector<KeyFrame> potentialKeyFrames;
+
+    for (int i=0; i < keyFrames.size(); i++)
+    {
+        KeyFrame keyFrame2 = keyFrames[i];
+
+        float translation = getTranslationDistance(keyFrame, &keyFrame2);
+
+        if (translation > param.search_radius)
+            continue;
+
+        float angle = getRotationAngle(&keyFrame2, keyFrame);
+
+        if (angle > param.search_angle)
+            continue;
+
+        potentialKeyFrames.push_back(keyFrame2);
+    }
+
+    return potentialKeyFrames;
 }
