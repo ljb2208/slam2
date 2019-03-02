@@ -14,3 +14,10 @@ void KeyFrame::generateDepthInfo()
     }
 }
 
+// SE3 KeyFrame::getSE3()
+// {
+//     Matrix r, t; 
+//     return SE3();
+
+// }
+

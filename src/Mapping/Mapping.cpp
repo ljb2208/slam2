@@ -1,5 +1,6 @@
 #include "Mapping.h"
 #include "boost/chrono.hpp"
+#include <stdlib.h>
 
 Mapping::Mapping(SlamViewer* viewer)
 {
@@ -16,7 +17,7 @@ void Mapping::addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, Mat
     
     
     // Need to fix
-    //keyFrame->p_matched = p_matched;
+    keyFrame->p_matched = matches->copySelectedMatches();
     keyFrame->image = new SLImage(leftImage->w, leftImage->h, leftImage->timestamp, keyFrame->index);
     keyFrame->imageRight = new SLImage(rightImage->w, rightImage->h, rightImage->timestamp, keyFrame->index);
 
@@ -129,8 +130,7 @@ float Mapping::getRotationAngle(KeyFrame* keyFrame, KeyFrame* keyFrame2)
     float f1 = acos((trace - 1) / 2);
     float f2 = (f1 * 180) / M_PI;
 
-    printf("rotation angle: %f\n", f2);
-
+    //printf("rotation angle: %f\n", f2);
     //printf("trace: %f, f1: %f f2:%f f5: %f f6: %f\n", trace, f1, f2, f5, f6);
 
     return f2;
@@ -143,6 +143,9 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
     for (int i=0; i < keyFrames.size(); i++)
     {
         KeyFrame keyFrame2 = keyFrames[i];
+
+        if (abs(keyFrame->index - keyFrame2.index) < param.keyframe_gap)
+            continue;
 
         float translation = getTranslationDistance(keyFrame, &keyFrame2);
 

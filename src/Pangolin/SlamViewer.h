@@ -43,8 +43,7 @@ class SlamViewer{
         cv::Mat internalVideoImg;
         cv::Mat internalVideoImgRight;
 
-        std::vector<KeyFrame> keyFrames;
-        std::vector<KeyFrameDisplay*> keyframes;
+        std::vector<KeyFrameDisplay*> keyFrames;
         KeyFrameDisplay* currentCam;
         std::vector<GraphConnection,Eigen::aligned_allocator<GraphConnection>> connections;
         std::vector<Vec3f,Eigen::aligned_allocator<Vec3f>> allFramePoses;

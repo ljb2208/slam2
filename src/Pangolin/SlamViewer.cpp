@@ -12,6 +12,11 @@ SlamViewer::SlamViewer(int width, int height)
     this->height = height;
 	currentImageId = 0;
 
+	settings_pointCloudMode = 1;
+	settings_sparsity = 1;
+	settings_scaledVarTH = 0.001;
+	settings_absVarTH = 0.001;
+
     //settings_showTrajectory = Settings::settings_showTrajectory;
 }
 
@@ -93,18 +98,20 @@ void SlamViewer::run()
 			
 			int refreshed=0;
 
-            /*
-			for(KeyFrameDisplay* fh : keyframes)
+            
+			for(KeyFrameDisplay* fh : keyFrames)
 			{				
-				if(this->settings_showKFCameras) fh->drawCam(1,blue,0.1);
+				//if(this->settings_showKFCameras) 
+				
+				fh->drawCam(1,blue,0.1);
 
 				refreshed =+ (int)(fh->refreshPC(refreshed < 10, this->settings_scaledVarTH, this->settings_absVarTH,
 						this->settings_pointCloudMode, this->settings_minRelBS, this->settings_sparsity));
-				fh->drawPC(1);
+				fh->drawPC(2);
 
 			}
             
-
+			/*
             for(int i = 0; i < matrix_result.size(); i++)
             {
 
@@ -165,7 +172,7 @@ void SlamViewer::pushLiveImageFrame(cv::Mat image, cv::Mat imageRight, int image
 void SlamViewer::pushKeyFrame(KeyFrame keyFrame)
 {
     boost::unique_lock<boost::mutex> lk(model3DMutex);
-    keyFrames.push_back(keyFrame);
+    keyFrames.push_back(new KeyFrameDisplay(keyFrame));
 }
 
 void SlamViewer::close()
@@ -238,11 +245,13 @@ void SlamViewer::drawConstraints()
 		{                        
             float f1, f2, f3;
 
-            if (keyFrames[i].pose.val != 0)
+			Matrix pose = keyFrames[i]->getPose();
+
+            if (pose.val != 0)
             {
-                f1 = keyFrames[i].pose.val[0][3];
-                f2 = keyFrames[i].pose.val[1][3];
-                f3 = keyFrames[i].pose.val[2][3];
+                f1 = pose.val[0][3];
+                f2 = pose.val[1][3];
+                f3 = pose.val[2][3];
                 glVertex3f(f1, f2, f3);					            
             }
 

@@ -14,7 +14,7 @@ set(LIBRARY_OUTPUT_PATH lib)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 # required libraries
-#find_package(SuiteParse REQUIRED)
+find_package(SuiteParse REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Boost COMPONENTS system thread) 
 find_package(OpenCV REQUIRED)
@@ -45,6 +45,7 @@ set(slam_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/Util/Timer.cpp
     ${PROJECT_SOURCE_DIR}/src/Mapping/Mapping.cpp
     ${PROJECT_SOURCE_DIR}/src/Mapping/KeyFrame.cpp
+    ${PROJECT_SOURCE_DIR}/src/Mapping/G2ODriver.cpp
     ${PROJECT_SOURCE_DIR}/src/5Point/5point.cpp
     ${PROJECT_SOURCE_DIR}/src/5Point/Rpoly.cpp
 )

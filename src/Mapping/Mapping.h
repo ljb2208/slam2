@@ -16,16 +16,18 @@ class Mapping
 
          // general parameters
         struct parameters {
-            double translation_threshold;
-            double rotation_threshold;
-            double search_radius;
-            double search_angle;
+            double  translation_threshold;
+            double  rotation_threshold;
+            double  search_radius;
+            double  search_angle;
+            int32_t keyframe_gap;
 
             parameters () {
                 translation_threshold = 1.0;
                 rotation_threshold = 0.1;
                 search_radius = 10;
                 search_angle = 15;
+                keyframe_gap = 15;
             }
         };
 

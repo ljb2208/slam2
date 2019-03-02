@@ -4,6 +4,8 @@
 #include "Odometry/Matches.h"
 #include <vector>
 #include "Util/SLImage.h"
+//#include <Eigen/Core>
+//#include "Util/NumType.h"
 
 class KeyFrame
 {
@@ -18,8 +20,11 @@ class KeyFrame
         SLImage* imageRight;
 
         void generateDepthInfo();
-        
+        //SE3 getSE3();
+
     private:
+
+        
 
         
 
