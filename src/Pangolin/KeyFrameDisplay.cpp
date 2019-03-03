@@ -54,8 +54,8 @@ KeyFrameDisplay::KeyFrameDisplay(KeyFrame keyFrame)
 	numGLBufferPoints=0;
 	bufferValid = false;
 
-	width = keyFrame.image->w;
-	height = keyFrame.image->h;	
+	width = keyFrame.width;
+	height = keyFrame.height;	
 }
        
 KeyFrameDisplay::~KeyFrameDisplay()
@@ -237,13 +237,10 @@ void KeyFrameDisplay::drawPC(float pointSize)
 	glDisable(GL_LIGHTING);
 
 	glPushMatrix();
-
-		Matrix r = Matrix::reshape(keyFrame.pose, 4, 4);
-
-		std::cout << "camToWorld:\n" << r << "\n";		//Sophus::Matrix4f m = camToWorld.matrix().cast<float>();
-		glMultMatrixf((GLfloat*)r.val);
-		glPointSize(pointSize);
-
+				
+		Sophus::Matrix4f m = camToWorld.matrix().cast<float>();	
+    	glMultMatrixf((GLfloat*)m.data());
+		
 		colorBuffer.Bind();
 		glColorPointer(colorBuffer.count_per_element, colorBuffer.datatype, 0, 0);
 		glEnableClientState(GL_COLOR_ARRAY);

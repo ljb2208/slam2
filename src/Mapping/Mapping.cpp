@@ -10,17 +10,17 @@ Mapping::Mapping(SlamViewer* viewer)
 
 void Mapping::addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches)
 {
-    KeyFrame* keyFrame = new KeyFrame();
-    keyFrame->index = leftImage->index;
+    KeyFrame* keyFrame = new KeyFrame(leftImage->index, leftImage->w, leftImage->h);
+    // keyFrame->index = leftImage->index;
     keyFrame->pose = Matrix(pose);
     keyFrame->temporary = false;
     
     
     // Need to fix
     keyFrame->p_matched = matches->copySelectedMatches();
-    printf("Add Frame: %i\n", keyFrame->index);
-    keyFrame->image = new SLImage(leftImage->w, leftImage->h, leftImage->timestamp, keyFrame->index);
-    keyFrame->imageRight = new SLImage(rightImage->w, rightImage->h, rightImage->timestamp, keyFrame->index);
+    //printf("Add Frame: %i\n", keyFrame->index);
+    //keyFrame->image = new SLImage(leftImage->w, leftImage->h, leftImage->timestamp, keyFrame->index);
+    //keyFrame->imageRight = new SLImage(rightImage->w, rightImage->h, rightImage->timestamp, keyFrame->index);
 
     boost::unique_lock<boost::mutex> lk(keyFramesMutex);
     keyFramesQueue.push(*keyFrame);
@@ -58,8 +58,8 @@ void Mapping::run()
         
         if (success)
         {
-            delete keyFrame.image;
-            delete keyFrame.imageRight;
+            //delete keyFrame.image;
+            //delete keyFrame.imageRight;
 
             float distance = 0.0;
             float angle = 0.0;

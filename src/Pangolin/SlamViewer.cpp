@@ -109,9 +109,9 @@ void SlamViewer::run()
 				
 				fh->drawCam(1,blue,0.1);
 
-				// refreshed =+ (int)(fh->refreshPC(refreshed < 10, this->settings_scaledVarTH, this->settings_absVarTH,
-				// 		this->settings_pointCloudMode, this->settings_minRelBS, this->settings_sparsity));
-				// fh->drawPC(2);
+				refreshed =+ (int)(fh->refreshPC(refreshed < 10, this->settings_scaledVarTH, this->settings_absVarTH,
+						this->settings_pointCloudMode, this->settings_minRelBS, this->settings_sparsity));
+				fh->drawPC(2);
 
 			}
             
@@ -177,14 +177,11 @@ void SlamViewer::pushLiveImageFrame(cv::Mat image, cv::Mat imageRight, int image
 
 void SlamViewer::pushKeyFrame(KeyFrame keyFrame)
 {
-	
-
 	KeyFrameDisplay* disp = new KeyFrameDisplay(keyFrame);
 
 	Sophus::Matrix4f m = disp->camToWorld.matrix().cast<float>();	
 
-	keyFrameFile << "KeyFrame: " << keyFrame.image->index << "\n";	
-	keyFrameFile << "Index2: " << keyFrame.index << "\n";	
+	keyFrameFile << "KeyFrame: " << keyFrame.index << "\n";		
 	keyFrameFile << "CamToWorld: \n" << m << "\n\n"; 
 	
     boost::unique_lock<boost::mutex> lk(model3DMutex);

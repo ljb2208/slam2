@@ -1,6 +1,13 @@
 #include "KeyFrame.h"
 
 
+KeyFrame::KeyFrame(int32_t index, int32_t width, int32_t height)
+{
+    this->index = index;
+    this->width = width;
+    this->height = height;
+}
+
 KeyFrame::KeyFrame()
 {
     
