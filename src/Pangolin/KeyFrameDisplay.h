@@ -43,7 +43,7 @@ class KeyFrameDisplay
         // render ground truth
         void drawGTCam(Sophus::Matrix4f m, float lineWidth, float* color, float sizeFactor);
 
-        Sophus::SE3 camToWorld;
+        SE3 camToWorld;
 
         int id;
     	bool active;
@@ -70,5 +70,5 @@ class KeyFrameDisplay
         int numGLBufferPoints;
         int numGLBufferGoodPoints;
         pangolin::GlBuffer vertexBuffer;
-        pangolin::GlBuffer colorBuffer;
+        pangolin::GlBuffer colorBuffer;        
 };

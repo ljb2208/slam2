@@ -10,13 +10,38 @@ KeyFrameDisplay::KeyFrameDisplay(KeyFrame keyFrame)
     cx = 607.1928;
     cy = 185.2157;
 
+	// fx = 370.500793;
+    // fy = 918.3968;
+    // cx = 312.904266;
+    // cy = 236.561417;
+
     //originalInputSparse = 0;
 	numSparseBufferSize=0;
 	numSparsePoints=0;
 
 	id = 0;
 	active= true;
-	camToWorld = SE3();
+	Vec3d trans;			
+
+	trans(0) = keyFrame.pose.val[0][3];
+	trans(1) = keyFrame.pose.val[1][3];
+	trans(2) = keyFrame.pose.val[2][3];
+
+	Mat33 rot;
+
+	rot(0, 0) = keyFrame.pose.val[0][0];
+	rot(0, 1) = keyFrame.pose.val[0][1];
+	rot(0, 2) = keyFrame.pose.val[0][2];
+
+	rot(1, 0) = keyFrame.pose.val[1][0];
+	rot(1, 1) = keyFrame.pose.val[1][1];
+	rot(1, 2) = keyFrame.pose.val[1][2];
+
+	rot(2, 0) = keyFrame.pose.val[2][0];
+	rot(2, 1) = keyFrame.pose.val[2][1];
+	rot(2, 2) = keyFrame.pose.val[2][2];
+
+	camToWorld =  SE3(rot, trans);
 
 	needRefresh=true;
 
@@ -28,6 +53,9 @@ KeyFrameDisplay::KeyFrameDisplay(KeyFrame keyFrame)
 
 	numGLBufferPoints=0;
 	bufferValid = false;
+
+	width = keyFrame.image->w;
+	height = keyFrame.image->h;	
 }
        
 KeyFrameDisplay::~KeyFrameDisplay()
@@ -157,15 +185,12 @@ void KeyFrameDisplay::drawCam(float lineWidth, float* color, float sizeFactor)
     if(width == 0)
 		return;
 
-	float sz=sizeFactor;
+	float sz=sizeFactor;	
 
 	glPushMatrix();
     
-    //Sophus::Matrix4f m = camToWorld.matrix().cast<float>();
-	
-    //glMultMatrixf((GLfloat*)m.data());
-
-	glMultMatrixf((GLfloat*)keyFrame.pose.val);
+    Sophus::Matrix4f m = camToWorld.matrix().cast<float>();	
+    glMultMatrixf((GLfloat*)m.data());
 
     if(color == 0)
     {
@@ -197,6 +222,8 @@ void KeyFrameDisplay::drawCam(float lineWidth, float* color, float sizeFactor)
     glVertex3f(sz*(0-cx)/fx,sz*(0-cy)/fy,sz);
     glVertex3f(sz*(width-1-cx)/fx,sz*(0-cy)/fy,sz);
 
+	
+
     glEnd();
 	glPopMatrix();
     
@@ -211,9 +238,10 @@ void KeyFrameDisplay::drawPC(float pointSize)
 
 	glPushMatrix();
 
+		Matrix r = Matrix::reshape(keyFrame.pose, 4, 4);
 
-//std::cout << "camToWorld:\n" << keyFrame.pose << "\n";		//Sophus::Matrix4f m = camToWorld.matrix().cast<float>();
-		glMultMatrixf((GLfloat*)keyFrame.pose.val);
+		std::cout << "camToWorld:\n" << r << "\n";		//Sophus::Matrix4f m = camToWorld.matrix().cast<float>();
+		glMultMatrixf((GLfloat*)r.val);
 		glPointSize(pointSize);
 
 		colorBuffer.Bind();

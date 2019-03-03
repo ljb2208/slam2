@@ -9,6 +9,10 @@
 #include "Mapping/KeyFrame.h"
 #include "Util/Settings.h"
 
+#include <iostream>
+#include <fstream>
+
+
 struct GraphConnection
 {
 	KeyFrameDisplay* from;
@@ -65,5 +69,7 @@ class SlamViewer{
         void drawConstraints();
 
         std::vector<Matrix> groundTruth;
+
+        std::ofstream keyFrameFile;
 
 };

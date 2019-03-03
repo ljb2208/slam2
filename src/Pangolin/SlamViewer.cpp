@@ -6,6 +6,7 @@
 #include "Util/Settings.h"
 #include "IO/DataSetReader.h"
 
+
 SlamViewer::SlamViewer(int width, int height)
 {
     this->width = width;
@@ -17,6 +18,8 @@ SlamViewer::SlamViewer(int width, int height)
 	settings_scaledVarTH = 0.001;
 	settings_absVarTH = 0.001;
 
+	keyFrameFile.open("keyFrames.txt", std::ios::out | std::ios::trunc);
+
     //settings_showTrajectory = Settings::settings_showTrajectory;
 }
 
@@ -27,6 +30,7 @@ SlamViewer::~SlamViewer()
 void SlamViewer::run()
 {
     printf("Start Slam Viewer\n");
+	
 
     running = true;
     videoImageChanged = false;
@@ -105,9 +109,9 @@ void SlamViewer::run()
 				
 				fh->drawCam(1,blue,0.1);
 
-				refreshed =+ (int)(fh->refreshPC(refreshed < 10, this->settings_scaledVarTH, this->settings_absVarTH,
-						this->settings_pointCloudMode, this->settings_minRelBS, this->settings_sparsity));
-				fh->drawPC(2);
+				// refreshed =+ (int)(fh->refreshPC(refreshed < 10, this->settings_scaledVarTH, this->settings_absVarTH,
+				// 		this->settings_pointCloudMode, this->settings_minRelBS, this->settings_sparsity));
+				// fh->drawPC(2);
 
 			}
             
@@ -153,6 +157,8 @@ void SlamViewer::run()
 		pangolin::FinishFrame();
     }
 
+	keyFrameFile.close();
+
     exit(1);
 }
 
@@ -171,8 +177,18 @@ void SlamViewer::pushLiveImageFrame(cv::Mat image, cv::Mat imageRight, int image
 
 void SlamViewer::pushKeyFrame(KeyFrame keyFrame)
 {
+	
+
+	KeyFrameDisplay* disp = new KeyFrameDisplay(keyFrame);
+
+	Sophus::Matrix4f m = disp->camToWorld.matrix().cast<float>();	
+
+	keyFrameFile << "KeyFrame: " << keyFrame.image->index << "\n";	
+	keyFrameFile << "Index2: " << keyFrame.index << "\n";	
+	keyFrameFile << "CamToWorld: \n" << m << "\n\n"; 
+	
     boost::unique_lock<boost::mutex> lk(model3DMutex);
-    keyFrames.push_back(new KeyFrameDisplay(keyFrame));
+    keyFrames.push_back(disp);
 }
 
 void SlamViewer::close()

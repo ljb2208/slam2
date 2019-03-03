@@ -132,8 +132,12 @@ int main( int argc, char** argv )
 
         for (int i=0; i < imageCount - imageOffset; i++){
             
+            if (i == 100)
+                break;
+                
             if (!running)
                 exit(1);
+
             bool skipFrame=false;
             if(playbackSpeed!=0)
             {

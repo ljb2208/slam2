@@ -18,6 +18,7 @@ void Mapping::addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, Mat
     
     // Need to fix
     keyFrame->p_matched = matches->copySelectedMatches();
+    printf("Add Frame: %i\n", keyFrame->index);
     keyFrame->image = new SLImage(leftImage->w, leftImage->h, leftImage->timestamp, keyFrame->index);
     keyFrame->imageRight = new SLImage(rightImage->w, rightImage->h, rightImage->timestamp, keyFrame->index);
 
