@@ -32,7 +32,7 @@ class Mapping
         };
 
 
-        void addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches);
+        void addFrame(slam2::Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches);
 
         void run();
 	    void close();

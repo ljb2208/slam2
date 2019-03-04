@@ -8,11 +8,11 @@ Mapping::Mapping(SlamViewer* viewer)
     running = true;
 }
 
-void Mapping::addFrame(Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches)
+void Mapping::addFrame(slam2::Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches)
 {
     KeyFrame* keyFrame = new KeyFrame(leftImage->index, leftImage->w, leftImage->h);
     // keyFrame->index = leftImage->index;
-    keyFrame->pose = Matrix(pose);
+    keyFrame->pose = slam2::Matrix(pose);
     keyFrame->temporary = false;
     
     
@@ -116,11 +116,11 @@ float Mapping::getRotationAngle(KeyFrame* keyFrame, KeyFrame* keyFrame2)
 {
     // get rotation angle between the two keyframes    
 
-    Matrix rA = keyFrame->pose.getMat(0, 0, 2, 2);
-    Matrix rB = keyFrame2->pose.getMat(0, 0, 2, 2);
+    slam2::Matrix rA = keyFrame->pose.getMat(0, 0, 2, 2);
+    slam2::Matrix rB = keyFrame2->pose.getMat(0, 0, 2, 2);
 
-    Matrix rAT = rA.operator~();
-    Matrix rAB = rAT.operator*(rB);
+    slam2::Matrix rAT = rA.operator~();
+    slam2::Matrix rAB = rAT.operator*(rB);
 
     // calculate trace
     float trace = rAB.val[0][0] + rAB.val[1][1] + rAB.val[2][2];

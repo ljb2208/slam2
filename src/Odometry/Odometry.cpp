@@ -24,8 +24,11 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     // c_y = 1,2
     param.base = baseLine;
     param.calib.f = cameraMatrix.at<float>(0, 0);
+    param.calib.fy = cameraMatrix.at<float>(1, 1);
     param.calib.cu = cameraMatrix.at<float>(0, 2);
     param.calib.cv = cameraMatrix.at<float>(1, 2);
+
+    viewer->setCalibration(param.calib.f, param.calib.f, param.calib.cu, param.calib.cv);
 
     matcher = new Matcher(Matcher::parameters(), matches);
     matcher->setIntrinsics(param.calib.f, param.calib.cu, param.calib.cv, param.base);
@@ -157,8 +160,8 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     if (result)
     {
         // on success, update current pose
-        Matrix motion = getMotion();
-        pose = pose * Matrix::inv(motion);
+        slam2::Matrix motion = getMotion();
+        pose = pose * slam2::Matrix::inv(motion);
 
         //Matrix motion = getMotion2();
         //pose = pose * Matrix::inv(motion);
@@ -446,16 +449,16 @@ std::vector<double> Odometry::estimateMotion2()
    
   // create calibration matrix
   double K_data[9] = {param.calib.f,0,param.calib.cu,0,param.calib.f,param.calib.cv,0,0,1};
-  Matrix K(3,3,K_data);
+  slam2::Matrix K(3,3,K_data);
     
   // normalize feature points and return on errors
-  Matrix Tp,Tc;
+  slam2::Matrix Tp,Tc;
   std::vector<Matches::p_match> p_matched_normalized = matches->copySelectedMatches();
   if (!normalizeFeaturePoints(p_matched_normalized,Tp,Tc))
     return std::vector<double>();
 
   // initial RANSAC estimate of F
-  Matrix E,F;
+  slam2::Matrix E,F;
   inliers.clear();
   for (int32_t k=0;k<param.mono_ransac_iters;k++) {
 
@@ -483,13 +486,13 @@ std::vector<double> Odometry::estimateMotion2()
   E = ~K*F*K;
   
   // re-enforce rank 2 constraint on essential matrix
-  Matrix U,W,V;
+  slam2::Matrix U,W,V;
   E.svd(U,W,V);
   W.val[2][0] = 0;
-  E = U*Matrix::diag(W)*~V;
+  E = U*slam2::Matrix::diag(W)*~V;
   
   // compute 3d points X and R|t up to scale
-  Matrix X,R,t;
+  slam2::Matrix X,R,t;
   EtoRt(E,K,X,R,t);
   
   // normalize 3d points and remove points behind image plane
@@ -498,7 +501,7 @@ std::vector<double> Odometry::estimateMotion2()
   for (int32_t i=0; i<X.n; i++)
     if (X.val[2][i]>0)
       pos_idx.push_back(i);
-  Matrix X_plane = X.extractCols(pos_idx);
+  slam2::Matrix X_plane = X.extractCols(pos_idx);
   
   // we need at least 10 points to proceed
   if (X_plane.n<10)
@@ -513,13 +516,13 @@ std::vector<double> Odometry::estimateMotion2()
     return std::vector<double>();
   
   // project features to 2d
-  Matrix x_plane(2,X_plane.n);
+  slam2::Matrix x_plane(2,X_plane.n);
   x_plane.setMat(X_plane.getMat(1,0,2,-1),0,0);
   
-  Matrix n(2,1);
+  slam2::Matrix n(2,1);
   n.val[0][0]       = cos(-param.pitch);
   n.val[1][0]       = sin(-param.pitch);
-  Matrix   d        = ~n*x_plane;
+  slam2::Matrix   d        = ~n*x_plane;
   double   sigma    = median/50.0;
   double   weight   = 1.0/(2.0*sigma*sigma);
   double   best_sum = 0;
@@ -558,7 +561,7 @@ std::vector<double> Odometry::estimateMotion2()
   return tr_delta;
 }
 
-Matrix Odometry::smallerThanMedian (Matrix &X,double &median) {
+slam2::Matrix Odometry::smallerThanMedian (slam2::Matrix &X,double &median) {
   
   // set distance and index vector
   std::vector<double> dist;
@@ -576,14 +579,14 @@ Matrix Odometry::smallerThanMedian (Matrix &X,double &median) {
   median = dist[idx[num_elem_half]];
   
   // create matrix containing elements closer than median
-  Matrix X_small(4,num_elem_half+1);
+  slam2::Matrix X_small(4,num_elem_half+1);
   for (int32_t j=0; j<=num_elem_half; j++)
     for (int32_t i=0; i<4; i++)
       X_small.val[i][j] = X.val[i][idx[j]];
 	return X_small;
 }
 
-bool Odometry::normalizeFeaturePoints(std::vector<Matches::p_match> &p_matched,Matrix &Tp,Matrix &Tc) {
+bool Odometry::normalizeFeaturePoints(std::vector<Matches::p_match> &p_matched,slam2::Matrix &Tp,slam2::Matrix &Tc) {
   
   // shift origins to centroids
   double cpu=0,cpv=0,ccu=0,ccv=0;
@@ -624,20 +627,20 @@ bool Odometry::normalizeFeaturePoints(std::vector<Matches::p_match> &p_matched,M
   // compute corresponding transformation matrices
   double Tp_data[9] = {sp,0,-sp*cpu,0,sp,-sp*cpv,0,0,1};
   double Tc_data[9] = {sc,0,-sc*ccu,0,sc,-sc*ccv,0,0,1};
-  Tp = Matrix(3,3,Tp_data);
-  Tc = Matrix(3,3,Tc_data);
+  Tp = slam2::Matrix(3,3,Tp_data);
+  Tc = slam2::Matrix(3,3,Tc_data);
   
   // return true on success
   return true;
 }
 
-void Odometry::fundamentalMatrix (const std::vector<Matches::p_match> &p_matched,const std::vector<int32_t> &active,Matrix &F) {
+void Odometry::fundamentalMatrix (const std::vector<Matches::p_match> &p_matched,const std::vector<int32_t> &active,slam2::Matrix &F) {
   
   // number of active p_matched
   int32_t N = active.size();
   
   // create constraint matrix A
-  Matrix A(N,9);
+  slam2::Matrix A(N,9);
   for (int32_t i=0; i<N; i++) {
     Matches::p_match m = p_matched[active[i]];
     A.val[i][0] = m.u1c*m.u1p;
@@ -652,19 +655,19 @@ void Odometry::fundamentalMatrix (const std::vector<Matches::p_match> &p_matched
   }
    
   // compute singular value decomposition of A
-  Matrix U,W,V;
+  slam2::Matrix U,W,V;
   A.svd(U,W,V);
    
   // extract fundamental matrix from the column of V corresponding to the smallest singular value
-  F = Matrix::reshape(V.getMat(0,8,8,8),3,3);
+  F = slam2::Matrix::reshape(V.getMat(0,8,8,8),3,3);
   
   // enforce rank 2
   F.svd(U,W,V);
   W.val[2][0] = 0;
-  F = U*Matrix::diag(W)*~V;
+  F = U*slam2::Matrix::diag(W)*~V;
 }
 
-std::vector<int32_t> Odometry::getInlier (std::vector<Matches::p_match> &p_matched,Matrix &F) {
+std::vector<int32_t> Odometry::getInlier (std::vector<Matches::p_match> &p_matched,slam2::Matrix &F) {
 
   // extract fundamental matrix
   double f00 = F.val[0][0]; double f01 = F.val[0][1]; double f02 = F.val[0][2];
@@ -713,23 +716,23 @@ std::vector<int32_t> Odometry::getInlier (std::vector<Matches::p_match> &p_match
   return inliers;
 }
 
-void Odometry::EtoRt(Matrix &E,Matrix &K,Matrix &X,Matrix &R,Matrix &t) {
+void Odometry::EtoRt(slam2::Matrix &E,slam2::Matrix &K,slam2::Matrix &X,slam2::Matrix &R,slam2::Matrix &t) {
 
   // hartley matrices
   double W_data[9] = {0,-1,0,+1,0,0,0,0,1};
   double Z_data[9] = {0,+1,0,-1,0,0,0,0,0};
-  Matrix W(3,3,W_data);
-  Matrix Z(3,3,Z_data); 
+  slam2::Matrix W(3,3,W_data);
+  slam2::Matrix Z(3,3,Z_data); 
   
   // extract T,R1,R2 (8 solutions)
-  Matrix U,S,V;
+  slam2::Matrix U,S,V;
   E.svd(U,S,V);
-  Matrix T  = U*Z*~U;
-  Matrix Ra = U*W*(~V);
-  Matrix Rb = U*(~W)*(~V);
+  slam2::Matrix T  = U*Z*~U;
+  slam2::Matrix Ra = U*W*(~V);
+  slam2::Matrix Rb = U*(~W)*(~V);
   
   // convert T to t
-  t = Matrix(3,1);
+  t = slam2::Matrix(3,1);
   t.val[0][0] = T.val[2][1];
   t.val[1][0] = T.val[0][2];
   t.val[2][0] = T.val[1][0];
@@ -739,15 +742,15 @@ void Odometry::EtoRt(Matrix &E,Matrix &K,Matrix &X,Matrix &R,Matrix &t) {
   if (Rb.det()<0) Rb = -Rb;
   
   // create vector containing all 4 solutions
-  std::vector<Matrix> R_vec;
-  std::vector<Matrix> t_vec;
+  std::vector<slam2::Matrix> R_vec;
+  std::vector<slam2::Matrix> t_vec;
   R_vec.push_back(Ra); t_vec.push_back( t);
   R_vec.push_back(Ra); t_vec.push_back(-t);
   R_vec.push_back(Rb); t_vec.push_back( t);
   R_vec.push_back(Rb); t_vec.push_back(-t);
   
   // try all 4 solutions
-  Matrix X_curr;
+  slam2::Matrix X_curr;
   int32_t max_inliers = 0;
   for (int32_t i=0; i<4; i++) {
     int32_t num_inliers = triangulateChieral(K,R_vec[i],t_vec[i],X_curr);
@@ -761,22 +764,22 @@ void Odometry::EtoRt(Matrix &E,Matrix &K,Matrix &X,Matrix &R,Matrix &t) {
 }
 
 
-int32_t Odometry::triangulateChieral (Matrix &K,Matrix &R,Matrix &t,Matrix &X) {
+int32_t Odometry::triangulateChieral (slam2::Matrix &K,slam2::Matrix &R,slam2::Matrix &t,slam2::Matrix &X) {
   
   // init 3d point matrix
-  X = Matrix(4,matches->selectedMatches.size());
+  X = slam2::Matrix(4,matches->selectedMatches.size());
   
   // projection matrices
-  Matrix P1(3,4);
-  Matrix P2(3,4);
+  slam2::Matrix P1(3,4);
+  slam2::Matrix P2(3,4);
   P1.setMat(K,0,0);
   P2.setMat(R,0,0);
   P2.setMat(t,0,3);
   P2 = K*P2;
   
   // triangulation via orthogonal regression
-  Matrix J(4,4);
-  Matrix U,S,V;
+  slam2::Matrix J(4,4);
+  slam2::Matrix U,S,V;
   for (int32_t i=0; i<(int)matches->selectedMatches.size(); i++) {
     for (int32_t j=0; j<4; j++) {
       J.val[0][j] = P1.val[2][j]*matches->selectedMatches[i]->u1p - P1.val[0][j];
@@ -789,8 +792,8 @@ int32_t Odometry::triangulateChieral (Matrix &K,Matrix &R,Matrix &t,Matrix &X) {
   }
   
   // compute inliers
-  Matrix  AX1 = P1*X;
-  Matrix  BX1 = P2*X;
+  slam2::Matrix  AX1 = P1*X;
+  slam2::Matrix  BX1 = P2*X;
   int32_t num = 0;
   for (int32_t i=0; i<X.n; i++)
     if (AX1.val[2][i]*X.val[3][i]>0 && BX1.val[2][i]*X.val[3][i]>0)
@@ -835,8 +838,8 @@ Odometry::result Odometry::updateParameters(Matches* matches,std::vector<int32_t
     computeResidualsAndJacobian(tr,active);
 
     // init
-    Matrix A(6,6);
-    Matrix B(6,1);
+    slam2::Matrix A(6,6);
+    slam2::Matrix B(6,1);
 
     // fill matrices A and B
     for (int32_t m=0; m<6; m++) {
@@ -999,7 +1002,7 @@ void Odometry::computeResidualsAndJacobian(std::vector<double> &tr,std::vector<i
 }
 
 
-Matrix Odometry::transformationVectorToMatrix (std::vector<double> tr)
+slam2::Matrix Odometry::transformationVectorToMatrix (std::vector<double> tr)
 {
     // extract parameters
     double rx = tr[0];
@@ -1018,7 +1021,7 @@ Matrix Odometry::transformationVectorToMatrix (std::vector<double> tr)
     double cz = cos(rz);
 
     // compute transformation
-    Matrix Tr(4,4);
+    slam2::Matrix Tr(4,4);
     Tr.val[0][0] = +cy*cz;          Tr.val[0][1] = -cy*sz;          Tr.val[0][2] = +sy;    Tr.val[0][3] = tx;
     Tr.val[1][0] = +sx*sy*cz+cx*sz; Tr.val[1][1] = -sx*sy*sz+cx*cz; Tr.val[1][2] = -sx*cy; Tr.val[1][3] = ty;
     Tr.val[2][0] = -cx*sy*cz+sx*sz; Tr.val[2][1] = +cx*sy*sz+sx*cz; Tr.val[2][2] = +cx*cy; Tr.val[2][3] = tz;
@@ -1164,11 +1167,11 @@ float Odometry::getRotationError(int index)
         return 9999999;
 
      // get rotation angle between this keyframe and last keyframe on stack    
-    Matrix rA = pose.getMat(0, 0, 2, 2);
-    Matrix rB = groundTruth[index].getMat(0, 0, 2, 2);
+    slam2::Matrix rA = pose.getMat(0, 0, 2, 2);
+    slam2::Matrix rB = groundTruth[index].getMat(0, 0, 2, 2);
 
-    Matrix rAT = rA.operator~();
-    Matrix rAB = rAT.operator*(rB);
+    slam2::Matrix rAT = rA.operator~();
+    slam2::Matrix rAB = rAT.operator*(rB);
 
     // calculate trace
     float trace = rAB.val[0][0] + rAB.val[1][1] + rAB.val[2][2];
@@ -1236,7 +1239,7 @@ float Odometry::getMotionError(int index)
     groundTruthMotion = fabs(sqrt(gf1*gf1 + gf2*gf2 + gf3*gf3)); 
     computedMotion = fabs(sqrt(f1*f1 + f2*f2 + f3*f3)); 
     totalMotion += groundTruthMotion;
-    posePrior = Matrix(pose);
+    posePrior = slam2::Matrix(pose);
     //printf("gtm: %f cm: %f tm: %f return: %f\n", groundTruthMotion, computedMotion, totalMotion,fabs(sqrt(r1*r1 + r2*r2 + r3*r3)));
     //printf("f1: %f f2: %f f3: %f gf1: %f gf2: %f gf3: %f r1: %f r2: %f r3: %f\n", f1, f2, f3, gf1,gf2,gf3,r1,r2,r3);
     return fabs(sqrt(r1*r1 + r2*r2 + r3*r3));
@@ -1265,14 +1268,19 @@ void Odometry::calculateDepth()
         double d = std::max(matches->selectedMatches[i]->u1c - matches->selectedMatches[i]->u2c,0.0001f);
         d = param.calib.f*param.base/d;
         matches->selectedMatches[i]->depth = d;
+
+        if (d > 2000)
+        {
+            printf("Crazy Depth: %f u1c: %f u2c: %f\n", d, matches->selectedMatches[i]->u1c, matches->selectedMatches[i]->u2c);
+        }
     }   
 }
 
-Matrix Odometry::estimateMotion3(bool* result)
+slam2::Matrix Odometry::estimateMotion3(bool* result)
 {
     printf("estimateMotion3 start\n");
     // get number of matches
-    Matrix Tr(4,4);
+    slam2::Matrix Tr(4,4);
   int32_t N = matches->selectedMatches.size();
   if (N<10)
   {

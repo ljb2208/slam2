@@ -32,7 +32,8 @@ class SlamViewer{
 
         void pushKeyFrame(KeyFrame keyFrame);
         void pushDepthImageFrame(cv::Mat image);
-        void pushLiveImageFrame(cv::Mat image, cv::Mat imageRight, int imageId);        
+        void pushLiveImageFrame(cv::Mat image, cv::Mat imageRight, int imageId);
+        void setCalibration(float fx, float fy, float cx, float cy);        
 
     private:
         int width, height;
@@ -68,8 +69,12 @@ class SlamViewer{
 
         void drawConstraints();
 
-        std::vector<Matrix> groundTruth;
+        std::vector<slam2::Matrix> groundTruth;
 
         std::ofstream keyFrameFile;
+        
+
+        //camera model params
+        float fx, fy, cx,cy;
 
 };

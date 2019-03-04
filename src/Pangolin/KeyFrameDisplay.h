@@ -27,11 +27,11 @@ class KeyFrameDisplay
 {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-        KeyFrameDisplay(KeyFrame keyFrame);
+        KeyFrameDisplay(KeyFrame keyFrame, float fx, float fy, float cx, float cy);
         ~KeyFrameDisplay();
 
 
-        Matrix getPose();
+        slam2::Matrix getPose();
 
         // copies & filters internal data to GL buffer for rendering. if nothing to do: does nothing.
         bool refreshPC(bool canRefresh, float scaledTH, float absTH, int mode, float minBS, int sparsity);

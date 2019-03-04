@@ -187,7 +187,7 @@ void Matcher::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace
     computeFeatures(I2c,dims_c,m2c1,n2c1,m2c2,n2c2,I2c_du,I2c_dv,I2c_du_full,I2c_dv_full, true);
 }
 
-void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
+void Matcher::matchFeatures(int32_t method, slam2::Matrix *Tr_delta) {
   
   //////////////////
   // sanity check //
@@ -938,7 +938,7 @@ inline void Matcher::findMatch (int32_t* m1,const int32_t &i1,int32_t* m2,const 
 
 void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
                         int32_t n1p,int32_t n2p,int32_t n1c,int32_t n2c,
-                        Matches* p_matched,int32_t method,bool use_prior,Matrix *Tr_delta) {
+                        Matches* p_matched,int32_t method,bool use_prior,slam2::Matrix *Tr_delta) {
 
   // descriptor step size (number of int32_t elements in struct)
   int32_t step_size = sizeof(Matches::maximum)/sizeof(int32_t);
@@ -1485,7 +1485,7 @@ bool Matcher::parabolicFitting(const uint8_t* I1_du,const uint8_t* I1_dv,const i
                                const uint8_t* I2_du,const uint8_t* I2_dv,const int32_t* dims2,
                                const float &u1,const float &v1,
                                float       &u2,float       &v2,
-                               Matrix At,Matrix AtA,
+                               slam2::Matrix At,slam2::Matrix AtA,
                                uint8_t* desc_buffer) {
 
   // check if parabolic fitting is feasible (descriptors are within margin)
@@ -1527,7 +1527,7 @@ bool Matcher::parabolicFitting(const uint8_t* I1_du,const uint8_t* I1_dv,const i
     return false;
   
   // solve least squares system
-  Matrix c(9,1);
+  slam2::Matrix c(9,1);
   for (int32_t i=-1; i<=+1; i++) {
     for (int32_t j=-1; j<=+1; j++) {
       int32_t cost_curr = cost[(dv+i)*7+(du+j)];
@@ -1536,7 +1536,7 @@ bool Matcher::parabolicFitting(const uint8_t* I1_du,const uint8_t* I1_dv,const i
       c.val[(i+1)*3+(j+1)][0] = cost_curr;
     }
   }
-  Matrix b = At*c;
+  slam2::Matrix b = At*c;
   if (!b.solve(AtA))
     return false;
   
@@ -1617,9 +1617,9 @@ void Matcher::refinement (Matches* p_matched,int32_t method) {
                         1, 1,-1,-1, 1, 1,
                         0, 1, 0, 0, 1, 1,
                         1, 1, 1, 1, 1, 1};
-  Matrix A(9,6,A_data);
-  Matrix At  = ~A;
-  Matrix AtA = At*A;
+  slam2::Matrix A(9,6,A_data);
+  slam2::Matrix At  = ~A;
+  slam2::Matrix AtA = At*A;
   
   uint8_t* I1p_du_fit = I1p_du;
   uint8_t* I1p_dv_fit = I1p_dv;

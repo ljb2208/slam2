@@ -111,7 +111,7 @@ void SlamViewer::run()
 
 				refreshed =+ (int)(fh->refreshPC(refreshed < 10, this->settings_scaledVarTH, this->settings_absVarTH,
 						this->settings_pointCloudMode, this->settings_minRelBS, this->settings_sparsity));
-				fh->drawPC(2);
+				fh->drawPC(1);
 
 			}
             
@@ -177,7 +177,7 @@ void SlamViewer::pushLiveImageFrame(cv::Mat image, cv::Mat imageRight, int image
 
 void SlamViewer::pushKeyFrame(KeyFrame keyFrame)
 {
-	KeyFrameDisplay* disp = new KeyFrameDisplay(keyFrame);
+	KeyFrameDisplay* disp = new KeyFrameDisplay(keyFrame, fx, fy, cx, cy);
 
 	Sophus::Matrix4f m = disp->camToWorld.matrix().cast<float>();	
 
@@ -258,7 +258,7 @@ void SlamViewer::drawConstraints()
 		{                        
             float f1, f2, f3;
 
-			Matrix pose = keyFrames[i]->getPose();
+			slam2::Matrix pose = keyFrames[i]->getPose();
 
             if (pose.val != 0)
             {
@@ -311,4 +311,13 @@ void SlamViewer::drawConstraints()
 		}
 		glEnd();
 	}
+}
+
+
+void SlamViewer::setCalibration(float fx, float fy, float cx, float cy)
+{
+	this->fx = fx;
+	this->fy = fy;
+	this->cx = cx;
+	this->cy = cy;
 }

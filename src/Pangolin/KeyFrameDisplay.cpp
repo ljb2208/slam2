@@ -2,18 +2,19 @@
 #include <stdio.h>
 #include <pangolin/pangolin.h>
 
-KeyFrameDisplay::KeyFrameDisplay(KeyFrame keyFrame)
+KeyFrameDisplay::KeyFrameDisplay(KeyFrame keyFrame, float fx, float fy, float cx, float cy)
 {
     this->keyFrame = keyFrame;
-    fx = 718.856;
-    fy = 718.856;
-    cx = 607.1928;
-    cy = 185.2157;
 
 	// fx = 370.500793;
-    // fy = 918.3968;
+    // //fy = 918.3968;
+	// fy = 370.500793;
     // cx = 312.904266;
     // cy = 236.561417;
+	this->fx = fx;
+	this->fy = fy;
+	this->cx = cx;
+	this->cy = cy;
 
     //originalInputSparse = 0;
 	numSparseBufferSize=0;
@@ -21,27 +22,8 @@ KeyFrameDisplay::KeyFrameDisplay(KeyFrame keyFrame)
 
 	id = 0;
 	active= true;
-	Vec3d trans;			
 
-	trans(0) = keyFrame.pose.val[0][3];
-	trans(1) = keyFrame.pose.val[1][3];
-	trans(2) = keyFrame.pose.val[2][3];
-
-	Mat33 rot;
-
-	rot(0, 0) = keyFrame.pose.val[0][0];
-	rot(0, 1) = keyFrame.pose.val[0][1];
-	rot(0, 2) = keyFrame.pose.val[0][2];
-
-	rot(1, 0) = keyFrame.pose.val[1][0];
-	rot(1, 1) = keyFrame.pose.val[1][1];
-	rot(1, 2) = keyFrame.pose.val[1][2];
-
-	rot(2, 0) = keyFrame.pose.val[2][0];
-	rot(2, 1) = keyFrame.pose.val[2][1];
-	rot(2, 2) = keyFrame.pose.val[2][2];
-
-	camToWorld =  SE3(rot, trans);
+	camToWorld =  keyFrame.getSE3();
 
 	needRefresh=true;
 
@@ -63,7 +45,7 @@ KeyFrameDisplay::~KeyFrameDisplay()
 
 }
 
-Matrix KeyFrameDisplay::getPose()
+slam2::Matrix KeyFrameDisplay::getPose()
 {
     return keyFrame.pose;
 }
@@ -136,15 +118,15 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, in
 		// 	continue;
 
 		float z = depth;// / my_scale;
-		float x = (keyFrame.p_matched[i].u1c - cx)*z*(1.0f/fx);
-		float y = (keyFrame.p_matched[i].v1c - cy)*z*(1.0f/fy);
-		//float x = z *(cx - keyFrame.p_matched[i].u1c)  / fx;
-		//float y = z *(cy - keyFrame.p_matched[i].v1c) / fy;
+		//float x = (keyFrame.p_matched[i].u1c - cx)*z*(1.0f/fx);
+		//float y = (keyFrame.p_matched[i].v1c - cy)*z*(1.0f/fy);
+		float x = z *(cx - keyFrame.p_matched[i].u1c)  / fx;
+		float y = z *(cy - keyFrame.p_matched[i].v1c) / fy;
 
-		printf("x:%f y:%f z:%f\n", x, y, z);
+		//printf("u: %f v: %f x:%f y:%f z:%f\n", keyFrame.p_matched[i].u1c, keyFrame.p_matched[i].v1c, x, y, z);
 
 		tmpVertexBuffer[vertexBufferNumPoints][0] = x;
-		tmpVertexBuffer[vertexBufferNumPoints][1] = y; 
+		tmpVertexBuffer[vertexBufferNumPoints][1] = -y; 
 		tmpVertexBuffer[vertexBufferNumPoints][2] = z;
 
 		tmpColorBuffer[vertexBufferNumPoints][0] = 255;

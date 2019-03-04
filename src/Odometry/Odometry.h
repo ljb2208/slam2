@@ -24,10 +24,12 @@ class Odometry
         // camera parameters (all are mandatory / need to be supplied)
         struct calibration {  
             double f;  // focal length (in pixels)
+            double fy;
             double cu; // principal point (u-coordinate)
             double cv; // principal point (v-coordinate)
             calibration () {
             f  = 1;
+            fy = 1;
             cu = 0;
             cv = 0;
             }
@@ -93,9 +95,9 @@ class Odometry
         double *p_observe;  // observed 2d points
         double *p_predict;  // predicted 2d points
         std::vector<int32_t>           inliers;    // inlier set
-        Matrix pose = Matrix::eye(4);
-        Matrix pose2 = Matrix::eye(4);
-        Matrix posePrior = Matrix::eye(4);
+        slam2::Matrix pose = slam2::Matrix::eye(4);
+        slam2::Matrix pose2 = slam2::Matrix::eye(4);
+        slam2::Matrix posePrior = slam2::Matrix::eye(4);
 
         //essential matricies
         cv::Mat essMat;
@@ -114,7 +116,7 @@ class Odometry
         enum result { UPDATED, FAILED, CONVERGED };
 
         bool Tr_valid;
-        Matrix Tr_delta;
+        slam2::Matrix Tr_delta;
         uint8_t* getImageArray(SLImage* image);
         bool updateMotion();
         bool updateMotion2();
@@ -122,19 +124,19 @@ class Odometry
 
         std::vector<double> estimateMotion ();
         std::vector<double> estimateMotion2 ();
-        Matrix estimateMotion3 (bool* result);
+        slam2::Matrix estimateMotion3 (bool* result);
         std::vector<int32_t> getInliers5Point(PMatrix P);
 
 
-        bool normalizeFeaturePoints(std::vector<Matches::p_match> &p_matched,Matrix &Tp,Matrix &Tc);
-        Matrix smallerThanMedian (Matrix &X,double &median);
-        std::vector<int32_t> getInlier (std::vector<Matches::p_match> &p_matched,Matrix &F);
-        void EtoRt(Matrix &E,Matrix &K,Matrix &X,Matrix &R,Matrix &t);
-        int32_t triangulateChieral (Matrix &K,Matrix &R,Matrix &t,Matrix &X);
-        void fundamentalMatrix (const std::vector<Matches::p_match> &p_matched,const std::vector<int32_t> &active,Matrix &F);
+        bool normalizeFeaturePoints(std::vector<Matches::p_match> &p_matched,slam2::Matrix &Tp,slam2::Matrix &Tc);
+        slam2::Matrix smallerThanMedian (slam2::Matrix &X,double &median);
+        std::vector<int32_t> getInlier (std::vector<Matches::p_match> &p_matched,slam2::Matrix &F);
+        void EtoRt(slam2::Matrix &E,slam2::Matrix &K,slam2::Matrix &X,slam2::Matrix &R,slam2::Matrix &t);
+        int32_t triangulateChieral (slam2::Matrix &K,slam2::Matrix &R,slam2::Matrix &t,slam2::Matrix &X);
+        void fundamentalMatrix (const std::vector<Matches::p_match> &p_matched,const std::vector<int32_t> &active,slam2::Matrix &F);
   
 
-        Matrix transformationVectorToMatrix (std::vector<double> tr);
+        slam2::Matrix transformationVectorToMatrix (std::vector<double> tr);
         std::vector<int32_t> getRandomSample(int32_t N,int32_t num);
         Odometry::result updateParameters(Matches* matches,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps);
         std::vector<int32_t> getInlier(Matches* matches, std::vector<double> &tr);
@@ -146,7 +148,7 @@ class Odometry
            
         // returns the number of inliers: num_inliers <= num_matched
         int32_t getNumberOfInliers () { return inliers.size(); }
-        Matrix getMotion () { return Tr_delta; }  
+        slam2::Matrix getMotion () { return Tr_delta; }  
 
         cv::Scalar getColorFromDepth(float depth);
         cv::Mat getDepthImage();
@@ -158,7 +160,7 @@ class Odometry
         float getTranslationError(int index);
         float getMotionError(int index);
 
-        std::vector<Matrix> groundTruth;
+        std::vector<slam2::Matrix> groundTruth;
         double groundTruthMotionError;
         double groundTruthTranslationError;
         double totalMotion;

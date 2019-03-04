@@ -46,6 +46,9 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 typedef double FLOAT;      // double precision
 //typedef float  FLOAT;    // single precision
 
+namespace slam2
+{
+
 class Matrix {
 
 public:
@@ -129,5 +132,7 @@ private:
   inline FLOAT pythag(FLOAT a,FLOAT b);
 
 };
+
+}
 
 #endif // MATRIX_H

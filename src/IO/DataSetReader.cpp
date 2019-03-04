@@ -101,9 +101,9 @@ double ImageFolderReader::getTimestamp(int index)
 	return timestamps[index];
 }
 
-std::vector<Matrix> ImageFolderReader::getGroundTruth()
+std::vector<slam2::Matrix> ImageFolderReader::getGroundTruth()
 {
-    std::vector<Matrix> matrix_result;
+    std::vector<slam2::Matrix> matrix_result;
 
         // show ground truth
     std::string gtPath = "/home/lbarnett/development/odometry/poses/00.txt";
@@ -111,7 +111,7 @@ std::vector<Matrix> ImageFolderReader::getGroundTruth()
     std::string temp;
     std::string delim (" ");
     std::vector<std::string> results;
-    Matrix gtCam = Matrix::eye(4);    
+    slam2::Matrix gtCam = slam2::Matrix::eye(4);    
 
     while(std::getline(ReadFile, temp))
     {

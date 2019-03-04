@@ -37,6 +37,9 @@ static int32_t iminarg1,iminarg2;
 
 using namespace std;
 
+namespace slam2
+{
+
 Matrix::Matrix () {
   m   = 0;
   n   = 0;
@@ -852,3 +855,4 @@ FLOAT Matrix::pythag(FLOAT a,FLOAT b) {
     return (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb)));
 }
 
+}

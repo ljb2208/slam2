@@ -21,28 +21,28 @@ void KeyFrame::generateDepthInfo()
     }
 }
 
-// Sophus::SE3 KeyFrame::getSE3()
-// {
-//     Vec3d trans;
+Sophus::SE3 KeyFrame::getSE3()
+{
+    Vec3d trans;
 
-// 	trans(0) = pose.val[0][3];
-// 	trans(1) = pose.val[1][3];
-// 	trans(2) = pose.val[2][3];
+	trans(0) = pose.val[0][3];
+	trans(1) = pose.val[1][3];
+	trans(2) = pose.val[2][3];
 
-// 	Mat33 rot;
+	Mat33 rot;
 
-// 	rot(0, 0) = pose.val[0][0];
-// 	rot(0, 1) = pose.val[0][1];
-// 	rot(0, 2) = pose.val[0][2];
+	rot(0, 0) = pose.val[0][0];
+	rot(0, 1) = pose.val[0][1];
+	rot(0, 2) = pose.val[0][2];
 
-// 	rot(1, 0) = pose.val[1][0];
-// 	rot(1, 1) = pose.val[1][1];
-// 	rot(1, 2) = pose.val[1][2];
+	rot(1, 0) = pose.val[1][0];
+	rot(1, 1) = pose.val[1][1];
+	rot(1, 2) = pose.val[1][2];
 
-// 	rot(2, 0) = pose.val[2][0];
-// 	rot(2, 1) = pose.val[2][1];
-// 	rot(2, 2) = pose.val[2][2];
+	rot(2, 0) = pose.val[2][0];
+	rot(2, 1) = pose.val[2][1];
+	rot(2, 2) = pose.val[2][2];
 
-// 	return SE3(rot, trans);
-// }
+	return SE3(rot, trans);
+}
 
