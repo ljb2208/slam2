@@ -131,8 +131,8 @@ int main( int argc, char** argv )
         //    imageCount = 100;
 
         for (int i=0; i < imageCount - imageOffset; i++){
-            
-            if (i == 200)
+
+            if (i == 100)
                 break;
 
             if (!running)
@@ -167,7 +167,6 @@ int main( int argc, char** argv )
 
                 delete sli_left;
                 delete sli_right;
-
             }
             
         }

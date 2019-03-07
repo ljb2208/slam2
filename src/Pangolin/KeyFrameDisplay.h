@@ -65,7 +65,6 @@ class KeyFrameDisplay
     	int numSparseBufferSize;
         InputPointSparse<MAX_RES_PER_POINT>* originalInputSparse;
 
-
         bool bufferValid;
         int numGLBufferPoints;
         int numGLBufferGoodPoints;

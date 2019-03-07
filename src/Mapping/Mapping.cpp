@@ -10,11 +10,13 @@ Mapping::Mapping(SlamViewer* viewer)
 
 void Mapping::addFrame(slam2::Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches)
 {
-    KeyFrame* keyFrame = new KeyFrame(leftImage->index, leftImage->w, leftImage->h);
+    KeyFrame* keyFrame = new KeyFrame(leftImage->index, leftImage->w, leftImage->h, pose);
     // keyFrame->index = leftImage->index;
-    keyFrame->pose = slam2::Matrix(pose);
+    //keyFrame->pose = ;
     keyFrame->temporary = false;
-    
+    keyFrame->generateHistogram(matches);
+    // keyFrame->image = leftImage;
+    // keyFrame->imageRight = rightImage;
     
     // Need to fix
     keyFrame->p_matched = matches->copySelectedMatches();
@@ -76,12 +78,24 @@ void Mapping::run()
                 {
                     printf("Distance between KFs: %f Angle: %f Discarding keyframe\n", distance, angle);
                     continue;
-                }                                             
+                }      
+
+                // calculate increment of angles
+                keyFrame.calculateAngleIncrements(keyFrame2);                                       
 
                 std::vector<KeyFrame> potentialKeyFrames = getPotentialLoopClosureKFs(&keyFrame);
 
                 if (potentialKeyFrames.size() > 0)
+                {
                     printf("Potential Key frames for loop closure found. Index: %i Count: %i\n", keyFrame.index, static_cast<int>(potentialKeyFrames.size()));
+                    
+                    for (int i=0; i < potentialKeyFrames.size(); i++)
+                    {
+                        KeyFrame compKeyFrame = potentialKeyFrames[i];
+                        int sad = keyFrame.hist.calculateSAD(&compKeyFrame.hist);
+                        printf("SAD for keyframe no %i against %i: %i\n", compKeyFrame.index, keyFrame.index, sad);
+                    }
+                }
 
             }
 
@@ -148,15 +162,22 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
         if (abs(keyFrame->index - keyFrame2.index) < param.keyframe_gap)
             continue;
 
+        printf("KF Check: %i %i %i:%i\n", abs(keyFrame->index - keyFrame2.index), param.keyframe_gap, keyFrame->index, keyFrame2.index);    
+
         float translation = getTranslationDistance(keyFrame, &keyFrame2);
 
         if (translation > param.search_radius)
-            continue;
+            continue;        
+
+        printf("Translation Check: %f %i:%i\n", translation, keyFrame->index, keyFrame2.index);    
 
         float angle = getRotationAngle(&keyFrame2, keyFrame);
 
         if (angle > param.search_angle)
             continue;
+
+        
+        printf("Angle Check: %f %i:%i\n", angle, keyFrame->index, keyFrame2.index);    
 
         potentialKeyFrames.push_back(keyFrame2);
     }

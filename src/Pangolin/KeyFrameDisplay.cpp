@@ -123,6 +123,9 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, in
 		float x = z *(cx - keyFrame.p_matched[i].u1c)  / fx;
 		float y = z *(cy - keyFrame.p_matched[i].v1c) / fy;
 
+		// cv::Point pt = cv::Point(keyFrame.p_matched[i].u1c, keyFrame.p_matched[i].v1c);
+		// int val = (int) keyFrame.image->image.at<unsigned char>(pt);
+
 		//printf("u: %f v: %f x:%f y:%f z:%f\n", keyFrame.p_matched[i].u1c, keyFrame.p_matched[i].v1c, x, y, z);
 
 		tmpVertexBuffer[vertexBufferNumPoints][0] = x;
@@ -132,6 +135,11 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, in
 		tmpColorBuffer[vertexBufferNumPoints][0] = 255;
 		tmpColorBuffer[vertexBufferNumPoints][1] = 255;
 		tmpColorBuffer[vertexBufferNumPoints][2] = 255;
+
+
+		// tmpColorBuffer[vertexBufferNumPoints][0] = val;
+		// tmpColorBuffer[vertexBufferNumPoints][1] = val;
+		// tmpColorBuffer[vertexBufferNumPoints][2] = val;
 
 		vertexBufferNumPoints++;
 

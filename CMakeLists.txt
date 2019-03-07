@@ -42,10 +42,12 @@ set(slam_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/Odometry/Matches.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Triangle.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Matrix.cpp
+    ${PROJECT_SOURCE_DIR}/src/Mapping/Histogram.cpp
     ${PROJECT_SOURCE_DIR}/src/Util/Timer.cpp
     ${PROJECT_SOURCE_DIR}/src/Mapping/Mapping.cpp
     ${PROJECT_SOURCE_DIR}/src/Mapping/KeyFrame.cpp
     ${PROJECT_SOURCE_DIR}/src/Mapping/G2ODriver.cpp
+    ${PROJECT_SOURCE_DIR}/src/Mapping/Histogram.cpp
     ${PROJECT_SOURCE_DIR}/src/5Point/5point.cpp
     ${PROJECT_SOURCE_DIR}/src/5Point/Rpoly.cpp
 )
