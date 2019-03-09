@@ -155,14 +155,27 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
 {
     std::vector<KeyFrame> potentialKeyFrames;
 
-    for (int i=0; i < keyFrames.size(); i++)
-    {
-        KeyFrame keyFrame2 = keyFrames[i];
+    float xaccum, yaccum, zaccum;
 
-        if (abs(keyFrame->index - keyFrame2.index) < param.keyframe_gap)
+    // xaccum = keyFrame->x_inc;
+    // yaccum = keyFrame->y_inc;
+    // zaccum = keyFrame->z_inc;
+
+    for (int i=keyFrames.size(); i > 0; i--)
+    {
+        KeyFrame keyFrame2 = keyFrames[i - 1];
+
+        xaccum += keyFrame2.x_inc;
+        yaccum += keyFrame2.y_inc;
+        zaccum += keyFrame2.z_inc;
+
+        //printf("xaccum: %f yaccum: %f zaccum: %f index1: %i index2: %i\n", xaccum, yaccum, zaccum, keyFrame->index, keyFrame2.index);
+
+        if (xaccum < param.angle_change_threshold && yaccum < param.angle_change_threshold
+            && zaccum < param.angle_change_threshold)
             continue;
 
-        printf("KF Check: %i %i %i:%i\n", abs(keyFrame->index - keyFrame2.index), param.keyframe_gap, keyFrame->index, keyFrame2.index);    
+        printf("xaccum: %f yaccum: %f zaccum: %f index1: %i index2: %i\n", xaccum, yaccum, zaccum, keyFrame->index, keyFrame2.index);
 
         float translation = getTranslationDistance(keyFrame, &keyFrame2);
 

@@ -21,13 +21,14 @@ class Mapping
             double  search_radius;
             double  search_angle;
             int32_t keyframe_gap;
+            float   angle_change_threshold; 
 
             parameters () {
                 translation_threshold = 1.0;
                 rotation_threshold = 0.1;
                 search_radius = 20;
                 search_angle = 15;
-                keyframe_gap = 30;
+                angle_change_threshold = 5.0;
             }
         };
 

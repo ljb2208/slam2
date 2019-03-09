@@ -9,6 +9,7 @@ KeyFrame::KeyFrame(int32_t index, int32_t width, int32_t height, slam2::Matrix p
 
 	this->pose = slam2::Matrix(pose);
 	calculateAngles();
+	printf("angles x: %f y: %f z: %f index: %i\n", x, y, z, index);
 	//hist = NULL;
 }
 
@@ -29,14 +30,14 @@ void KeyFrame::calculateAngles()
 	// yaw = atan2(pose.val[2][1], pose.val[1][1]);
 	// pitch = atan2(-pose.val[3][1], sqrtf(pose.val[3][2]*pose.val[3][2] + pose.val[3][3]*pose.val[3][3]));
 	// roll = atan2(pose.val[3][2], pose.val[3][3])
-	if (closeEnough(pose.val[0][2], -1.0f))
+	if (closeEnough(pose.val[0][2], -1.0f, 0.001))
 	{
 		x = 0;
 		y = M_PI / 2;
 		z = x + atan2(pose.val[1][0], pose.val[2][0]);
 		return;
 	}
-	else if (closeEnough(pose.val[0][2], 1.0f))
+	else if (closeEnough(pose.val[0][2], 1.0f, 0.001))
 	{
 		x = 0;
 		y = -M_PI / 2;
@@ -60,9 +61,14 @@ void KeyFrame::calculateAngles()
 			y = y1;
 			z = z1;
 		}
+		else
+		{
+			x = x2;
+			y = y2;
+			z = z2;
+		}
+		
 	}
-
-	printf("angles x: %f y: %f z: %f index: %i\n", x, y, z, index);
 }
 
 void KeyFrame::calculateAngleIncrements(KeyFrame prevKeyFrame)
