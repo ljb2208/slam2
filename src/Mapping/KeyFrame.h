@@ -37,6 +37,7 @@ class KeyFrame
     private:
 
         void calculateAngles();
+        float angleDiff(float a1, float a2);
         bool closeEnough(const float& a, const float& b, const float& epsilon=std::numeric_limits<float>::epsilon());
 
         

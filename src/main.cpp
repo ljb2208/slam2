@@ -132,7 +132,7 @@ int main( int argc, char** argv )
 
         for (int i=0; i < imageCount - imageOffset; i++){
 
-            if (i == 18n00)
+            if (i == 1800)
                 break;
 
             if (!running)

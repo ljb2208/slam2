@@ -157,6 +157,16 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
 
     float xaccum, yaccum, zaccum;
 
+    float minTranslation, minAngle;
+    int minTranslationIndex, minAngleIndex;
+
+    minTranslation = 100000;
+    minAngle = 100000;
+
+    minTranslationIndex = minAngleIndex = 0;
+
+    xaccum = yaccum = zaccum = 0;
+
     // xaccum = keyFrame->x_inc;
     // yaccum = keyFrame->y_inc;
     // zaccum = keyFrame->z_inc;
@@ -171,29 +181,42 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
 
         //printf("xaccum: %f yaccum: %f zaccum: %f index1: %i index2: %i\n", xaccum, yaccum, zaccum, keyFrame->index, keyFrame2.index);
 
-        if (xaccum < param.angle_change_threshold && yaccum < param.angle_change_threshold
-            && zaccum < param.angle_change_threshold)
+        if (fabs(xaccum) < param.angle_change_threshold && fabs(yaccum) < param.angle_change_threshold
+            && fabs(zaccum) < param.angle_change_threshold)
             continue;
 
         printf("xaccum: %f yaccum: %f zaccum: %f index1: %i index2: %i\n", xaccum, yaccum, zaccum, keyFrame->index, keyFrame2.index);
 
         float translation = getTranslationDistance(keyFrame, &keyFrame2);
 
+        if (fabs(translation) < minTranslation)
+        {
+            minTranslation = fabs(translation);
+            minTranslationIndex = keyFrame2.index;
+        }        
+
+        float angle = getRotationAngle(&keyFrame2, keyFrame);
+
+        if (fabs(angle) < minAngle)
+        {
+            minAngle = angle;
+            minAngleIndex = keyFrame2.index;
+        }        
+
         if (translation > param.search_radius)
             continue;        
 
         printf("Translation Check: %f %i:%i\n", translation, keyFrame->index, keyFrame2.index);    
 
-        float angle = getRotationAngle(&keyFrame2, keyFrame);
-
         if (angle > param.search_angle)
             continue;
 
-        
         printf("Angle Check: %f %i:%i\n", angle, keyFrame->index, keyFrame2.index);    
 
         potentialKeyFrames.push_back(keyFrame2);
     }
+
+    printf("MinTranslation: %f Min Angle: %f TranslationIndex: %i AngleIndex: %i index: %i\n", minTranslation, minAngle, minTranslationIndex, minAngleIndex, keyFrame->index);
 
     return potentialKeyFrames;
 }

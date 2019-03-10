@@ -26,7 +26,7 @@ class Mapping
             parameters () {
                 translation_threshold = 1.0;
                 rotation_threshold = 0.1;
-                search_radius = 20;
+                search_radius = 30;
                 search_angle = 15;
                 angle_change_threshold = 5.0;
             }
