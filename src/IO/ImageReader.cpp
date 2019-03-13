@@ -77,6 +77,32 @@ SLImage* ImageReader::getUndistortedImage(double timestamp)
 	return udist->undistort(image, timestamp, index);
 }
 
+SLImage* ImageReader::getResizedImage(double timestamp)
+{
+	SLImage* result = new SLImage(640, 480, timestamp, index);
+
+	cv::Size sz(640, 480);
+	cv::resize(image, result->image, sz);
+	cv::cvtColor(result->image, result->imageColor, cv::COLOR_GRAY2RGB);
+
+	//  cv::namedWindow( "Display window", 0x00000001 );// Create a window for display.
+	// cv::imshow( "Display window", image);                   // Show our image inside it.
+
+	// cv::waitKey(0);
+
+	// cv::imshow( "Display window", result->image);                   // Show our image inside it.
+
+	// cv::waitKey(0);
+
+	
+
+	// cv::imshow( "Display window", result->image);                   // Show our image inside it.
+
+	// cv::waitKey(0);
+
+	return result;
+}
+
 cv::Mat ImageReader::getCameraMatrix()
 {
 	return udist->getCameraMatrix();

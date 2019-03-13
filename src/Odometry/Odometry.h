@@ -70,7 +70,7 @@ class Odometry
                 inlier_threshold = 2.0;
                 reweighting      = true;
                 height           = 1.65;
-                pitch            = 0.0;
+                pitch            = -0.08;
                 mono_ransac_iters     = 2000;
                 mono_inlier_threshold = 0.00001;
                 motion_threshold = 100.0;

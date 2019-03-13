@@ -70,6 +70,9 @@ class Matches
         std::vector<Matches::p_match> p_matched;
         std::vector<Matches::p_match*> inlierMatches;
         std::vector<Matches::p_match*> selectedMatches;
+
+        void printStats();
+        //void validateMatches();
         
     private:
         bool matchExists(Matches::p_match match, bool current);
@@ -82,6 +85,7 @@ class Matches
 
         Matches::p_match** map_matched;
         int imageWidth, imageHeight;
+        int matchesAdded, matchesFound;
 
          // computes the address offset for coordinates u,v and class c
         inline int32_t getAddressOffsetMatches (const int32_t& u,const int32_t& v,const int32_t& c, const int32_t& width, const int32_t& height, const int32_t& right) {            

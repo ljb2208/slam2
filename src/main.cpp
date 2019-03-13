@@ -132,8 +132,8 @@ int main( int argc, char** argv )
 
         for (int i=0; i < imageCount - imageOffset; i++){
 
-            if (i == 1800)
-                break;
+            // if (i == 1600)
+            //     break;
 
             if (!running)
                 exit(1);
@@ -161,8 +161,13 @@ int main( int argc, char** argv )
             
             if (!skipFrame)
             {
-                SLImage* sli_left = imageReader->getUndistortedImage(ts);
-                SLImage* sli_right = imageReaderRight->getUndistortedImage(ts);
+                // SLImage* sli_left = imageReader->getUndistortedImage(ts);
+                // SLImage* sli_right = imageReaderRight->getUndistortedImage(ts);
+
+
+                SLImage* sli_left = imageReader->getResizedImage(ts);
+                SLImage* sli_right = imageReaderRight->getResizedImage(ts);
+
                 odom->addStereoFrames(sli_left, sli_right);
 
                 delete sli_left;
@@ -178,7 +183,6 @@ int main( int argc, char** argv )
     });
 
     boost::thread* mappingThread = new boost::thread(boost::bind(&Mapping::run, mapping));
-    
 
 
     if(slamViewer != 0)

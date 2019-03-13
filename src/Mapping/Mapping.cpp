@@ -76,7 +76,7 @@ void Mapping::run()
                 // discard keyframe if not enough rotation or translation to previous keyframe
                 if (distance < param.translation_threshold && angle < param.rotation_threshold)
                 {
-                    printf("Distance between KFs: %f Angle: %f Discarding keyframe\n", distance, angle);
+                    //printf("Distance between KFs: %f Angle: %f Discarding keyframe\n", distance, angle);
                     continue;
                 }      
 
@@ -84,22 +84,65 @@ void Mapping::run()
                 keyFrame.calculateAngleIncrements(keyFrame2);                                       
 
                 std::vector<KeyFrame> potentialKeyFrames = getPotentialLoopClosureKFs(&keyFrame);
+                std::vector<SADKeyFrame> checkKeyFrames;
+                int maxSADIncluded = 0;
 
                 if (potentialKeyFrames.size() > 0)
                 {
-                    printf("Potential Key frames for loop closure found. Index: %i Count: %i\n", keyFrame.index, static_cast<int>(potentialKeyFrames.size()));
+                    //printf("Potential Key frames for loop closure found. Index: %i Count: %i\n", keyFrame.index, static_cast<int>(potentialKeyFrames.size()));
                     
                     for (int i=0; i < potentialKeyFrames.size(); i++)
                     {
                         KeyFrame compKeyFrame = potentialKeyFrames[i];
                         int sad = keyFrame.hist.calculateSAD(&compKeyFrame.hist);
-                        printf("SAD for keyframe no %i against %i: %i\n", compKeyFrame.index, keyFrame.index, sad);
+                        //printf("SAD for keyframe no %i against %i: %i\n", compKeyFrame.index, keyFrame.index, sad);
+
+                        if (checkKeyFrames.size() < param.max_keyframes_tocheck)
+                        {
+                            SADKeyFrame skf;
+                            skf.keyFrame = compKeyFrame;
+                            skf.sad = sad;
+                            checkKeyFrames.push_back(skf);
+
+                            if (maxSADIncluded < sad)
+                                maxSADIncluded = sad;
+                        }
+                        else if (sad > maxSADIncluded)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            int newMaxSAD = 0;
+                            for (int y=0; y < checkKeyFrames.size(); y++)
+                            {
+                                if (checkKeyFrames[y].sad == maxSADIncluded)
+                                {
+                                    checkKeyFrames[y].sad = sad;
+                                    checkKeyFrames[y].keyFrame = compKeyFrame;
+
+                                    if (sad > newMaxSAD)
+                                        newMaxSAD = sad;
+                                }
+                                else
+                                {
+                                    if (checkKeyFrames[y].sad > newMaxSAD)
+                                        newMaxSAD = checkKeyFrames[y].sad;
+                                    
+                                }
+                            }
+
+                            maxSADIncluded = newMaxSAD;
+                        }
                     }
                 }
 
+                //printf("KeyFramesToCheck: %i\n", static_cast<int>(checkKeyFrames.size()));
             }
 
-            printf("Distance between KFs: %f Angle: %f\n", distance, angle);
+            
+
+            //printf("Distance between KFs: %f Angle: %f\n", distance, angle);
 
             keyFrames.push_back(keyFrame);            
             viewer->pushKeyFrame(keyFrame);
@@ -185,7 +228,7 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
             && fabs(zaccum) < param.angle_change_threshold)
             continue;
 
-        printf("xaccum: %f yaccum: %f zaccum: %f index1: %i index2: %i\n", xaccum, yaccum, zaccum, keyFrame->index, keyFrame2.index);
+        //printf("xaccum: %f yaccum: %f zaccum: %f index1: %i index2: %i\n", xaccum, yaccum, zaccum, keyFrame->index, keyFrame2.index);
 
         float translation = getTranslationDistance(keyFrame, &keyFrame2);
 
@@ -206,17 +249,17 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
         if (translation > param.search_radius)
             continue;        
 
-        printf("Translation Check: %f %i:%i\n", translation, keyFrame->index, keyFrame2.index);    
+        //printf("Translation Check: %f %i:%i\n", translation, keyFrame->index, keyFrame2.index);    
 
         if (angle > param.search_angle)
             continue;
 
-        printf("Angle Check: %f %i:%i\n", angle, keyFrame->index, keyFrame2.index);    
+        //printf("Angle Check: %f %i:%i\n", angle, keyFrame->index, keyFrame2.index);    
 
         potentialKeyFrames.push_back(keyFrame2);
     }
 
-    printf("MinTranslation: %f Min Angle: %f TranslationIndex: %i AngleIndex: %i index: %i\n", minTranslation, minAngle, minTranslationIndex, minAngleIndex, keyFrame->index);
+    //printf("MinTranslation: %f Min Angle: %f TranslationIndex: %i AngleIndex: %i index: %i\n", minTranslation, minAngle, minTranslationIndex, minAngleIndex, keyFrame->index);
 
     return potentialKeyFrames;
 }

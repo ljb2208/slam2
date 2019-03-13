@@ -53,7 +53,7 @@ public:
     int32_t multi_stage;            // 0=disabled,1=multistage matching (denser and faster)
     int32_t half_resolution;        // 0=disabled,1=match at half resolution, refine at full resolution
     int32_t refinement;             // refinement (0=none,1=pixel,2=subpixel)
-    double  f,cu,cv,base;           // calibration (only for match prediction)
+    double  fx, fy, cu,cv,base;           // calibration (only for match prediction)
     int32_t ncc_size;
     float   ncc_tolerance;
     
@@ -81,8 +81,9 @@ public:
   ~Matcher();
   
   // intrinsics
-  void setIntrinsics(double f,double cu,double cv,double base) {
-    param.f = f;
+  void setIntrinsics(double fx, double fy, double cu,double cv,double base) {
+    param.fx = fx;
+    param.fy = fy;
     param.cu = cu;
     param.cv = cv;
     param.base = base;
@@ -121,6 +122,8 @@ public:
   // the previous frame. this function is useful if you want to reconstruct 3d
   // and you want to cancel the change of (unknown) camera gain.
   float getGain (std::vector<int32_t> inliers);
+
+  void printMatchStats();
 
 private:
   
@@ -176,17 +179,17 @@ private:
   void computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int32_t &num1,int32_t* &max2,int32_t &num2,uint8_t* &I_du,uint8_t* &I_dv,uint8_t* &I_du_full,uint8_t* &I_dv_full, bool rightImage);
 
   // matching functions
-  void computePriorStatistics (Matches* p_matched,int32_t method);
+  void computePriorStatistics (int32_t method);
   void createIndexVector (int32_t* m,int32_t n,std::vector<int32_t> *k,const int32_t &u_bin_num,const int32_t &v_bin_num);
   inline void findMatch (int32_t* m1,const int32_t &i1,int32_t* m2,const int32_t &step_size,
                          std::vector<int32_t> *k2,const int32_t &u_bin_num,const int32_t &v_bin_num,const int32_t &stat_bin,
                          int32_t& min_ind,int32_t stage,bool flow,bool use_prior,double u_=-1,double v_=-1);
   void matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
                  int32_t n1p,int32_t n2p,int32_t n1c,int32_t n2c,
-                 Matches* p_matched,int32_t method,bool use_prior,slam2::Matrix *Tr_delta = 0);
+                 int32_t method,bool use_prior,slam2::Matrix *Tr_delta = 0);
 
   // outlier removal
-  void removeOutliers (Matches* p_matched,int32_t method);
+  void removeOutliers (int32_t method);
   void removeOutliersNCC();
 
   // parabolic fitting
@@ -201,7 +204,7 @@ private:
                        const float &u1,const float &v1,
                        float       &u2,float       &v2,
                        uint8_t* desc_buffer);
-  void refinement (Matches* p_matched,int32_t method);
+  void refinement (int32_t method);
 
   int32_t getMatchId();
 

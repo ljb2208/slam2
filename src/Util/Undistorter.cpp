@@ -320,6 +320,9 @@ void Undistorter::makeOptimalK_crop()
 		}
 	}
 
+	printf("wOut: %i maxX: %f minX %f\n", wOut, maxX, minX);
+	printf("hOut: %i maxY: %f minY %f\n", hOut, maxY, minY);
+
 	K(0,0) = ((float)wOut-1.0f)/(maxX-minX);
 	K(1,1) = ((float)hOut-1.0f)/(maxY-minY);
 	K(0,2) = -minX*K(0,0);

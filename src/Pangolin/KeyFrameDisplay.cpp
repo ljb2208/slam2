@@ -80,8 +80,6 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, in
 	if(numSparsePoints == 0)
 		return false;
 
-	printf("refreshpc. points: %i\n", numSparsePoints);
-
     int patternNum = 8;
 
 	// make data

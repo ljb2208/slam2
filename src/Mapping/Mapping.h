@@ -21,7 +21,8 @@ class Mapping
             double  search_radius;
             double  search_angle;
             int32_t keyframe_gap;
-            float   angle_change_threshold; 
+            float   angle_change_threshold;
+            int32_t max_keyframes_tocheck;
 
             parameters () {
                 translation_threshold = 1.0;
@@ -29,7 +30,13 @@ class Mapping
                 search_radius = 30;
                 search_angle = 15;
                 angle_change_threshold = 5.0;
+                max_keyframes_tocheck = 5;
             }
+        };
+
+        struct SADKeyFrame {
+            KeyFrame keyFrame;
+            int sad;
         };
 
 

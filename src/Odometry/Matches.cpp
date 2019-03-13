@@ -7,6 +7,8 @@ Matches::Matches(int imageWidth, int imageHeight)
     this->imageHeight = imageHeight;
     this->imageWidth = imageWidth;
     map_matched = (Matches::p_match**)calloc(imageWidth*imageHeight*8, sizeof(Matches::p_match*));
+
+    matchesAdded = matchesFound = 0;
 }
 
 Matches::~Matches()
@@ -37,6 +39,8 @@ void Matches::resetMatches()
 
     inlierMatches.clear();
     selectedMatches.clear();
+
+    matchesAdded = matchesFound = 0;
 }
 
 void Matches::clearOutliers()
@@ -69,9 +73,11 @@ bool Matches::push_back(Matches::p_match match, bool current)
         mtch->outlier = false;
         mtch->imax1 = mtch->max1;
         mtch->imax2 = mtch->max2;
-        inlierMatches.push_back(mtch);
         p_matched.push_back(*mtch);
+        inlierMatches.push_back(mtch);
+
         addToMap(*mtch);
+        matchesAdded++;
     }    
 }
 
@@ -149,9 +155,9 @@ bool Matches::matchExists(Matches::p_match match, bool current)
 
             p_matched[i].active = true;    
             p_matched[i].matched = true;
+            matchesFound++;
             return true;            
         }
-
     }
 
     return false;
@@ -189,8 +195,6 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
     int32_t bucket_cols = (int32_t)floor(u_max/bucket_width)+1;
     int32_t bucket_rows = (int32_t)floor(v_max/bucket_height)+1;
     std::vector<Matches::p_match*> *buckets = new std::vector<Matches::p_match*>[bucket_cols*bucket_rows*4];
-
-    printf("umax: %f vmax: %f bucket cols: %i rows: %i\n", u_max, v_max, bucket_cols, bucket_rows);
 
     // assign matches to their buckets
     for (int i=0; i < inlierMatches.size(); i++)
@@ -280,4 +284,39 @@ std::vector<Matches::p_match> Matches::copySelectedMatches()
     }
 
     return matches;
+}
+
+void Matches::printStats()
+{
+    int selCount = 0;
+    int activeCount = 0;
+    int inlierCount = 0;
+    int inlierVecCount = inlierMatches.size();
+    int totalCount = p_matched.size();
+    int invalidMatches = 0;
+    int invalidInlierMatches = 0;
+
+    for (int i=0; i < p_matched.size(); i++)
+    {
+        if (p_matched[i].active)
+            activeCount++;
+        if (!p_matched[i].outlier)
+            inlierCount++;
+
+        if (p_matched[i].u1c < 1 || p_matched[1].u1c > 1000 || p_matched[i].v1c < 1
+            || p_matched[i].v1c > 1000)
+            invalidMatches++;
+    }
+
+    for (int i=0; i < inlierMatches.size(); i++)
+    {
+        if (inlierMatches[i]->u1c < 1 || inlierMatches[1]->u1c > 1000 || inlierMatches[i]->v1c < 1
+            || inlierMatches[i]->v1c > 1000)
+            invalidInlierMatches++;
+    }
+
+    selCount = selectedMatches.size();
+
+    printf("Matches stats. Total: %i Invalid: %i InvalidInliers: %i Added: %i Found: %i Active: %i inliers: %i inliervec: %i selected: %i\n", 
+        totalCount, invalidMatches, invalidInlierMatches, matchesAdded, matchesFound, activeCount, inlierCount, inlierVecCount, selCount);
 }

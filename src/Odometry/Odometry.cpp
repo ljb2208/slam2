@@ -28,10 +28,10 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     param.calib.cu = cameraMatrix.at<float>(0, 2);
     param.calib.cv = cameraMatrix.at<float>(1, 2);
 
-    viewer->setCalibration(param.calib.f, param.calib.f, param.calib.cu, param.calib.cv);
+    viewer->setCalibration(param.calib.f, param.calib.fy, param.calib.cu, param.calib.cv);
 
     matcher = new Matcher(Matcher::parameters(), matches);
-    matcher->setIntrinsics(param.calib.f, param.calib.cu, param.calib.cv, param.base);
+    matcher->setIntrinsics(param.calib.f, param.calib.fy, param.calib.cu, param.calib.cv, param.base);
 
     timer = new Timer();
 
@@ -316,7 +316,6 @@ bool Odometry::updateMotion3()
 
 std::vector<double> Odometry::estimateMotion ()
 {
-    printf("param base: %f\n", param.base);
     // return value
     bool success = true;
 
@@ -359,7 +358,7 @@ std::vector<double> Odometry::estimateMotion ()
     // for (int32_t i=0; i<N; i++) {
     //     double d = std::max(p_matched[i].u1p - p_matched[i].u2p,0.0001f);
     //     X[i] = (p_matched[i].u1p-param.calib.cu)*param.base/d;
-    //     Y[i] = (p_matched[i].v1p-param.calib.cv)*param.base/d;
+    //     Y[i] = (p_matched[i].v1p-param.calib.cv)*param.base/rd;
     //     Z[i] = param.calib.f*param.base/d;
     //     p_matched[i].depth = param.calib.f*param.base/d;
     // }
