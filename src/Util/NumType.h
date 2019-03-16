@@ -7,6 +7,7 @@
 
 typedef Eigen::Matrix<double,Eigen::Dynamic,1> VecX;
 typedef Eigen::Matrix<double,3,3> Mat33;
+typedef Eigen::Matrix<double,4,4> Mat44;
 
 typedef Eigen::Matrix<double,3,1> Vec3d;
 

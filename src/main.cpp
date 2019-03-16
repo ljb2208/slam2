@@ -91,7 +91,9 @@ int main( int argc, char** argv )
     cv::Mat cameraMatrix = imageReader->getCameraMatrix();
     float baseLine = imageReader->getBaseline();
 
-    SlamViewer* slamViewer = new SlamViewer(width, height);
+    imageOffset = 0;
+
+    SlamViewer* slamViewer = new SlamViewer(width, height, imageOffset);
     Mapping* mapping = new Mapping(slamViewer);
     Odometry* odom = new Odometry(slamViewer, mapping, cameraMatrix, baseLine, height, width);
 

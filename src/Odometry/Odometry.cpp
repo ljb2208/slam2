@@ -28,7 +28,7 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     param.calib.cu = cameraMatrix.at<float>(0, 2);
     param.calib.cv = cameraMatrix.at<float>(1, 2);
 
-    viewer->setCalibration(param.calib.f, param.calib.fy, param.calib.cu, param.calib.cv);
+    viewer->setCalibration(param.calib.f, param.calib.f, param.calib.cu, param.calib.cv);
 
     matcher = new Matcher(Matcher::parameters(), matches);
     matcher->setIntrinsics(param.calib.f, param.calib.fy, param.calib.cu, param.calib.cv, param.base);

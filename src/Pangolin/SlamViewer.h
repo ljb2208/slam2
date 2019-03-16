@@ -23,7 +23,7 @@ struct GraphConnection
 
 class SlamViewer{
     public:
-        SlamViewer(int width, int height);
+        SlamViewer(int width, int height, int imageOffset);
         ~SlamViewer();
 
         void run();
@@ -37,6 +37,7 @@ class SlamViewer{
 
     private:
         int width, height;
+        int imageOffset;
         int currentImageId;
         bool running;
         bool videoImageChanged;

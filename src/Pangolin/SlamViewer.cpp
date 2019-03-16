@@ -7,10 +7,11 @@
 #include "IO/DataSetReader.h"
 
 
-SlamViewer::SlamViewer(int width, int height)
+SlamViewer::SlamViewer(int width, int height, int imageOffset)
 {
     this->width = width;
     this->height = height;
+	this->imageOffset = imageOffset;
 	currentImageId = 0;
 
 	settings_pointCloudMode = 1;
@@ -280,9 +281,9 @@ void SlamViewer::drawConstraints()
 
 		glBegin(GL_LINE_STRIP);        
 
-		for(unsigned int i=0;i<groundTruth.size();i++)
+		for(unsigned int i=imageOffset;i<groundTruth.size();i++)
 		{    
-			if (i > currentImageId)
+			if (i > (currentImageId + imageOffset))
 				break;
 
             float f1, f2, f3;

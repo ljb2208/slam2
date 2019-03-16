@@ -199,7 +199,7 @@ void Undistorter::loadFromFile(std::string configFileName)
 		}
 
 	valid = true;
-
+	
 	printf("\nRectified Camera Matrix:\n");
 	std::cout << K << "\n\n";
 
