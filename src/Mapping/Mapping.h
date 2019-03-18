@@ -9,6 +9,13 @@
 #include "KeyFrame.h"
 #include "boost/thread.hpp"
 
+class SADKeyFrame
+{
+    public:
+        int sad;
+        KeyFrame keyFrame;
+};
+
 class Mapping
 {
     public:
@@ -34,12 +41,6 @@ class Mapping
             }
         };
 
-        struct SADKeyFrame {
-            KeyFrame keyFrame;
-            int sad;
-        };
-
-
         void addFrame(slam2::Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches);
 
         void run();
@@ -58,6 +59,7 @@ class Mapping
         float getRotationAngle(KeyFrame* keyFrame, KeyFrame* keyFrame2);
 
         std::vector<KeyFrame> getPotentialLoopClosureKFs(KeyFrame* keyFrame);
+        std::vector<SADKeyFrame> filterPotentialKFsBySAD(KeyFrame keyFrame, std::vector<KeyFrame> potentialKeyFrames);
         KeyFrame currentKeyFrame;
 
         // parameters

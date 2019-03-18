@@ -84,59 +84,7 @@ void Mapping::run()
                 keyFrame.calculateAngleIncrements(keyFrame2);                                       
 
                 std::vector<KeyFrame> potentialKeyFrames = getPotentialLoopClosureKFs(&keyFrame);
-                std::vector<SADKeyFrame> checkKeyFrames;
-                int maxSADIncluded = 0;
-
-                if (potentialKeyFrames.size() > 0)
-                {
-                    //printf("Potential Key frames for loop closure found. Index: %i Count: %i\n", keyFrame.index, static_cast<int>(potentialKeyFrames.size()));
-                    
-                    for (int i=0; i < potentialKeyFrames.size(); i++)
-                    {
-                        KeyFrame compKeyFrame = potentialKeyFrames[i];
-                        int sad = keyFrame.hist.calculateSAD(&compKeyFrame.hist);
-                        //printf("SAD for keyframe no %i against %i: %i\n", compKeyFrame.index, keyFrame.index, sad);
-
-                        if (checkKeyFrames.size() < param.max_keyframes_tocheck)
-                        {
-                            SADKeyFrame skf;
-                            skf.keyFrame = compKeyFrame;
-                            skf.sad = sad;
-                            checkKeyFrames.push_back(skf);
-
-                            if (maxSADIncluded < sad)
-                                maxSADIncluded = sad;
-                        }
-                        else if (sad > maxSADIncluded)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            int newMaxSAD = 0;
-                            for (int y=0; y < checkKeyFrames.size(); y++)
-                            {
-                                if (checkKeyFrames[y].sad == maxSADIncluded)
-                                {
-                                    checkKeyFrames[y].sad = sad;
-                                    checkKeyFrames[y].keyFrame = compKeyFrame;
-
-                                    if (sad > newMaxSAD)
-                                        newMaxSAD = sad;
-                                }
-                                else
-                                {
-                                    if (checkKeyFrames[y].sad > newMaxSAD)
-                                        newMaxSAD = checkKeyFrames[y].sad;
-                                    
-                                }
-                            }
-
-                            maxSADIncluded = newMaxSAD;
-                        }
-                    }
-                }
-
+                std::vector<SADKeyFrame> checkKeyFrames = filterPotentialKFsBySAD(keyFrame, potentialKeyFrames);                
                 //printf("KeyFramesToCheck: %i\n", static_cast<int>(checkKeyFrames.size()));
             }
 
@@ -262,4 +210,62 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
     //printf("MinTranslation: %f Min Angle: %f TranslationIndex: %i AngleIndex: %i index: %i\n", minTranslation, minAngle, minTranslationIndex, minAngleIndex, keyFrame->index);
 
     return potentialKeyFrames;
+}
+
+std::vector<SADKeyFrame> Mapping::filterPotentialKFsBySAD(KeyFrame keyFrame, std::vector<KeyFrame> potentialKeyFrames)
+{
+    std::vector<SADKeyFrame> checkKeyFrames;
+    int maxSADIncluded = 0;
+
+    if (potentialKeyFrames.size() > 0)
+    {
+        //printf("Potential Key frames for loop closure found. Index: %i Count: %i\n", keyFrame.index, static_cast<int>(potentialKeyFrames.size()));
+        
+        for (int i=0; i < potentialKeyFrames.size(); i++)
+        {
+            KeyFrame compKeyFrame = potentialKeyFrames[i];
+            int sad = keyFrame.hist.calculateSAD(&compKeyFrame.hist);
+            //printf("SAD for keyframe no %i against %i: %i\n", compKeyFrame.index, keyFrame.index, sad);
+
+            if (checkKeyFrames.size() < param.max_keyframes_tocheck)
+            {
+                SADKeyFrame skf;
+                skf.keyFrame = compKeyFrame;
+                skf.sad = sad;
+                checkKeyFrames.push_back(skf);
+
+                if (maxSADIncluded < sad)
+                    maxSADIncluded = sad;
+            }
+            else if (sad > maxSADIncluded)
+            {
+                continue;
+            }
+            else
+            {
+                int newMaxSAD = 0;
+                for (int y=0; y < checkKeyFrames.size(); y++)
+                {
+                    if (checkKeyFrames[y].sad == maxSADIncluded)
+                    {
+                        checkKeyFrames[y].sad = sad;
+                        checkKeyFrames[y].keyFrame = compKeyFrame;
+
+                        if (sad > newMaxSAD)
+                            newMaxSAD = sad;
+                    }
+                    else
+                    {
+                        if (checkKeyFrames[y].sad > newMaxSAD)
+                            newMaxSAD = checkKeyFrames[y].sad;
+                        
+                    }
+                }
+
+                maxSADIncluded = newMaxSAD;
+            }
+        }
+    }
+
+    return checkKeyFrames;
 }

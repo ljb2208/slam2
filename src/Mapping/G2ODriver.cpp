@@ -48,8 +48,6 @@ void G2ODriver::createModel(std::vector<KeyFrame> keyFrames)
             optimizer.addEdge(e);
         }
 
-        
-
         previousVertex = currentVertex;
     }
     //add constraints
