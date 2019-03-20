@@ -37,6 +37,18 @@ class Mapping
             }
         };
 
+        // bucketing parameters
+        struct bucketing {  
+            int32_t max_features;  // maximal number of features per bucket 
+            double  bucket_width;  // width of bucket
+            double  bucket_height; // height of bucket
+            bucketing () {
+            max_features  = 2;
+            bucket_width  = 50;
+            bucket_height = 50;
+            }
+        };
+
 
          // general parameters
         struct parameters {
@@ -51,6 +63,8 @@ class Mapping
             int32_t height;
             int32_t width;
             calibration calib;
+            bucketing   bucket;           // bucketing parameters                        
+           
 
             parameters () {
                 translation_threshold = 1.0;

@@ -31,6 +31,14 @@ class LoopMatcher
             int32_t half_resolution;        // 0=disabled,1=match at half resolution, refine at full resolution
             int32_t refinement;             // refinement (0=none,1=pixel,2=subpixel)
             double  f,cu,cv,base;           // calibration (only for match prediction)
+            int32_t ransac_iters;     // number of RANSAC iterations
+            double  inlier_threshold; // fundamental matrix inlier threshold
+            bool    reweighting;      // lower border weights (more robust to calibration errors)
+            double                      height;           // camera height above ground (meters)
+            double                      pitch;            // camera pitch (rad, negative=pointing down)
+            int32_t                     mono_ransac_iters;     // number of RANSAC iterations
+            double                      mono_inlier_threshold; // fundamental matrix inlier threshold
+            double                      motion_threshold; // directly return false on small motions
             
             // default settings
             parameters () {
@@ -44,6 +52,14 @@ class LoopMatcher
             multi_stage            = 1;
             half_resolution        = 1;
             refinement             = 1;
+            ransac_iters     = 200;
+            inlier_threshold = 2.0;
+            reweighting      = true;
+            height           = 1.65;
+            pitch            = -0.08;
+            mono_ransac_iters     = 2000;
+            mono_inlier_threshold = 0.00001;
+            motion_threshold = 100.0;
             }
         };
 
@@ -84,7 +100,15 @@ class LoopMatcher
         //                  matches, if specified
         void matchFeatures(int32_t method, slam2::Matrix *Tr_delta = 0);
 
+        // feature bucketing: keeps only max_features per bucket, where the domain
+        // is split into buckets of size (bucket_width,bucket_height)
+        void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
+
+        // return vector with matched feature points and indices
+        std::vector<LoopMatcher::p_match> getMatches() { return p_matched_2; }
+
     private:
+
         // structure for storing interest points
         struct maximum {
             int32_t u;   // u-coordinate
@@ -112,6 +136,12 @@ class LoopMatcher
                 val[i] = v;
             }
         };
+
+        template<class T> struct idx_cmp {
+            idx_cmp(const T arr) : arr(arr) {}
+            bool operator()(const size_t a, const size_t b) const { return arr[a] < arr[b]; }
+            const T arr;
+        };  
 
 
         // compute sparse set of features from image
@@ -188,4 +218,18 @@ class LoopMatcher
         std::vector<LoopMatcher::p_match> p_matched_1;
         std::vector<LoopMatcher::p_match> p_matched_2;
         std::vector<LoopMatcher::range>   ranges;
+        std::vector<int32_t>           inliers;    // inlier set
+  
+        bool updateMotion ();
+        std::vector<double>  estimateMotion (std::vector<LoopMatcher::p_match> p_matched);  
+        slam2::Matrix        smallerThanMedian (slam2::Matrix &X,double &median);
+        bool                 normalizeFeaturePoints (std::vector<LoopMatcher::p_match> &p_matched,slam2::Matrix &Tp,slam2::Matrix &Tc);
+        void                 fundamentalMatrix (const std::vector<LoopMatcher::p_match> &p_matched,const std::vector<int32_t> &active,slam2::Matrix &F);
+        void                 EtoRt(slam2::Matrix &E,slam2::Matrix &K,std::vector<LoopMatcher::p_match> &p_matched,slam2::Matrix &X,slam2::Matrix &R,slam2::Matrix &t);
+        int32_t              triangulateChieral (std::vector<LoopMatcher::p_match> &p_matched,slam2::Matrix &K,slam2::Matrix &R,slam2::Matrix &t,slam2::Matrix &X);
+        std::vector<int32_t> getInlier (std::vector<LoopMatcher::p_match> &p_matched,slam2::Matrix &F);
+
+        // get random and unique sample of num numbers from 1:N
+        std::vector<int32_t> getRandomSample (int32_t N,int32_t num);
+        slam2::Matrix transformationVectorToMatrix (std::vector<double> tr);
 };

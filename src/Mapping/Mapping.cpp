@@ -318,8 +318,8 @@ void Mapping::matchKeyFrames(KeyFrame keyFrame, std::vector<SADKeyFrame> kfsToMa
 
         matcher->matchFeatures(0);
         matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
-        p_matched = matcher->getMatches();
-        updateMotion();
+        std::vector<LoopMatcher::p_match> p_matched = matcher->getMatches();
+        //updateMotion();
 
         delete image_comp;
         delete sli_comp;
