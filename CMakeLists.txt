@@ -48,6 +48,7 @@ set(slam_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/Mapping/KeyFrame.cpp
     ${PROJECT_SOURCE_DIR}/src/Mapping/G2ODriver.cpp
     ${PROJECT_SOURCE_DIR}/src/Mapping/Histogram.cpp
+    ${PROJECT_SOURCE_DIR}/src/Mapping/LoopMatcher.cpp
     ${PROJECT_SOURCE_DIR}/src/5Point/5point.cpp
     ${PROJECT_SOURCE_DIR}/src/5Point/Rpoly.cpp
 )

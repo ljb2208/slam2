@@ -66,8 +66,8 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
 {    
     int32_t dims[] = {image->w, image->h, image->w};
 
-    uint8_t* left_image = getImageArray(image);
-    uint8_t* right_image = getImageArray(imageRight);
+    uint8_t* left_image = image->getImageArray();
+    uint8_t* right_image = imageRight->getImageArray();
 
     timer->startTimer("pushBack");
     matcher->pushBack(left_image, right_image, dims, false);
@@ -1026,21 +1026,6 @@ slam2::Matrix Odometry::transformationVectorToMatrix (std::vector<double> tr)
     Tr.val[2][0] = -cx*sy*cz+sx*sz; Tr.val[2][1] = +cx*sy*sz+sx*cz; Tr.val[2][2] = +cx*cy; Tr.val[2][3] = tz;
     Tr.val[3][0] = 0;               Tr.val[3][1] = 0;               Tr.val[3][2] = 0;      Tr.val[3][3] = 1;
     return Tr;
-}
-
-uint8_t* Odometry::getImageArray(SLImage* image)
-{
-    uint8_t* img_data  = (uint8_t*)malloc(image->w*image->h*sizeof(uint8_t));
-    int32_t k=0;
-
-    for (int32_t v=0; v<image->h; v++) {
-    for (int32_t u=0; u<image->w; u++) {
-        img_data[k]  = image->image.at<uint8_t>(v,u); 
-        k++;
-    }
-    }
-
-    return img_data;
 }
 
 bool Odometry::estimateRotation()

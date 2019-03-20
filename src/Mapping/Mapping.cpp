@@ -1,11 +1,22 @@
 #include "Mapping.h"
 #include "boost/chrono.hpp"
+#include "IO/ImageReader.h"
+#include "LoopMatcher.h"
 #include <stdlib.h>
 
-Mapping::Mapping(SlamViewer* viewer)
+Mapping::Mapping(SlamViewer* viewer, cv::Mat cameraMatrix, float baseLine, int imageHeight, int imageWidth)
 {
     this->viewer = viewer;
     running = true;
+
+    param.height = imageHeight;
+    param.width = imageWidth;
+    param.baseline = baseLine;
+
+    param.calib.f = cameraMatrix.at<float>(0, 0);
+    param.calib.fy = cameraMatrix.at<float>(1, 1);
+    param.calib.cu = cameraMatrix.at<float>(0, 2);
+    param.calib.cv = cameraMatrix.at<float>(1, 2);
 }
 
 void Mapping::addFrame(slam2::Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches)
@@ -84,7 +95,9 @@ void Mapping::run()
                 keyFrame.calculateAngleIncrements(keyFrame2);                                       
 
                 std::vector<KeyFrame> potentialKeyFrames = getPotentialLoopClosureKFs(&keyFrame);
-                std::vector<SADKeyFrame> checkKeyFrames = filterPotentialKFsBySAD(keyFrame, potentialKeyFrames);                
+                std::vector<SADKeyFrame> checkKeyFrames = filterPotentialKFsBySAD(keyFrame, potentialKeyFrames); 
+
+                matchKeyFrames(keyFrame, checkKeyFrames);               
                 //printf("KeyFramesToCheck: %i\n", static_cast<int>(checkKeyFrames.size()));
             }
 
@@ -268,4 +281,53 @@ std::vector<SADKeyFrame> Mapping::filterPotentialKFsBySAD(KeyFrame keyFrame, std
     }
 
     return checkKeyFrames;
+}
+
+void Mapping::setImageAttributes(ImageFolderReader* reader, std::string param)
+{
+    this->reader = reader;
+    this->camera_param = param;
+}
+
+void Mapping::matchKeyFrames(KeyFrame keyFrame, std::vector<SADKeyFrame> kfsToMatch)
+{
+    ImageReader* imageReader = new ImageReader(false, camera_param);
+    imageReader->loadImage(reader->getImageFilename(keyFrame.index), keyFrame.index);
+    SLImage* sli = imageReader->getResizedImage(0);
+
+    uint8_t* image = sli->getImageArray();
+
+    LoopMatcher* matcher = new LoopMatcher(LoopMatcher::parameters());
+    matcher->setIntrinsics(param.calib.f, param.calib.cu, param.calib.cv, param.baseline);
+
+    int32_t dims[] = {param.width, param.height, param.width};
+
+    matcher->pushBack(image, dims, false);
+
+    for (int i=0; i < kfsToMatch.size(); i++)
+    {
+        SADKeyFrame kf = kfsToMatch[i];
+        imageReader->loadImage(reader->getImageFilename(kf.keyFrame.index), kf.keyFrame.index);
+        SLImage* sli_comp = imageReader->getResizedImage(0);
+        uint8_t* image_comp = sli_comp->getImageArray();
+
+        if (i == 0)
+            matcher->pushBack(image_comp, dims, false);
+        else
+            matcher->pushBack(image_comp, dims, true);
+
+        matcher->matchFeatures(0);
+        matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
+        p_matched = matcher->getMatches();
+        updateMotion();
+
+        delete image_comp;
+        delete sli_comp;
+    }
+
+    delete matcher;
+    delete image;
+    delete sli;
+    delete imageReader;
+
 }

@@ -117,7 +117,6 @@ class Odometry
 
         bool Tr_valid;
         slam2::Matrix Tr_delta;
-        uint8_t* getImageArray(SLImage* image);
         bool updateMotion();
         bool updateMotion2();
         bool updateMotion3();

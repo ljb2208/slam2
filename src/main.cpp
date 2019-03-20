@@ -94,8 +94,11 @@ int main( int argc, char** argv )
     imageOffset = 0;
 
     SlamViewer* slamViewer = new SlamViewer(width, height, imageOffset);
-    Mapping* mapping = new Mapping(slamViewer);
+    Mapping* mapping = new Mapping(slamViewer, cameraMatrix, baseLine, height, width);
     Odometry* odom = new Odometry(slamViewer, mapping, cameraMatrix, baseLine, height, width);
+
+    // temp fix for reading image files from mapping thread
+    mapping->setImageAttributes(reader, param);
 
     std::thread runthread([&]() {
 
