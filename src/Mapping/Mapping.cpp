@@ -291,6 +291,8 @@ void Mapping::setImageAttributes(ImageFolderReader* reader, std::string param)
 
 void Mapping::matchKeyFrames(KeyFrame keyFrame, std::vector<SADKeyFrame> kfsToMatch)
 {
+    keyFrame.loopKeyFrames.clear();
+
     ImageReader* imageReader = new ImageReader(false, camera_param);
     imageReader->loadImage(reader->getImageFilename(keyFrame.index), keyFrame.index);
     SLImage* sli = imageReader->getResizedImage(0);
@@ -316,13 +318,35 @@ void Mapping::matchKeyFrames(KeyFrame keyFrame, std::vector<SADKeyFrame> kfsToMa
         else
             matcher->pushBack(image_comp, dims, true);
 
-        matcher->matchFeatures(0);
-        matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
-        std::vector<LoopMatcher::p_match> p_matched = matcher->getMatches();
-        //updateMotion();
+        slam2::Matrix tr;
+        bool result = matcher->updateMotion(&tr);
+
+        if (result)
+        {
+            printf("LoopMatcher. Matches: %i Inliers: %i\n", matcher->getNumberOfMatches(), matcher->getNumberOfInliers());
+            std::cout << tr << "\n";
+        }
+        else
+        {
+            printf("LoopMatcher failed. Matches: %i Inliers: %i\n", matcher->getNumberOfMatches(), matcher->getNumberOfInliers());
+        }
+        
+        if (result && matcher->getNumberOfInliers() > param.inlier_threshold)
+        {
+            KeyFrameLoop loop(kf.keyFrame.index, tr, matcher->getNumberOfInliers());
+            keyFrame.loopKeyFrames.push_back(loop);
+        }
 
         delete image_comp;
         delete sli_comp;
+    }
+
+    if (keyFrame.loopKeyFrames.size() > 0)
+    {
+        printf("OptimizePose\n");
+        G2ODriver driver;
+        driver.createModel(keyFrames);
+        driver.optimize();
     }
 
     delete matcher;

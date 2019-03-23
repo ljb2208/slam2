@@ -8,6 +8,21 @@
 #include "Util/SLImage.h"
 #include "Histogram.h"
 
+class KeyFrameLoop
+{
+    public:
+        KeyFrameLoop(int targetKeyFrame, slam2::Matrix pose, int inliers)
+        {
+            this->targetKeyFrame = targetKeyFrame;
+            this->inliers = inliers;
+            this->pose = pose;
+        }
+
+        int targetKeyFrame;
+        slam2::Matrix pose;
+        int inliers;
+};
+
 class KeyFrame
 {
     public:
@@ -34,17 +49,11 @@ class KeyFrame
         float x, y, z;
         float x_inc, y_inc, z_inc;
 
+        std::vector<KeyFrameLoop> loopKeyFrames;
+
     private:
 
         void calculateAngles();
         float angleDiff(float a1, float a2);
         bool closeEnough(const float& a, const float& b, const float& epsilon=std::numeric_limits<float>::epsilon());
-
-        
-
-        
-
-        
-
-
 };

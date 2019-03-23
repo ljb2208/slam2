@@ -29,5 +29,5 @@ class G2ODriver
     private:
         // G2O optimizer
         g2o::SparseOptimizer optimizer;
-        Eigen::Isometry3d getEigenPose(KeyFrame kf);
+        Eigen::Isometry3d getEigenPose(slam2::Matrix pose);
 };

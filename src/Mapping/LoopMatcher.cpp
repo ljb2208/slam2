@@ -45,10 +45,13 @@ LoopMatcher::~LoopMatcher() {
   if (I1c_dv_full)  _mm_free(I1c_dv_full);
 }
 
-bool LoopMatcher::updateMotion () {
+bool LoopMatcher::updateMotion (slam2::Matrix* tr)
+{  
+  matchFeatures();
+  bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
   
   // estimate motion
-  vector<double> tr_delta = estimateMotion(p_matched);
+  vector<double> tr_delta = estimateMotion(p_matched_2);
   
   // on failure
   if (tr_delta.size()!=6)
@@ -57,6 +60,8 @@ bool LoopMatcher::updateMotion () {
   // set transformation matrix (previous to current frame)
   Tr_delta = transformationVectorToMatrix(tr_delta);
   Tr_valid = true;
+
+  *tr = Tr_delta;
   
   // success
   return true;
@@ -123,8 +128,9 @@ void LoopMatcher::pushBack (uint8_t *I1,int32_t* dims,const bool replace) {
   computeFeatures(I1c,dims_c,m1c1,n1c1,m1c2,n1c2,I1c_du,I1c_dv,I1c_du_full,I1c_dv_full);
 }
 
-void LoopMatcher::matchFeatures(int32_t method, slam2::Matrix *Tr_delta) {
+void LoopMatcher::matchFeatures() {
   
+    slam2::Matrix *delta = 0;
 
     if (m1p2==0 || n1p2==0 || m1c2==0 || n1c2==0)
         return;
@@ -141,14 +147,14 @@ void LoopMatcher::matchFeatures(int32_t method, slam2::Matrix *Tr_delta) {
     if (param.multi_stage) {
 
         // 1st pass (sparse matches)
-        matching(m1p1,m1c1,n1p1,n1c1,p_matched_1,false,Tr_delta);
+        matching(m1p1,m1c1,n1p1,n1c1,p_matched_1,false,delta);
         removeOutliers(p_matched_1);
         
         // compute search range prior statistics (used for speeding up 2nd pass)
         computePriorStatistics(p_matched_1);      
 
         // 2nd pass (dense matches)
-        matching(m1p2,m1c2,n1p2,n1c2,p_matched_2,true,Tr_delta);
+        matching(m1p2,m1c2,n1p2,n1c2,p_matched_2,true,delta);
         if (param.refinement>0)
             refinement(p_matched_2);
 
@@ -156,7 +162,7 @@ void LoopMatcher::matchFeatures(int32_t method, slam2::Matrix *Tr_delta) {
 
     // single pass matching
     } else {
-        matching(m1p2,m1c2,n1p2,n1c2,p_matched_2,false,Tr_delta);
+        matching(m1p2,m1c2,n1p2,n1c2,p_matched_2,false,delta);
         if (param.refinement>0)
             refinement(p_matched_2);
 
@@ -1460,3 +1466,16 @@ vector<int32_t> LoopMatcher::getRandomSample(int32_t N,int32_t num) {
   // return sample
   return sample;
 }
+
+
+int LoopMatcher::getNumberOfMatches()
+{
+  return (int) p_matched_2.size();
+}
+
+
+int LoopMatcher::getNumberOfInliers()
+{
+  return (int) inliers.size();
+}
+

@@ -10,6 +10,7 @@
 #include "boost/thread.hpp"
 #include "IO/DataSetReader.h"
 #include <cv.h>
+#include "G2ODriver.h"
 
 class SADKeyFrame
 {
@@ -37,17 +38,7 @@ class Mapping
             }
         };
 
-        // bucketing parameters
-        struct bucketing {  
-            int32_t max_features;  // maximal number of features per bucket 
-            double  bucket_width;  // width of bucket
-            double  bucket_height; // height of bucket
-            bucketing () {
-            max_features  = 2;
-            bucket_width  = 50;
-            bucket_height = 50;
-            }
-        };
+        
 
 
          // general parameters
@@ -62,8 +53,8 @@ class Mapping
             double  baseline;
             int32_t height;
             int32_t width;
-            calibration calib;
-            bucketing   bucket;           // bucketing parameters                        
+            int32_t inlier_threshold;
+            calibration calib;          
            
 
             parameters () {
@@ -76,6 +67,7 @@ class Mapping
                 baseline = 0.53;
                 height = 640;
                 width = 480;
+                inlier_threshold = 150;
             }
         };
 

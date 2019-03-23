@@ -17,6 +17,18 @@
 class LoopMatcher
 {
     public:
+
+        // bucketing parameters
+        struct bucketing {  
+            int32_t max_features;  // maximal number of features per bucket 
+            double  bucket_width;  // width of bucket
+            double  bucket_height; // height of bucket
+            bucketing () {
+            max_features  = 2;
+            bucket_width  = 50;
+            bucket_height = 50;
+            }
+        };
          // parameter settings
         struct parameters {
         
@@ -39,6 +51,7 @@ class LoopMatcher
             int32_t                     mono_ransac_iters;     // number of RANSAC iterations
             double                      mono_inlier_threshold; // fundamental matrix inlier threshold
             double                      motion_threshold; // directly return false on small motions
+            bucketing   bucket;           // bucketing parameters              
             
             // default settings
             parameters () {
@@ -98,14 +111,20 @@ class LoopMatcher
         // input: method ... 0 = flow, 1 = stereo, 2 = quad matching
         //        Tr_delta: uses motion from previous frame to better search for
         //                  matches, if specified
-        void matchFeatures(int32_t method, slam2::Matrix *Tr_delta = 0);
+        void matchFeatures();
 
         // feature bucketing: keeps only max_features per bucket, where the domain
         // is split into buckets of size (bucket_width,bucket_height)
         void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
 
         // return vector with matched feature points and indices
-        std::vector<LoopMatcher::p_match> getMatches() { return p_matched_2; }
+        std::vector<LoopMatcher::p_match> getMatches() { return p_matched_2; };
+
+        bool updateMotion (slam2::Matrix* tr);
+
+        int getNumberOfMatches();
+        int getNumberOfInliers();
+
 
     private:
 
@@ -218,9 +237,11 @@ class LoopMatcher
         std::vector<LoopMatcher::p_match> p_matched_1;
         std::vector<LoopMatcher::p_match> p_matched_2;
         std::vector<LoopMatcher::range>   ranges;
-        std::vector<int32_t>           inliers;    // inlier set
-  
-        bool updateMotion ();
+        std::vector<int32_t>           inliers;    // inlier set  
+
+        slam2::Matrix                         Tr_delta;   // transformation (previous -> current frame)  
+        bool                           Tr_valid;   // motion estimate exists?
+
         std::vector<double>  estimateMotion (std::vector<LoopMatcher::p_match> p_matched);  
         slam2::Matrix        smallerThanMedian (slam2::Matrix &X,double &median);
         bool                 normalizeFeaturePoints (std::vector<LoopMatcher::p_match> &p_matched,slam2::Matrix &Tp,slam2::Matrix &Tc);
