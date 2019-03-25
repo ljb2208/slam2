@@ -23,7 +23,7 @@ LoopMatcher::LoopMatcher(parameters param) : param(param) {
   
   // adjust match radius on half resolution
   if (param.half_resolution)
-    this->param.match_radius /= 2;
+    this->param.match_radius /= 2;  
 }
 
 

@@ -25,7 +25,8 @@ find_package(Pangolin 0.2 QUIET)
 add_definitions("-DENABLE_SSE")
 set(CMAKE_CXX_FLAGS
 #   "${SSE_FLAGS} -O0 -fPIC -g -std=c++0x -march=native"
-    "${SSE_FLAGS} -O3 -fPIC -g -std=c++0x -march=native"
+#    "${SSE_FLAGS} -O3 -fPIC -g -std=c++0x -march=native"
+    "${SSE_FLAGS} -O3 -fPIC -g -std=c++0x"
 #   "${SSE_FLAGS} -O3 -g -std=c++0x -fno-omit-frame-pointer"
 )
 
@@ -73,4 +74,4 @@ add_library(slam ${slam_SOURCE_FILES} ${slam_opencv_SOURCE_FILES} ${slam_pangoli
 # build main executable (only if we have both OpenCV and Pangolin)
 message("--- compiling slam.")
 add_executable(slam_dataset ${PROJECT_SOURCE_DIR}/src/main.cpp )
-target_link_libraries(slam_dataset slam boost_system boost_thread cxsparse ${G2O_SOLVER_CSPARSE_EXTENSION} ${G2O_SOLVER_CSPARSE} ${G2O_TYPES_SLAM3D} ${G2O_CLI_LIBRARY} ${G2O_CORE_LIBRARY} ${G2O_STUFF_LIBRARY} ${Pangolin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(slam_dataset slam boost_system boost_thread cxsparse ${G2O_CORE_LIBRARY} ${G2O_STUFF_LIBRARY} ${G2O_SOLVER_CSPARSE_EXTENSION} ${G2O_SOLVER_CSPARSE} ${G2O_TYPES_SLAM3D} ${G2O_CLI_LIBRARY} ${Pangolin_LIBRARIES} ${OpenCV_LIBS})

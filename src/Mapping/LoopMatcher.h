@@ -252,5 +252,5 @@ class LoopMatcher
 
         // get random and unique sample of num numbers from 1:N
         std::vector<int32_t> getRandomSample (int32_t N,int32_t num);
-        slam2::Matrix transformationVectorToMatrix (std::vector<double> tr);
+        slam2::Matrix transformationVectorToMatrix (std::vector<double> tr);        
 };

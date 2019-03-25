@@ -23,7 +23,7 @@ class Mapping
 {
     public:
         Mapping(SlamViewer* viewer, cv::Mat cameraMatrix, float baseLine, int imageHeight, int imageWidth);
-
+        ~Mapping();
         // camera parameters (all are mandatory / need to be supplied)
         struct calibration {  
             double f;  // focal length (in pixels)
@@ -105,4 +105,6 @@ class Mapping
         ImageFolderReader* reader;
 
         bool running;
+
+        std::ofstream outputFile;
 };

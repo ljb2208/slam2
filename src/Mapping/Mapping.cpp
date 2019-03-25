@@ -17,6 +17,13 @@ Mapping::Mapping(SlamViewer* viewer, cv::Mat cameraMatrix, float baseLine, int i
     param.calib.fy = cameraMatrix.at<float>(1, 1);
     param.calib.cu = cameraMatrix.at<float>(0, 2);
     param.calib.cv = cameraMatrix.at<float>(1, 2);
+
+    outputFile.open("loops.csv", std::ios::trunc);
+}
+
+Mapping::~Mapping()
+{
+    outputFile.close();
 }
 
 void Mapping::addFrame(slam2::Matrix pose, SLImage* leftImage, SLImage* rightImage, Matches* matches)
@@ -342,8 +349,7 @@ void Mapping::matchKeyFrames(KeyFrame keyFrame, std::vector<SADKeyFrame> kfsToMa
     }
 
     if (keyFrame.loopKeyFrames.size() > 0)
-    {
-        printf("OptimizePose\n");
+    {        
         G2ODriver driver;
         driver.createModel(keyFrames);
         driver.optimize();

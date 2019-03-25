@@ -10,6 +10,8 @@ G2ODriver::G2ODriver()
         g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
 
     optimizer.setAlgorithm(solver);
+
+    optimizeCount = 0;
 }
 
 void G2ODriver::createModel(std::vector<KeyFrame> keyFrames)
@@ -86,6 +88,13 @@ void G2ODriver::optimize()
     int result = optimizer.optimize(10);
 
     printf("OptimizerResult: %i\n", result);
+
+    std::string fileName = "optimizer";
+    fileName.append(std::to_string(optimizeCount));
+    fileName.append(".g2o");
+    optimizer.save(fileName.c_str());
+
+    optimizeCount++;
 }
 
 Eigen::Isometry3d G2ODriver::getEigenPose(slam2::Matrix pose)

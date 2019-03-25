@@ -30,4 +30,6 @@ class G2ODriver
         // G2O optimizer
         g2o::SparseOptimizer optimizer;
         Eigen::Isometry3d getEigenPose(slam2::Matrix pose);
+
+        int optimizeCount;
 };
