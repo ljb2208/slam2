@@ -24,12 +24,14 @@ class G2ODriver
     public:
         G2ODriver();
         void optimize();
-        void createModel(std::vector<KeyFrame> keyFrames);
+        void createModel(std::vector<KeyFrame> keyFrames, int optimizationCount);
 
     private:
         // G2O optimizer
         g2o::SparseOptimizer optimizer;
         Eigen::Isometry3d getEigenPose(slam2::Matrix pose);
-
+        Eigen::Matrix<double,6,6> getUncertaintyMatrix(KeyFrame kf, KeyFrame kf2);
+        float getRotationAngle(KeyFrame keyFrame, KeyFrame keyFrame2);
+        float getTranslationDistance(KeyFrame keyFrame, KeyFrame keyFrame2);
         int optimizeCount;
 };

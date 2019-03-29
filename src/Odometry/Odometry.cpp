@@ -52,6 +52,9 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     frameProcessedCount = 0;
 
     createDepthColorArray();
+    setInitialPose();
+
+    std::cout << "Initial pose: \n" << pose << "\n";
 }
 
 Odometry::~Odometry()
@@ -230,6 +233,22 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     }
 
     return result;
+}
+
+void Odometry::setInitialPose()
+{
+    return;
+    
+    // adjust initial pose for pitch
+    double cs = cos(param.pitch);
+    double sn = sin(param.pitch);
+
+    pose.val[1][1] = cs;
+    pose.val[1][2] = -sn;
+    pose.val[2][1] = sn;
+    pose.val[2][2] = cs;
+
+    //pose.val[1][3] = param.height;
 }
 
 void Odometry::createDepthColorArray()

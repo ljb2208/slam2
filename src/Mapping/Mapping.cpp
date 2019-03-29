@@ -19,6 +19,8 @@ Mapping::Mapping(SlamViewer* viewer, cv::Mat cameraMatrix, float baseLine, int i
     param.calib.cv = cameraMatrix.at<float>(1, 2);
 
     outputFile.open("loops.csv", std::ios::trunc);
+
+    optimizationCount = 0;
 }
 
 Mapping::~Mapping()
@@ -81,32 +83,32 @@ void Mapping::run()
             //delete keyFrame.image;
             //delete keyFrame.imageRight;
 
-            float distance = 0.0;
-            float angle = 0.0;
+            // float distance = 0.0;
+            // float angle = 0.0;
 
-            KeyFrame keyFrame2;
+            // KeyFrame keyFrame2;
 
-            if (getLastKeyFrame(&keyFrame2))
-            {
-                distance = getTranslationDistance(&keyFrame, &keyFrame2);
-                angle = getRotationAngle(&keyFrame, &keyFrame2);
+            // if (getLastKeyFrame(&keyFrame2))
+            // {
+            //     distance = getTranslationDistance(&keyFrame, &keyFrame2);
+            //     angle = getRotationAngle(&keyFrame, &keyFrame2);
 
-                // discard keyframe if not enough rotation or translation to previous keyframe
-                if (distance < param.translation_threshold && angle < param.rotation_threshold)
-                {
-                    //printf("Distance between KFs: %f Angle: %f Discarding keyframe\n", distance, angle);
-                    continue;
-                }      
+            //     // discard keyframe if not enough rotation or translation to previous keyframe
+            //     if (distance < param.translation_threshold && angle < param.rotation_threshold)
+            //     {
+            //         //printf("Distance between KFs: %f Angle: %f Discarding keyframe\n", distance, angle);
+            //         continue;
+            //     }      
 
-                // calculate increment of angles
-                keyFrame.calculateAngleIncrements(keyFrame2);                                       
+            //     // calculate increment of angles
+            //     keyFrame.calculateAngleIncrements(keyFrame2);                                       
 
-                std::vector<KeyFrame> potentialKeyFrames = getPotentialLoopClosureKFs(&keyFrame);
-                std::vector<SADKeyFrame> checkKeyFrames = filterPotentialKFsBySAD(keyFrame, potentialKeyFrames); 
+            //     std::vector<KeyFrame> potentialKeyFrames = getPotentialLoopClosureKFs(&keyFrame);
+            //     std::vector<SADKeyFrame> checkKeyFrames = filterPotentialKFsBySAD(keyFrame, potentialKeyFrames); 
 
-                matchKeyFrames(keyFrame, checkKeyFrames);               
-                //printf("KeyFramesToCheck: %i\n", static_cast<int>(checkKeyFrames.size()));
-            }
+            //     matchKeyFrames(&keyFrame, checkKeyFrames);               
+            //     //printf("KeyFramesToCheck: %i\n", static_cast<int>(checkKeyFrames.size()));
+            // }
 
             
 
@@ -131,7 +133,7 @@ float Mapping::getTranslationDistance(KeyFrame* keyFrame, KeyFrame* keyFrame2)
     float f1, f2, f3;
 
     f1 = keyFrame->pose.val[0][3] - keyFrame2->pose.val[0][3];
-    f2 = keyFrame->pose.val[1][3] - keyFrame2->pose.val[1][3];
+    f2 = 0;//keyFrame->pose.val[1][3] - keyFrame2->pose.val[1][3];
     f3 = keyFrame->pose.val[2][3] - keyFrame2->pose.val[2][3];
 
     return fabs(sqrt(f1*f1 + f2*f2 + f3*f3));    
@@ -164,6 +166,7 @@ float Mapping::getRotationAngle(KeyFrame* keyFrame, KeyFrame* keyFrame2)
 
 std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
 {
+    printf("KeyFrameIndex: %i\n", keyFrame->index);
     std::vector<KeyFrame> potentialKeyFrames;
 
     float xaccum, yaccum, zaccum;
@@ -182,6 +185,8 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
     // yaccum = keyFrame->y_inc;
     // zaccum = keyFrame->z_inc;
 
+    bool accumExceeded = false;
+
     for (int i=keyFrames.size(); i > 0; i--)
     {
         KeyFrame keyFrame2 = keyFrames[i - 1];
@@ -190,13 +195,16 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
         yaccum += keyFrame2.y_inc;
         zaccum += keyFrame2.z_inc;
 
-        //printf("xaccum: %f yaccum: %f zaccum: %f index1: %i index2: %i\n", xaccum, yaccum, zaccum, keyFrame->index, keyFrame2.index);
+        // printf("xaccum: %f yaccum: %f zaccum: %f index1: %i index2: %i\n", xaccum, yaccum, zaccum, keyFrame->index, keyFrame2.index);
 
-        if (fabs(xaccum) < param.angle_change_threshold && fabs(yaccum) < param.angle_change_threshold
+        if (!accumExceeded && fabs(xaccum) < param.angle_change_threshold && fabs(yaccum) < param.angle_change_threshold
             && fabs(zaccum) < param.angle_change_threshold)
             continue;
 
-        //printf("xaccum: %f yaccum: %f zaccum: %f index1: %i index2: %i\n", xaccum, yaccum, zaccum, keyFrame->index, keyFrame2.index);
+        accumExceeded = true;
+
+
+        // printf("xaccum: %f yaccum: %f zaccum: %f index1: %i index2: %i\n", xaccum, yaccum, zaccum, keyFrame->index, keyFrame2.index);
 
         float translation = getTranslationDistance(keyFrame, &keyFrame2);
 
@@ -212,22 +220,23 @@ std::vector<KeyFrame> Mapping::getPotentialLoopClosureKFs(KeyFrame* keyFrame)
         {
             minAngle = angle;
             minAngleIndex = keyFrame2.index;
-        }        
+        }
+
+        printf("Translation Check: %f %i:%i\n", translation, keyFrame->index, keyFrame2.index); 
 
         if (translation > param.search_radius)
             continue;        
 
-        //printf("Translation Check: %f %i:%i\n", translation, keyFrame->index, keyFrame2.index);    
+        printf("Angle Check: %f %i:%i\n", angle, keyFrame->index, keyFrame2.index);                       
 
         if (angle > param.search_angle)
             continue;
-
-        //printf("Angle Check: %f %i:%i\n", angle, keyFrame->index, keyFrame2.index);    
+        
 
         potentialKeyFrames.push_back(keyFrame2);
     }
 
-    //printf("MinTranslation: %f Min Angle: %f TranslationIndex: %i AngleIndex: %i index: %i\n", minTranslation, minAngle, minTranslationIndex, minAngleIndex, keyFrame->index);
+    printf("MinTranslation: %f Min Angle: %f TranslationIndex: %i AngleIndex: %i index: %i\n", minTranslation, minAngle, minTranslationIndex, minAngleIndex, keyFrame->index);
 
     return potentialKeyFrames;
 }
@@ -239,13 +248,13 @@ std::vector<SADKeyFrame> Mapping::filterPotentialKFsBySAD(KeyFrame keyFrame, std
 
     if (potentialKeyFrames.size() > 0)
     {
-        //printf("Potential Key frames for loop closure found. Index: %i Count: %i\n", keyFrame.index, static_cast<int>(potentialKeyFrames.size()));
+        printf("Potential Key frames for loop closure found. Index: %i Count: %i\n", keyFrame.index, static_cast<int>(potentialKeyFrames.size()));
         
         for (int i=0; i < potentialKeyFrames.size(); i++)
         {
             KeyFrame compKeyFrame = potentialKeyFrames[i];
             int sad = keyFrame.hist.calculateSAD(&compKeyFrame.hist);
-            //printf("SAD for keyframe no %i against %i: %i\n", compKeyFrame.index, keyFrame.index, sad);
+            printf("SAD for keyframe no %i against %i: %i\n", compKeyFrame.index, keyFrame.index, sad);
 
             if (checkKeyFrames.size() < param.max_keyframes_tocheck)
             {
@@ -296,12 +305,12 @@ void Mapping::setImageAttributes(ImageFolderReader* reader, std::string param)
     this->camera_param = param;
 }
 
-void Mapping::matchKeyFrames(KeyFrame keyFrame, std::vector<SADKeyFrame> kfsToMatch)
+void Mapping::matchKeyFrames(KeyFrame* keyFrame, std::vector<SADKeyFrame> kfsToMatch)
 {
-    keyFrame.loopKeyFrames.clear();
+    keyFrame->loopKeyFrames.clear();
 
     ImageReader* imageReader = new ImageReader(false, camera_param);
-    imageReader->loadImage(reader->getImageFilename(keyFrame.index), keyFrame.index);
+    imageReader->loadImage(reader->getImageFilename(keyFrame->index), keyFrame->index);
     SLImage* sli = imageReader->getResizedImage(0);
 
     uint8_t* image = sli->getImageArray();
@@ -341,18 +350,22 @@ void Mapping::matchKeyFrames(KeyFrame keyFrame, std::vector<SADKeyFrame> kfsToMa
         if (result && matcher->getNumberOfInliers() > param.inlier_threshold)
         {
             KeyFrameLoop loop(kf.keyFrame.index, tr, matcher->getNumberOfInliers());
-            keyFrame.loopKeyFrames.push_back(loop);
+            keyFrame->loopKeyFrames.push_back(loop);
+            printf("add loop key frame. %i %i\n ", keyFrame->index, kf.keyFrame.index);
+            std::cout << "lkf_pose: \n" << tr << "\n";
         }
 
         delete image_comp;
         delete sli_comp;
     }
 
-    if (keyFrame.loopKeyFrames.size() > 0)
+    if (keyFrame->loopKeyFrames.size() > 0)
     {        
         G2ODriver driver;
-        driver.createModel(keyFrames);
+        driver.createModel(keyFrames, optimizationCount);
         driver.optimize();
+
+        optimizationCount++;
     }
 
     delete matcher;

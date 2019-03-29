@@ -144,6 +144,8 @@ class Odometry
 
         void calculateDepth();
         void createDepthColorArray();
+
+        void setInitialPose();
            
         // returns the number of inliers: num_inliers <= num_matched
         int32_t getNumberOfInliers () { return inliers.size(); }

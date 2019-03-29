@@ -93,7 +93,7 @@ class Mapping
 
         std::vector<KeyFrame> getPotentialLoopClosureKFs(KeyFrame* keyFrame);
         std::vector<SADKeyFrame> filterPotentialKFsBySAD(KeyFrame keyFrame, std::vector<KeyFrame> potentialKeyFrames);
-        void matchKeyFrames(KeyFrame keyFrame, std::vector<SADKeyFrame> kfsToMatch);
+        void matchKeyFrames(KeyFrame* keyFrame, std::vector<SADKeyFrame> kfsToMatch);
         KeyFrame currentKeyFrame;
         
 
@@ -107,4 +107,5 @@ class Mapping
         bool running;
 
         std::ofstream outputFile;
+        int optimizationCount;
 };
