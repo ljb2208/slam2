@@ -112,7 +112,8 @@ void Matcher::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace
     return;
   }
 
-  p_matched_p->resetMatches();
+  // p_matched_p->resetMatches();
+  p_matched_p->clear();
 
   if (replace) {
     if (I1c)         _mm_free(I1c);
@@ -220,7 +221,7 @@ void Matcher::matchFeatures(int32_t method, slam2::Matrix *Tr_delta) {
         return;    
   }
 
-  p_matched_p->clear();
+  // p_matched_p->clear();
 
   // double pass matching
   if (param.multi_stage) {    

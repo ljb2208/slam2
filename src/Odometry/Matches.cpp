@@ -156,7 +156,6 @@ bool Matches::matchExists(Matches::p_match match, bool current)
             p_matched[i].active = true;    
             p_matched[i].matched = true;
             matchesFound++;
-            printf("Match found\n");
             return true;            
         }
     }
