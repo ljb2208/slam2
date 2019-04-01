@@ -40,7 +40,7 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     delete reader;
 
     outputFile.open("outputs.csv", std::ios::trunc);
-    outputFile << "Index,NumMatches,NumInliers,";
+    outputFile << "Index,NumMatches,NumInliers,MaxAge,";
     outputFile << "pose00,pose01,pose02,pose03,pose10,pose11,pose12,pose13,pose20,pose21,pose22,pose23,pose30,pose31,pose32,pose33,";
     outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";
     outputFile << ",errorR,errorT,errorM,motion,gtMotion";
@@ -182,6 +182,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         outputFile << image->index << ",";
         outputFile << num_matches << ",";
         outputFile << num_inliers << ",";
+        outputFile << maxAge << ",";
         outputFile << pose.val[0][0] << ",";
         outputFile << pose.val[1][0] << ",";
         outputFile << pose.val[2][0] << ",";
@@ -1399,7 +1400,7 @@ std::vector<int32_t> Odometry::getInliers5Point(PMatrix P)
     std::vector<int32_t> inliers;
 
     for(int i=0; i < matches->selectedMatches.size(); i++) {
-        Matches::p_match* match = matches->selectedMatches[i];
+        std::shared_ptr<Matches::p_match> match = matches->selectedMatches[i];
         Eigen::Vector4d pt3d = TriangulatePoint(match->u1p, match->v1p, match->u1c, match->u2c, P_ref, P);
         double depth1 = CalcDepth(pt3d, P_ref);
         double depth2 = CalcDepth(pt3d, P);

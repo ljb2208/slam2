@@ -3,6 +3,7 @@
 #include <map>
 #include <math.h>
 #include <algorithm>
+#include <memory>
 #include <stdio.h>
 #include <cstring>
 #include "Util/Settings.h"
@@ -59,7 +60,7 @@ class Matches
         int32_t getTotalMatches();
         int32_t getInlierCount();
         int32_t getSelectedCount();
-        bool push_back(Matches::p_match match, bool current);
+        bool push_back(std::shared_ptr<Matches::p_match> match, bool current);
         void clear();
         void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
         void clearOutliers();
@@ -67,18 +68,18 @@ class Matches
 
         std::vector<Matches::p_match> copySelectedMatches();
 
-        std::vector<Matches::p_match> p_matched;
-        std::vector<Matches::p_match*> inlierMatches;
-        std::vector<Matches::p_match*> selectedMatches;
+        std::vector<std::shared_ptr<Matches::p_match>> p_matched;
+        std::vector<std::shared_ptr<Matches::p_match>> inlierMatches;
+        std::vector<std::shared_ptr<Matches::p_match>> selectedMatches;
 
         void printStats();
-        //void validateMatches();
+        void validateMatches(std::string ref);
+        bool validateMatch(std::shared_ptr<Matches::p_match> match);
         
     private:
-        bool matchExists(Matches::p_match match, bool current);
-        int32_t getKey(Matches::p_match* match);
-        int32_t getKey(Matches::p_match match);
-        int32_t getPriorKey(Matches::p_match match);
+        bool matchExists(std::shared_ptr<Matches::p_match> match, bool current);
+        int32_t getKey(std::shared_ptr<Matches::p_match> match);
+        int32_t getPriorKey(std::shared_ptr<Matches::p_match> match);
         void deleteStaleMatches();
         void addToMap(Matches::p_match match);
         void clearMap();
@@ -98,7 +99,7 @@ class Matches
             return ((v*width + u) + (c*step)) * right_mult;
         }
 
-        static bool compareMatches(Matches::p_match* p1, Matches::p_match* p2)
+        static bool compareMatches(std::shared_ptr<Matches::p_match> p1, std::shared_ptr<Matches::p_match> p2)
         {
             if (p1->age > p2->age && p1->age <= settings_featureAgeDiscrim)
             return true;

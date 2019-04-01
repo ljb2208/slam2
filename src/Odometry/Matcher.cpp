@@ -195,6 +195,7 @@ void Matcher::matchFeatures(int32_t method, slam2::Matrix *Tr_delta) {
   //////////////////
   // sanity check //
   //////////////////
+  p_matched_p->validateMatches("Matcher start");
   
   // flow
   if (method==0) {
@@ -226,16 +227,22 @@ void Matcher::matchFeatures(int32_t method, slam2::Matrix *Tr_delta) {
   // double pass matching
   if (param.multi_stage) {    
     // 1st pass (sparse matches)
+    p_matched_p->validateMatches("Matcher1");
     matching(m1p1,m2p1,m1c1,m2c1,n1p1,n2p1,n1c1,n2c1,method,false,Tr_delta);
 
     //removeOutliers(p_matched_p,method);
+    p_matched_p->validateMatches("Matcher2");
     removeOutliersNCC();
 
     // compute search range prior statistics (used for speeding up 2nd pass)
+    p_matched_p->validateMatches("Matcher3");
     computePriorStatistics(method);      
 
     // 2nd pass (dense matches)
+    p_matched_p->validateMatches("Matcher4");
     matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,method,true,Tr_delta);
+
+    p_matched_p->validateMatches("Matcher");
 
     if (param.refinement>0)
       refinement(method);
@@ -725,7 +732,7 @@ void Matcher::computePriorStatistics (int32_t method) {
   //for (vector<Matches::p_match>::iterator it=p_matched->p_matched.begin(); it!=p_matched->p_matched.end(); it++) {
   for (int i=0; i < p_matched_p->inlierMatches.size(); i++)
   {
-    Matches::p_match* it = p_matched_p->inlierMatches[i];
+    std::shared_ptr<Matches::p_match> it = p_matched_p->inlierMatches[i];
 
     // method flow: compute position delta
     if (method==0) {
@@ -1015,7 +1022,8 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
 
         // add match if this pixel isn't matched yet
         if (*(M+getAddressOffsetImage(u1c,v1c,dims_c[0]))==0) {
-          p_matched_p->push_back(Matches::p_match(u1p,v1p,i1p,-1,-1,-1,u1c,v1c,i1c,-1,-1,-1), use_prior);
+          std::shared_ptr<Matches::p_match> mtch = std::make_shared<Matches::p_match>(u1p,v1p,i1p,-1,-1,-1,u1c,v1c,i1c,-1,-1,-1);
+          p_matched_p->push_back(mtch, use_prior);
           *(M+getAddressOffsetImage(u1c,v1c,dims_c[0])) = 1;
         }
       }
@@ -1057,7 +1065,9 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
 
           // add match if this pixel isn't matched yet
           if (*(M+getAddressOffsetImage(u1c,v1c,dims_c[0]))==0) {
-            p_matched_p->push_back(Matches::p_match(-1,-1,-1,-1,-1,-1,u1c,v1c,i1c,u2c,v2c,i2c), use_prior);
+            std::shared_ptr<Matches::p_match> mtch = std::make_shared<Matches::p_match>(-1,-1,-1,-1,-1,-1,u1c,v1c,i1c,u2c,v2c,i2c);
+            p_matched_p->push_back(mtch, use_prior);
+            // p_matched_p->push_back(Matches::p_match(-1,-1,-1,-1,-1,-1,u1c,v1c,i1c,u2c,v2c,i2c), use_prior);
             *(M+getAddressOffsetImage(u1c,v1c,dims_c[0])) = 1;
           }
         }
@@ -1068,12 +1078,14 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
   // method: quad matching
   } else {
     
+    p_matched_p->validateMatches("Quad");
     // create position/class bin index vectors
     createIndexVector(m1p,n1p,k1p,u_bin_num,v_bin_num);
     createIndexVector(m2p,n2p,k2p,u_bin_num,v_bin_num);
     createIndexVector(m1c,n1c,k1c,u_bin_num,v_bin_num);
     createIndexVector(m2c,n2c,k2c,u_bin_num,v_bin_num);
     
+    p_matched_p->validateMatches("Quad1");
     // for all points do
     for (i1p=0; i1p<n1p; i1p++) {
 
@@ -1146,34 +1158,36 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
         if (u1p>=u2p && u1c>=u2c) {
           
           // add match
-          Matches::p_match match(u1p,v1p,i1p,u2p,v2p,i2p,
-                                               u1c,v1c,i1c,u2c,v2c,i2c);                                               
-          
-          match.max1.c = c1; 
-          match.max1.val = val1;
-          match.max1.u = u1c;
-          match.max1.v = v1c;
-          match.max1.d1 = d11;
-          match.max1.d2 = d12;
-          match.max1.d3 = d13;
-          match.max1.d4 = d14;
-          match.max1.d5 = d15;
-          match.max1.d6 = d16;
-          match.max1.d7 = d17;
-          match.max1.d8 = d18;
+          // Matches::p_match match(u1p,v1p,i1p,u2p,v2p,i2p,
+          //                                      u1c,v1c,i1c,u2c,v2c,i2c);                                               
+          std::shared_ptr<Matches::p_match> match = std::make_shared<Matches::p_match>(u1p,v1p,i1p,u2p,v2p,i2p,
+                                               u1c,v1c,i1c,u2c,v2c,i2c);
 
-          match.max2.c = c2; 
-          match.max2.val = val2;
-          match.max2.u = u2c;
-          match.max2.v = v2c;
-          match.max2.d1 = d21;
-          match.max2.d2 = d22;
-          match.max2.d3 = d23;
-          match.max2.d4 = d24;
-          match.max2.d5 = d25;
-          match.max2.d6 = d26;
-          match.max2.d7 = d27;
-          match.max2.d8 = d28;
+          match->max1.c = c1; 
+          match->max1.val = val1;
+          match->max1.u = u1c;
+          match->max1.v = v1c;
+          match->max1.d1 = d11;
+          match->max1.d2 = d12;
+          match->max1.d3 = d13;
+          match->max1.d4 = d14;
+          match->max1.d5 = d15;
+          match->max1.d6 = d16;
+          match->max1.d7 = d17;
+          match->max1.d8 = d18;
+
+          match->max2.c = c2; 
+          match->max2.val = val2;
+          match->max2.u = u2c;
+          match->max2.v = v2c;
+          match->max2.d1 = d21;
+          match->max2.d2 = d22;
+          match->max2.d3 = d23;
+          match->max2.d4 = d24;
+          match->max2.d5 = d25;
+          match->max2.d6 = d26;
+          match->max2.d7 = d27;
+          match->max2.d8 = d28;
 
           p_matched_p->push_back(match, use_prior);
         }
@@ -1181,7 +1195,7 @@ void Matcher::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
     }
 
 
-    
+    p_matched_p->validateMatches("Quad3");
     // old version:
     /*
     // for all points do
@@ -1646,11 +1660,12 @@ void Matcher::refinement (int32_t method) {
     I2c_dv_fit = I2c_dv_full;
   }
 
+  p_matched_p->validateMatches("Refinement");
   // for all matches do
   //for (vector<Matches::p_match*>::iterator it=p_matched->inlierMatches.begin(); it!=p_matched->inlierMatches.end(); it++) {
   for (int i=0; i < p_matched_p->inlierMatches.size(); i++)
   {
-    Matches::p_match* it = p_matched_p->inlierMatches[i];
+    std::shared_ptr<Matches::p_match> it = p_matched_p->inlierMatches[i];
 
     // method: flow or quad matching
     if (method==0 || method==2) {

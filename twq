@@ -1,0 +1,307 @@
+[33mcommit a174e071569b0cdb6fa4acd7bb13bea2690f8705[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Mon Mar 25 06:03:44 2019 +0000
+
+    more changes
+
+[33mcommit d3476db841cd99a38fb4e4107eec3af03c1c6b1d[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Mar 23 09:23:18 2019 +0000
+
+    Add G2O cmake
+
+[33mcommit ff007cbd0d406b82cee02c362313702e8cbd4b80[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Mar 23 09:22:39 2019 +0000
+
+    More changes
+
+[33mcommit 67f4b6b504c335378af9fbcbb2a4789b2e331f41[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Wed Mar 20 20:31:56 2019 +0000
+
+    more udpates
+
+[33mcommit ca55f0a73375ba1d33a29b371897b327f9aacb71[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Wed Mar 20 16:35:00 2019 +0000
+
+    Add Loop Matcher
+
+[33mcommit e7b7d435e20555e475ecce36d7c9147292e12407[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Mon Mar 18 06:32:37 2019 +0000
+
+    More changes
+
+[33mcommit 87829fcfb4964b76e7730c23c8227d0a38f662f2[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Mar 16 17:41:45 2019 +0000
+
+    more changes
+
+[33mcommit 9231111b41020394ff402cfbef97d90eb2bf0b2c[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Wed Mar 13 17:09:40 2019 +0000
+
+    OPenCV for cropping
+
+[33mcommit 6937cf8324197c21d9092d77e6da941fdfaaf854[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sun Mar 10 10:59:23 2019 +0000
+
+    Changes to angles
+
+[33mcommit 20ce951b80c39be1220cd77424de04dd5944ce72[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Mar 9 08:29:48 2019 +0000
+
+    Change
+
+[33mcommit 63c99677b4911a1d5db846f5e8d17b9d3dcfe5be[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Thu Mar 7 20:57:41 2019 +0000
+
+    Add Angles for KeyFrame checks
+
+[33mcommit 702c3422fdfb4d4f8776afb52478c244366f1d27[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Mon Mar 4 19:21:24 2019 +0000
+
+    Updates
+
+[33mcommit e59dec202a4b9c1ef8abbc1afc3f0f961cc81817[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sun Mar 3 18:40:24 2019 +0000
+
+    Fix for cam drawing
+
+[33mcommit 6fc8819805b2a1ea6b4f597d8f7f68adf24934a4[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sun Mar 3 18:11:08 2019 +0000
+
+    More changes
+
+[33mcommit a47a75d8f48062b8a506af84408d5f274e7c69e6[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Mar 2 08:24:45 2019 +0000
+
+    Add files
+
+[33mcommit c1d8ed2478a85bcf49932e80491d345963db259e[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Mar 2 08:23:39 2019 +0000
+
+    More changes
+
+[33mcommit a1a63c44a4e2a8313f9a54fe5fa16c5df25f29a4[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sun Feb 24 17:12:09 2019 +0000
+
+    add changes to mapping
+
+[33mcommit d3b3291fcb24cb4c2007d58bc976cfe772857956[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Thu Feb 21 18:39:48 2019 +0000
+
+    Add 5 point algorthim
+
+[33mcommit bd62b491242cba9cc7261ac35525dd3b50e860de[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sat Feb 16 17:47:53 2019 +0000
+
+    more changes
+
+[33mcommit cab3788932356ac28d88ea857e8c90b43b92da6b[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sat Feb 16 17:44:45 2019 +0000
+
+    More changes
+
+[33mcommit 8b1d0df1f11ba22059e5ce261f7d7cb6135d0c40[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sat Feb 16 15:27:37 2019 +0000
+
+    Fix for ground truth error
+
+[33mcommit 1bd86a6a3b70c6f34213519b550e8731bdf1699f[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Feb 16 09:01:37 2019 +0000
+
+    Add NCC inlier checking
+
+[33mcommit 37f4f4dfdccbfb67800cf9dc06ff65d43a6723be[m
+Merge: 607020b 967848f
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Mon Feb 11 06:21:22 2019 +0000
+
+    Merge remote-tracking branch 'origin/match_tracker' into match_tracker
+
+[33mcommit 607020bace67446cd68c48b5f4101d72bff783a5[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Mon Feb 11 06:18:08 2019 +0000
+
+    More cleanup. Add map fo matches
+
+[33mcommit 967848f1684ef87b9c2eb7987a9de19809d6d3d0[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Fri Feb 8 19:16:50 2019 +0000
+
+    More cleanup
+
+[33mcommit 00e0ed8128e1ebbd133f7f6c0d76cc03da0b8ca0[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Fri Feb 8 17:48:03 2019 +0000
+
+    More cleanup
+
+[33mcommit 91ef95b73385999f8cc0c1ff722f608d2981870f[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Thu Feb 7 19:18:53 2019 +0000
+
+    Cleanup code
+
+[33mcommit 914b87a94eed37ef31018fb7e4b52e66390d09da[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Thu Feb 7 16:49:03 2019 +0000
+
+    Fix tracking of features
+
+[33mcommit 35c4255de10d5f5638c269fa633c0cb4ecd5e0b9[m
+Merge: 28e201f 7457eca
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Mon Feb 4 16:13:11 2019 +0000
+
+    Merge branch 'master' into origin/matches
+
+[33mcommit 28e201f1dd18a6aa26493d4fa918d10905227b7f[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Mon Feb 4 16:10:25 2019 +0000
+
+    Matches working
+
+[33mcommit 7457eca0f88a77c97e3366afc9482baf58fde0f6[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sun Feb 3 17:11:31 2019 +0000
+
+    fix compile error
+
+[33mcommit 5ff14758d66b047da5eea2e44faeaf92792214e1[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sun Feb 3 17:07:51 2019 +0000
+
+    initial commit of Matches - needs work
+
+[33mcommit 821fe870d1338a2fb91db4097bc42010fabb4c29[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sun Feb 3 11:51:08 2019 +0000
+
+    Create new branch for matches
+
+[33mcommit ea84dfa33ea22d6a1e5b14ad3d8f48ffde46ab34[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sat Feb 2 12:49:48 2019 +0000
+
+    Multiple changes
+
+[33mcommit 95752b6989aea204fc79c96f170503cbc9a5231a[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Feb 2 06:59:09 2019 +0000
+
+    More changes
+
+[33mcommit a4a50487eb04ec127b19866f4120340d5c3045ac[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Thu Jan 31 17:03:27 2019 +0000
+
+    More changes
+
+[33mcommit 8e439c02a4a6627492b1b8720bdf7898707c678a[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Thu Jan 31 12:28:50 2019 +0000
+
+    Multiple changes
+
+[33mcommit 2cf1bc0833f7f6e9b6f0178231545584911fb0ea[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Mon Jan 28 05:42:41 2019 +0000
+
+    Intermin commit
+
+[33mcommit b01d0423dd6189b3920d8db5cd5ebf9c8000aca2[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sun Jan 27 10:29:06 2019 +0000
+
+    Output poses to 3d view
+
+[33mcommit c3dc4d29af1095ab2629e0b98c1cb295b190f4ae[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Jan 26 08:14:03 2019 +0000
+
+    Add mapping structure
+
+[33mcommit af6388253a69a5b16dd3fd604064e1768d537100[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sun Jan 20 17:25:31 2019 +0000
+
+    add KeyFrameDisplay
+
+[33mcommit 94a5e4c1032fb15c44cda4ef50ed1e35e3de5812[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sun Jan 20 17:00:28 2019 +0000
+
+    Start of 3d display
+
+[33mcommit 88074be3329be0e5d75165d43769730bf5849631[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sun Jan 20 16:12:35 2019 +0000
+
+    Add timer class to measure function times
+
+[33mcommit 3bec0f4659247e8cd1b59a0cc5a4d812a8d8fcc3[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sat Jan 19 09:01:07 2019 +0000
+
+    Update persistent features
+
+[33mcommit 203e9b7bc8ebeee61537527aac2dc2a54691b7c8[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Jan 19 06:56:20 2019 +0000
+
+    More updates to Matching
+
+[33mcommit 2b131554b1d5b981e4480a5c48d7c61e30a6ca32[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Thu Jan 17 16:59:03 2019 +0000
+
+    Initial implementation of feature matching and pose estimation
+
+[33mcommit fcafba56d8413980358f00339651d6d9c59b9f8d[m
+Author: ljb2208 <ljb2208@gmail.com>
+Date:   Sun Jan 13 20:16:02 2019 +0000
+
+    Add Filters
+
+[33mcommit 2039f58a35f708561ab7990aded1bf2435f89eee[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Sat Jan 12 07:09:47 2019 +0000
+
+    Add feature matching
+
+[33mcommit 76e742534f2935042ca6ddd2a7256bc48219363c[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Thu Jan 10 15:38:49 2019 +0000
+
+    Undistorted images
+
+[33mcommit acff054dbcddbf86d832afdcf220360e558b2463[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Mon Jan 7 17:54:25 2019 +0000
+
+    update gitignore
+
+[33mcommit 95b088c5a3b5db75ed99cfa7f273443972511c1f[m
+Author: lbarnett <ljb2208@gmail.com>
+Date:   Mon Jan 7 17:52:52 2019 +0000
+
+    initial commit

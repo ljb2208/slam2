@@ -7,7 +7,7 @@ class Histogram
 {
     public:
         Histogram();
-        Histogram(std::vector<Matches::p_match> p_matched, int width, int height, int bucketWidth, int bucketHeight);
+        Histogram(std::vector<std::shared_ptr<Matches::p_match>> p_matched, int width, int height, int bucketWidth, int bucketHeight);
         ~Histogram();
         int calculateSAD(Histogram* compHistogram);
 

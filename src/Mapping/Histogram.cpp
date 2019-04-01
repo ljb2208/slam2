@@ -1,6 +1,6 @@
 #include "Histogram.h"
 
-Histogram::Histogram(std::vector<Matches::p_match> p_matched, int width, int height, int bucketWidth, int bucketHeight)
+Histogram::Histogram(std::vector<std::shared_ptr<Matches::p_match>> p_matched, int width, int height, int bucketWidth, int bucketHeight)
 {
     bucket_cols = (int32_t)floor(width/bucketWidth)+1;
     bucket_rows = (int32_t)floor(height/bucketHeight)+1;
@@ -16,10 +16,10 @@ Histogram::Histogram(std::vector<Matches::p_match> p_matched, int width, int hei
 
     for (int i=0; i < p_matched.size(); i++)
     {
-        int32_t u = (int32_t)floor(p_matched[i].u1c/bucketWidth);
-        int32_t v = (int32_t)floor(p_matched[i].v1c/bucketHeight);  
+        int32_t u = (int32_t)floor(p_matched[i]->u1c/bucketWidth);
+        int32_t v = (int32_t)floor(p_matched[i]->v1c/bucketHeight);  
 
-        histBuckets[v* bucket_cols + u].count[p_matched[i].max1.c]++;
+        histBuckets[v* bucket_cols + u].count[p_matched[i]->max1.c]++;
     }
 }
 

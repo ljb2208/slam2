@@ -20,11 +20,11 @@ void Matches::ageFeaturePoints()
 {
     for (int i=0; i < p_matched.size(); i++)
     {
-        p_matched[i].u1p3 = p_matched[i].u1p2;
-        p_matched[i].v1p3 = p_matched[i].v1p2;
-        p_matched[i].u1p2 = p_matched[i].u1p;
-        p_matched[i].v1p2 = p_matched[i].v1p;        
-        p_matched[i].age++;
+        p_matched[i]->u1p3 = p_matched[i]->u1p2;
+        p_matched[i]->v1p3 = p_matched[i]->v1p2;
+        p_matched[i]->u1p2 = p_matched[i]->u1p;
+        p_matched[i]->v1p2 = p_matched[i]->v1p;        
+        p_matched[i]->age++;
     }
 }
 
@@ -32,9 +32,9 @@ void Matches::resetMatches()
 {
     for (int i=0; i < p_matched.size(); i++)
     {
-      p_matched[i].active = false;
-      p_matched[i].matched = false;
-      p_matched[i].outlier = false;
+      p_matched[i]->active = false;
+      p_matched[i]->matched = false;
+      p_matched[i]->outlier = false;
     }
 
     inlierMatches.clear();
@@ -46,7 +46,7 @@ void Matches::resetMatches()
 void Matches::clearOutliers()
 {
     inlierMatches.erase(std::remove_if(inlierMatches.begin(), inlierMatches.end(),
-                [](Matches::p_match* pmatch) { return pmatch->outlier;}), inlierMatches.end());
+                [](std::shared_ptr<Matches::p_match> pmatch) { return pmatch->outlier;}), inlierMatches.end());
 }
 
 int32_t Matches::getInlierCount()
@@ -59,26 +59,53 @@ int32_t Matches::getTotalMatches()
     return p_matched.size();
 }
 
-bool Matches::push_back(Matches::p_match match, bool current)
+bool Matches::push_back(std::shared_ptr<Matches::p_match> match, bool current)
 {
+
+    bool r = validateMatch(match);
+
+    if (r)
+        printf("Orig Match corrupt.\n");
     // if match not found add
     if (!matchExists(match, current))
     {
-        Matches::p_match* mtch = (Matches::p_match*) malloc(sizeof(Matches::p_match));
+        //Matches::p_match* mtch = (Matches::p_match*) malloc(sizeof(Matches::p_match));
 
-        std::memcpy(mtch, &match, sizeof(Matches::p_match));
+        // Matches::p_match mtch;// = (Matches::p_match*) malloc(sizeof(Matches::p_match));
+        std::shared_ptr<Matches::p_match> mtch = std::make_shared<Matches::p_match>();
+
+        std::memcpy(mtch.get(), match.get(), sizeof(Matches::p_match));
+
+        // bool r = validateMatch(&match);
+
+        if (r)
+            printf("Orig Match corrupt2.\n");
 
         mtch->matched = true;
         mtch->active = true;
         mtch->outlier = false;
         mtch->imax1 = mtch->max1;
         mtch->imax2 = mtch->max2;
-        p_matched.push_back(*mtch);
+        p_matched.push_back(mtch);
         inlierMatches.push_back(mtch);
 
-        addToMap(*mtch);
+        r = validateMatch(mtch);
+
+        if (r)
+            printf("New Match corrupt.\n");
+
+
+        // addToMap(*mtch);
         matchesAdded++;
+
+        r = validateMatch(mtch);
+
+        if (r)
+            printf("New Match corrupt2.\n");
+
     }    
+
+    validateMatches("PushBack");
 }
 
 void Matches::addToMap(Matches::p_match match)
@@ -113,14 +140,14 @@ Matches::p_match* Matches::getMatchbyMaxima(Matches::maximum max, bool right)
     return result;
 }
 
-bool Matches::matchExists(Matches::p_match match, bool current)
+bool Matches::matchExists(std::shared_ptr<Matches::p_match> match, bool current)
 {
     bool found = false;
     for (int i=0; i < p_matched.size(); i++)
     {
         if (current)
         {
-            if (p_matched[i].i1c == match.i1c)
+            if (p_matched[i]->i1c == match->i1c)
                 found = true;
         }
         else
@@ -131,31 +158,32 @@ bool Matches::matchExists(Matches::p_match match, bool current)
 
         if (found)
         {
-            p_matched[i].outlier = false;
-            p_matched[i].u1p = match.u1p;
-            p_matched[i].v1p = match.v1p;
-            p_matched[i].i1p = match.i1p;
-            p_matched[i].u2p = match.u2p;
-            p_matched[i].v2p = match.v2p;
-            p_matched[i].i2p = match.i2p;
-            p_matched[i].u1c = match.u1c;
-            p_matched[i].v1c = match.v1c;
-            p_matched[i].i1c = match.i1c;
-            p_matched[i].u2c = match.u2c;
-            p_matched[i].v2c = match.v2c;
-            p_matched[i].i2c = match.i2c;
-            p_matched[i].max1 = match.max1;
-            p_matched[i].max2 = match.max2;
+            p_matched[i]->outlier = false;
+            p_matched[i]->u1p = match->u1p;
+            p_matched[i]->v1p = match->v1p;
+            p_matched[i]->i1p = match->i1p;
+            p_matched[i]->u2p = match->u2p;
+            p_matched[i]->v2p = match->v2p;
+            p_matched[i]->i2p = match->i2p;
+            p_matched[i]->u1c = match->u1c;
+            p_matched[i]->v1c = match->v1c;
+            p_matched[i]->i1c = match->i1c;
+            p_matched[i]->u2c = match->u2c;
+            p_matched[i]->v2c = match->v2c;
+            p_matched[i]->i2c = match->i2c;
+            p_matched[i]->max1 = match->max1;
+            p_matched[i]->max2 = match->max2;
                     
-            if (p_matched[i].active == false)
+            if (p_matched[i]->active == false)
             {
-                inlierMatches.push_back(&p_matched[i]);
-                addToMap(p_matched[i]);
+                inlierMatches.push_back(p_matched[i]);
+                // addToMap(p_matched[i]);
             }
 
-            p_matched[i].active = true;    
-            p_matched[i].matched = true;
+            p_matched[i]->active = true;    
+            p_matched[i]->matched = true;
             matchesFound++;
+            // printf("Match found.\n");
             return true;            
         }
     }
@@ -177,7 +205,7 @@ void Matches::deleteStaleMatches()
 
     // remove where no current matches
     p_matched.erase(std::remove_if(p_matched.begin(), p_matched.end(),
-           [](p_match pm){ return pm.matched == false;}), p_matched.end());  
+           [](std::shared_ptr<Matches::p_match> pm){ return pm->matched == false;}), p_matched.end());  
 }
 
 void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucket_height)
@@ -194,7 +222,7 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
     // allocate number of buckets needed
     int32_t bucket_cols = (int32_t)floor(u_max/bucket_width)+1;
     int32_t bucket_rows = (int32_t)floor(v_max/bucket_height)+1;
-    std::vector<Matches::p_match*> *buckets = new std::vector<Matches::p_match*>[bucket_cols*bucket_rows*4];
+    std::vector<std::shared_ptr<Matches::p_match>> *buckets = new std::vector<std::shared_ptr<Matches::p_match>>[bucket_cols*bucket_rows*4];
 
     // assign matches to their buckets
     for (int i=0; i < inlierMatches.size(); i++)
@@ -255,23 +283,18 @@ int32_t Matches::getSelectedCount()
     return selectedMatches.size();
 }
 
-int32_t Matches::getKey(Matches::p_match match)
-{
-    return getKey(&match);
-}
-
-int32_t Matches::getKey(Matches::p_match* match)
+int32_t Matches::getKey(std::shared_ptr<Matches::p_match> match)
 {
     float u1c = roundf(match->u1c);
     float v1c = roundf(match->v1c);
     return (match->max1.c * 10000000 + u1c * 10000 + v1c);
 }
 
-int32_t Matches::getPriorKey(Matches::p_match match)
+int32_t Matches::getPriorKey(std::shared_ptr<Matches::p_match> match)
 {
-    float u1p = roundf(match.u1p);
-    float v1p = roundf(match.v1p);
-    return (match.max1.c * 10000000 + u1p * 10000 + v1p);
+    float u1p = roundf(match->u1p);
+    float v1p = roundf(match->v1p);
+    return (match->max1.c * 10000000 + u1p * 10000 + v1p);
 }
 
 std::vector<Matches::p_match> Matches::copySelectedMatches()
@@ -298,13 +321,13 @@ void Matches::printStats()
 
     for (int i=0; i < p_matched.size(); i++)
     {
-        if (p_matched[i].active)
+        if (p_matched[i]->active)
             activeCount++;
-        if (!p_matched[i].outlier)
+        if (!p_matched[i]->outlier)
             inlierCount++;
 
-        if (p_matched[i].u1c < 1 || p_matched[1].u1c > 1000 || p_matched[i].v1c < 1
-            || p_matched[i].v1c > 1000)
+        if (p_matched[i]->u1c < 1 || p_matched[1]->u1c > 1000 || p_matched[i]->v1c < 1
+            || p_matched[i]->v1c > 1000)
             invalidMatches++;
     }
 
@@ -319,4 +342,75 @@ void Matches::printStats()
 
     printf("Matches stats. Total: %i Invalid: %i InvalidInliers: %i Added: %i Found: %i Active: %i inliers: %i inliervec: %i selected: %i\n", 
         totalCount, invalidMatches, invalidInlierMatches, matchesAdded, matchesFound, activeCount, inlierCount, inlierVecCount, selCount);
+}
+
+void Matches::validateMatches(std::string ref)
+{
+    return;
+    
+    int badMatches = 0;
+
+    for (int i=0; i < p_matched.size(); i++)
+    {
+        if (validateMatch(p_matched[i]))
+            badMatches++;
+    }
+
+    int badInlierMatches = 0;
+
+    for (int i=0; i < inlierMatches.size(); i++)
+    {
+        if (validateMatch(inlierMatches[i]))
+            badInlierMatches++;
+    }
+
+    if (badMatches > 0 || badInlierMatches > 0)
+    {
+        printf("ValidateMatches. Ref: %s bad matches: %i(%i) bad inlier matches: %i(%i)\n", ref.c_str(), badMatches, 
+            static_cast<int>(p_matched.size()), badInlierMatches, static_cast<int>(inlierMatches.size()));
+    }
+}
+
+
+bool Matches::validateMatch(std::shared_ptr<Matches::p_match> match)
+{
+    bool bad = false;
+
+    if (match->u1c < 0 || match->u1c > 640)
+    {
+        printf("bad u1c: %f\n", match->u1c);
+        bad = true;
+    }
+
+    if (match->u2c < 0 || match->u2c > 640)
+    {
+        printf("bad u2c: %f\n", match->u2c);
+        bad = true;
+    }
+
+    if (match->v1c < 0 || match->v1c > 640)
+    {
+        printf("bad v1c: %f\n", match->v1c);
+        bad = true;
+    }
+
+    if (match->v2c < 0 || match->v2c > 640)
+    {
+        printf("bad v2c: %f\n", match->v2c);
+        bad = true;
+    }
+
+    if (match->max1.c < 0 || match->max1.c > 4)
+    {
+        printf("bad m1c: %i\n", match->max1.c);
+        bad = true;
+    }
+    
+    if (match->max2.c < 0 || match->max2.c > 4)
+    {
+        printf("bad m2c: %i\n", match->max2.c);
+        bad = true;
+    }
+
+    return bad;
 }
