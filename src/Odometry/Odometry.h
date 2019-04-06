@@ -3,6 +3,7 @@
 #include "Util/SLImage.h"
 #include "Pangolin/SlamViewer.h"
 #include "Matcher.h"
+#include "MatcherNew.h"
 #include "Matches.h"
 #include "Util/Timer.h"
 #include "Mapping/Mapping.h"
@@ -14,7 +15,7 @@
 class Odometry
 {
     public:
-        Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine, int imageHeight, int imageWidth);
+        Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine, int imageHeight, int imageWidth, int imageOffset);
         ~Odometry();
         bool addStereoFrames(SLImage* image, SLImage* imageRight);
         float getAverageTranslationError();
@@ -85,7 +86,7 @@ class Odometry
 
     private:
         SlamViewer* viewer;        
-        Matcher* matcher;
+        MatcherNew* matcher;
         Matches* matches;        
         Mapping* mapping;
 
@@ -96,6 +97,7 @@ class Odometry
         double *p_predict;  // predicted 2d points
         std::vector<int32_t>           inliers;    // inlier set
         slam2::Matrix pose = slam2::Matrix::eye(4);
+        slam2::Matrix poseR = slam2::Matrix::eye(4);
         slam2::Matrix pose2 = slam2::Matrix::eye(4);
         slam2::Matrix posePrior = slam2::Matrix::eye(4);
 
@@ -120,6 +122,8 @@ class Odometry
         bool updateMotion();
         bool updateMotion2();
         bool updateMotion3();
+        bool updateMotion4();
+
 
         std::vector<double> estimateMotion ();
         std::vector<double> estimateMotion2 ();
@@ -154,7 +158,7 @@ class Odometry
         cv::Scalar getColorFromDepth(float depth);
         cv::Mat getDepthImage();
 
-        bool estimateRotation();
+        slam2::Matrix estimateRotation(bool* result);
         bool convertRotations();
 
         float getRotationError(int index);
@@ -168,6 +172,7 @@ class Odometry
         double computedMotion;
         double groundTruthMotion;
         int frameProcessedCount;
+        int imageOffset;
 
         std::ofstream outputFile;
 

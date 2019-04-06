@@ -39,7 +39,7 @@ void SlamViewer::run()
 	if (settings_showGroundTruth)
 	{	
 		ImageFolderReader* reader = new ImageFolderReader();
-		groundTruth = reader->getGroundTruth();
+		groundTruth = reader->getGroundTruth(imageOffset);
 		delete reader;
 	}
 
@@ -275,23 +275,40 @@ void SlamViewer::drawConstraints()
 
     if(settings_showGroundTruth)
 	{
+		// float f_adj1, f_adj2, f_adj3;
+		// f_adj1 = f_adj2 = f_adj3 = 0;
+
+		// if (imageOffset != 0)
+		// {
+		// 	f_adj1 = groundTruth[imageOffset].val[0][3];
+		// 	f_adj2 = groundTruth[imageOffset].val[1][3];
+		// 	f_adj3 = groundTruth[imageOffset].val[2][3];
+		// }
+
+		// printf("orig f1: %f f2: %f f3: %f\n", f_adj1, f_adj2, f_adj3);
+
         float colorYellow[3] = {1,1,0};
 		glColor3f(colorYellow[0],colorYellow[1],colorYellow[2]);
 		glLineWidth(3);
 
 		glBegin(GL_LINE_STRIP);        
 
-		for(unsigned int i=imageOffset;i<groundTruth.size();i++)
+		for(unsigned int i=0;i<groundTruth.size();i++)
 		{    
-			if (i > (currentImageId + imageOffset))
+			// if (i > (currentImageId + imageOffset))
+			// 	break;
+
+			if (i > (currentImageId))
 				break;
 
             float f1, f2, f3;
             
-            f1 = groundTruth[i].val[0][3];
-            f2 = groundTruth[i].val[1][3];
-            f3 = groundTruth[i].val[2][3];
-            glVertex3f(f1, f2, f3);					                        
+            f1 = groundTruth[i].val[0][3];// - f_adj1;
+            f2 = groundTruth[i].val[1][3];// - f_adj2;
+            f3 = groundTruth[i].val[2][3];// - f_adj3;
+            glVertex3f(f1, f2, f3);					
+
+			// printf("f1: %f f2: %f f3: %f\n", f1, f2, f3);                        
 
 		}
 		glEnd();        

@@ -25,6 +25,41 @@ class Matches
             maximum(int32_t u,int32_t v,int32_t val,int32_t c):u(u),v(v),val(val),c(c) {}
         };
 
+        struct refpatch {
+            uint8_t d1,d2, d3, d4, d5, d6, d7, d8;
+            uint8_t d9, d10, d11, d12, d13, d14, d15, d16;
+            bool initialized;
+
+            refpatch() 
+            {
+                d1 = d2 = d3 = d4 = d5 = d6 = d7 = d8;
+                d9 = d10 = d11 = d12 = d13 = d14 = d15 = d16;
+                initialized = false;
+            }
+
+            void setPatch(uint8_t* patch)
+            {
+                d1 = patch[0];
+                d2 = patch[1];
+                d3 = patch[2];
+                d4 = patch[3];
+                d5 = patch[4];
+                d6 = patch[5];
+                d7 = patch[6];
+                d8 = patch[7];
+                d9 = patch[8];
+                d10 = patch[9];
+                d11 = patch[10];
+                d12 = patch[11];
+                d13 = patch[12];
+                d14 = patch[13];
+                d15 = patch[14];
+                d16 = patch[15];
+
+                initialized  = true;
+            }
+        };
+
         // structure for storing matches
         struct p_match {
             float   u1p2,v1p2; // u,v-coordinates in 2nd previous left  image
@@ -40,7 +75,9 @@ class Matches
             maximum imax1;  // initial feature left image
             maximum imax2;  // initial feature right image
             maximum max1;   // current feature left image
-            maximum max2;   // current feature right image            
+            maximum max2;   // current feature right image
+            refpatch ref1;
+            refpatch ref2;        
             int32_t age;  // feature age                   
             float   depth;  // depth
             bool matched;
@@ -64,7 +101,7 @@ class Matches
         void clear();
         void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
         void clearOutliers();
-        Matches::p_match* getMatchbyMaxima(Matches::maximum max, bool right);
+        std::shared_ptr<Matches::p_match> getMatchbyMaxima(int32_t u, int32_t v, int32_t c, bool right);
 
         std::vector<Matches::p_match> copySelectedMatches();
 
@@ -81,10 +118,11 @@ class Matches
         int32_t getKey(std::shared_ptr<Matches::p_match> match);
         int32_t getPriorKey(std::shared_ptr<Matches::p_match> match);
         void deleteStaleMatches();
-        void addToMap(Matches::p_match match);
+        void addToMap(std::shared_ptr<Matches::p_match> match);
         void clearMap();
 
-        Matches::p_match** map_matched;
+        std::unique_ptr<std::shared_ptr<Matches::p_match>[]> map_matched;
+        // Matches::p_match** map_matched;
         int imageWidth, imageHeight;
         int matchesAdded, matchesFound;
 

@@ -67,7 +67,7 @@ public:
     int getNumImages();
     std::string getImageFilename(int index);
     double getTimestamp(int index);
-    std::vector<slam2::Matrix> getGroundTruth();
+    std::vector<slam2::Matrix> getGroundTruth(int imageOffset);
 
 private:
     void loadTimestamps();

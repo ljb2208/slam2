@@ -101,12 +101,13 @@ double ImageFolderReader::getTimestamp(int index)
 	return timestamps[index];
 }
 
-std::vector<slam2::Matrix> ImageFolderReader::getGroundTruth()
+std::vector<slam2::Matrix> ImageFolderReader::getGroundTruth(int imageOffset)
 {
+    std::vector<slam2::Matrix> matrix_temp;
     std::vector<slam2::Matrix> matrix_result;
 
         // show ground truth
-    std::string gtPath = "/home/lbarnett/development/odometry/poses/00.txt";
+    std::string gtPath = "/home/lbarnett/development/odometry/poses/07.txt";
     std::ifstream ReadFile(gtPath.c_str());
     std::string temp;
     std::string delim (" ");
@@ -127,8 +128,49 @@ std::vector<slam2::Matrix> ImageFolderReader::getGroundTruth()
         gtCam.val[3][3] = 1;
 
         results.clear();
-        matrix_result.push_back(gtCam);        
+        matrix_temp.push_back(gtCam);        
     }
+
     ReadFile.close();
-    return matrix_result;
+
+    if (imageOffset != 0)
+    {
+        for (int i=imageOffset; i < matrix_temp.size(); i++)
+        {
+            matrix_result.push_back(matrix_temp[i]);
+        }
+
+        return matrix_result;
+    }
+
+    // if (imageOffset != 0)
+    // {
+    //     //adjust poses
+    //     slam2::Matrix initialPose = matrix_temp[0];
+    //     printf("imageOffset pose\n");
+    //     std::cout << matrix_temp[imageOffset] << "\n";
+    //     slam2::Matrix rot = slam2::Matrix::inv(matrix_temp[imageOffset].getMat(0,0,2,2))    ;
+    //     printf("rot\n");
+    //     std::cout << rot << "\n";
+    //     slam2::Matrix poseAdj = initialPose * slam2::Matrix::inv(matrix_temp[imageOffset]);
+
+    //     printf("Initial pose:\n");
+    //     std::cout << initialPose << "\n";
+    //     std::cout << "poseAdj:\n" << poseAdj << "\n";
+
+    //     int y = 0;
+    //     for (int i=imageOffset; i < matrix_temp.size(); i++)
+    //     {
+    //         printf("posepre:\n");
+    //         std::cout << matrix_temp[i] << "\n";
+
+    //         matrix_result.push_back(matrix_temp[i] * poseAdj);
+    //         std::cout << "poseafter:\n" << matrix_result[y] << "\n";
+    //         y++;
+    //     }
+
+    //     return matrix_result;
+    // }
+
+    return matrix_temp;
 }

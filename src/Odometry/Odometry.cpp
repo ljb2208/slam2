@@ -9,10 +9,11 @@
 
 using namespace std::chrono;
 
-Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine, int imageHeight, int imageWidth)
+Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, float baseLine, int imageHeight, int imageWidth, int imageOffset)
 {
     this->viewer = viewer;
     this->mapping = mapping;
+    this->imageOffset = imageOffset;
 
     matches = new Matches(imageWidth, imageHeight);
 
@@ -30,13 +31,13 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
 
     viewer->setCalibration(param.calib.f, param.calib.f, param.calib.cu, param.calib.cv);
 
-    matcher = new Matcher(Matcher::parameters(), matches);
+    matcher = new MatcherNew(MatcherNew::parameters(), matches);
     matcher->setIntrinsics(param.calib.f, param.calib.fy, param.calib.cu, param.calib.cv, param.base);
 
     timer = new Timer();
 
     ImageFolderReader* reader = new ImageFolderReader();
-    groundTruth = reader->getGroundTruth();
+    groundTruth = reader->getGroundTruth(imageOffset);
     delete reader;
 
     outputFile.open("outputs.csv", std::ios::trunc);
@@ -126,12 +127,30 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         result = updateMotion2();
     else if (param.motion_method == 2)
         result = updateMotion3();
+    else if (param.motion_method == 3)
+        result = updateMotion4();
     timer->stopTimer();
 
     timer->startTimer("calculateDepth");
     calculateDepth();
     timer->stopTimer();
 
+    int width = 640/50;
+    int height = 480/50;
+    for (int i=0; i < width; i++)
+    {
+        cv::Point2f pt1(50*(i+1), 0);
+        cv::Point2f pt2(50*(i+1), 480);
+        cv::line(image->imageColor,pt1, pt2, cv::Scalar(255,0,0), 1, 8, 0);
+    }
+
+    for (int i=0; i < height; i++)
+    {
+        cv::Point2f pt1(0, 50*(i+1));
+        cv::Point2f pt2(640, 50*(i+1));
+        cv::line(image->imageColor,pt1, pt2, cv::Scalar(255,0,0), 1, 8, 0);
+    }
+    
 
     int maxAge = -1;
 
@@ -139,11 +158,16 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     {
         cv::Point2f matchPoint(matches->selectedMatches[i]->u1c, matches->selectedMatches[i]->v1c);
         cv::Point2f matchPointRight(matches->selectedMatches[i]->u2c, matches->selectedMatches[i]->v2c);
-        cv::circle(image->imageColor, matchPoint, 4, getColorFromDepth(matches->selectedMatches[i]->depth), -1, 8, 0);
+        cv::circle(image->imageColor, matchPoint, 3, getColorFromDepth(matches->selectedMatches[i]->depth), -1, 8, 0);
         cv::circle(imageRight->imageColor, matchPointRight, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
 
         if (matches->selectedMatches[i]->age > maxAge)
             maxAge = matches->selectedMatches[i]->age;
+
+        // std::string fileName = "/home/lbarnett/development/slam2/output/image_";
+        // fileName.append(std::to_string(image->index));
+        // fileName.append(".jpg");
+        // cv::imwrite(fileName.c_str(), image->imageColor);
     }
 
     printf("Max age: %i\n", maxAge);
@@ -165,9 +189,6 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         // on success, update current pose
         slam2::Matrix motion = getMotion();
         pose = pose * slam2::Matrix::inv(motion);
-
-        //Matrix motion = getMotion2();
-        //pose = pose * Matrix::inv(motion);
 
         // output some statistics
         double num_matches = matches->getSelectedCount();
@@ -238,6 +259,9 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
 
 void Odometry::setInitialPose()
 {
+    if (imageOffset > 0)
+        pose = groundTruth[0];
+
     return;
     
     // adjust initial pose for pitch
@@ -302,6 +326,8 @@ bool Odometry::updateMotion()
     // set transformation matrix (previous to current frame)
     Tr_delta = transformationVectorToMatrix(tr_delta);
     Tr_valid = true;
+
+    
     
     // success
     return true;
@@ -334,6 +360,16 @@ bool Odometry::updateMotion3()
     return result;
 }
 
+
+bool Odometry::updateMotion4()
+{
+    bool result;
+
+    // estimate motion
+    Tr_delta = estimateRotation(&result);
+    
+    return result;
+}
 std::vector<double> Odometry::estimateMotion ()
 {
     // return value
@@ -1048,71 +1084,103 @@ slam2::Matrix Odometry::transformationVectorToMatrix (std::vector<double> tr)
     return Tr;
 }
 
-bool Odometry::estimateRotation()
+slam2::Matrix Odometry::estimateRotation(bool* result)
 {
     std::vector<cv::Point> points1;
     std::vector<cv::Point> points2;
     cv::Mat mask;
+    slam2::Matrix m = slam2::Matrix::eye(4);
+
 
     for (int i=0; i < matches->inlierMatches.size(); i++)
     {
-        points1.push_back(cv::Point(matches->inlierMatches[i]->u1c, matches->inlierMatches[i]->v1c));
-        points2.push_back(cv::Point(matches->inlierMatches[i]->u1p, matches->inlierMatches[i]->v1p));
+        points1.push_back(cv::Point(matches->inlierMatches[i]->u1p, matches->inlierMatches[i]->v1p));
+        points2.push_back(cv::Point(matches->inlierMatches[i]->u1c, matches->inlierMatches[i]->v1c));
     }
 
     if (points1.size() < 5)
     {
         rotationDepth = 0;
-        return false;
+        *result = false;
+        return m;
     }
 
     essMat = cv::findEssentialMat(points1, points2, param.calib.f, cv::Point(param.calib.cu, param.calib.cv),
-            cv::RANSAC, 0.999, 1.0, mask);
+            cv::RANSAC, 0.999, 2.0, mask);
+
+    cv::Mat rot;
+    cv::Mat trans;
+
+    cv::Point2d pp = cv::Point2d(param.calib.cu, param.calib.cv);
+    int inliers = cv::recoverPose(essMat, points1, points2, rot, trans, param.calib.f, pp, mask);        
 
     points1.clear();
     points2.clear();
 
-    for (int i=0; i < matches->inlierMatches.size(); i++)
-    {
-        if (matches->inlierMatches[i]->age > 1)
-        {
-            points1.push_back(cv::Point(matches->inlierMatches[i]->u1c, matches->inlierMatches[i]->v1c));
-            points2.push_back(cv::Point(matches->inlierMatches[i]->u1p2, matches->inlierMatches[i]->v1p2));
-        }
-    }
+    m.val[0][0] = rot.at<double>(0, 0);
+    m.val[0][1] = rot.at<double>(0, 1);
+    m.val[0][2] = rot.at<double>(0, 2);
+    m.val[1][0] = rot.at<double>(1, 0);
+    m.val[1][1] = rot.at<double>(1, 1);
+    m.val[1][2] = rot.at<double>(1, 2);
+    m.val[2][0] = rot.at<double>(2, 0);
+    m.val[2][1] = rot.at<double>(2, 1);
+    m.val[2][2] = rot.at<double>(2, 2);
+    m.val[0][3] = trans.at<double>(0);
+    m.val[1][3] = trans.at<double>(0, 1);
+    m.val[2][3] = trans.at<double>(0, 2);
+    
+    *result = true;
+    return m;
 
-    if (points1.size() < 5)
-    {
-        rotationDepth = 1;
-        return true;
-    }
-    
-    essMat2 = cv::findEssentialMat(points1, points2, param.calib.f, cv::Point(param.calib.cu, param.calib.cv),
-            cv::RANSAC, 0.999, 1.0, mask);
-    
-    points1.clear();
-    points2.clear();
+    // std::cout << "Recover Inliers: " << inliers << "\n";
+    // std::cout << "rot: \n" << rot;
+    // std::cout << "\ntrans: \n" << trans << "\n";
+    // std::cout << "rmat:\n" << m << "\n";
+    // std::cout << "pmat:\n" << poseR << "\n";
+    // return true;
 
-    for (int i=0; i < matches->inlierMatches.size(); i++)
-    {
-        if (matches->inlierMatches[i]->age > 2)
-        {
-            points1.push_back(cv::Point(matches->inlierMatches[i]->u1c, matches->inlierMatches[i]->v1c));
-            points2.push_back(cv::Point(matches->inlierMatches[i]->u1p3, matches->inlierMatches[i]->v1p3));
-        }
-    }
+    // for (int i=0; i < matches->inlierMatches.size(); i++)
+    // {
+    //     if (matches->inlierMatches[i]->age > 1)
+    //     {
+    //         points1.push_back(cv::Point(matches->inlierMatches[i]->u1c, matches->inlierMatches[i]->v1c));
+    //         points2.push_back(cv::Point(matches->inlierMatches[i]->u1p2, matches->inlierMatches[i]->v1p2));
+    //     }
+    // }
 
-    if (points1.size() < 5)
-    {
-        rotationDepth = 2;
-        return true;
-    }
+    // if (points1.size() < 5)
+    // {
+    //     rotationDepth = 1;
+    //     return true;
+    // }
     
-    essMat3 = cv::findEssentialMat(points1, points2, param.calib.f, cv::Point(param.calib.cu, param.calib.cv),
-            cv::RANSAC, 0.999, 1.0, mask);
+    // essMat2 = cv::findEssentialMat(points1, points2, param.calib.f, cv::Point(param.calib.cu, param.calib.cv),
+    //         cv::RANSAC, 0.999, 1.0, mask);
     
-    rotationDepth = 3;
-    return true;
+    // points1.clear();
+    // points2.clear();
+
+    // for (int i=0; i < matches->inlierMatches.size(); i++)
+    // {
+    //     if (matches->inlierMatches[i]->age > 2)
+    //     {
+    //         points1.push_back(cv::Point(matches->inlierMatches[i]->u1c, matches->inlierMatches[i]->v1c));
+    //         points2.push_back(cv::Point(matches->inlierMatches[i]->u1p3, matches->inlierMatches[i]->v1p3));
+    //     }
+    // }
+
+    // if (points1.size() < 5)
+    // {
+    //     rotationDepth = 2;
+    //     return true;
+    // }
+    
+    // essMat3 = cv::findEssentialMat(points1, points2, param.calib.f, cv::Point(param.calib.cu, param.calib.cv),
+    //         cv::RANSAC, 0.999, 1.0, mask);
+    
+    // rotationDepth = 3;
+    // return true;
 }
 
 bool Odometry::convertRotations()
@@ -1305,7 +1373,7 @@ slam2::Matrix Odometry::estimateMotion3(bool* result)
 
     PMatrix bestP;
 
-  for (int32_t k=0;k<param.mono_ransac_iters;k++) {
+  for (int32_t k=0;k<param.ransac_iters;k++) {
 
     // draw random sample 
     std::vector<int32_t> active = getRandomSample(N,8);
@@ -1344,7 +1412,7 @@ slam2::Matrix Odometry::estimateMotion3(bool* result)
     }
     
     std::vector<int32_t> inliers_curr = getInliers5Point(bestPTemp);
-
+    
     // update model if we are better
      if (inliers_curr.size()>inliers.size())
      {

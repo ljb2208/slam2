@@ -1267,6 +1267,15 @@ void Matcher::removeOutliersNCC()
       u2 = p_matched_p->inlierMatches[i]->max2.u;
       v2 = p_matched_p->inlierMatches[i]->max2.v;
 
+      int32_t disp = u1 - u2;
+
+      if (disp < param.outlier_disp_tolerance)
+      {
+          removeCount++;
+          p_matched_p->inlierMatches[i]->outlier = true;
+          continue;
+      }
+
       float min_ncc = 1;
       
       float ncc = calculateNCC(I1c, I2c, u1, v1, u2, v2, imageWidth, imageHeight);
@@ -1569,9 +1578,12 @@ bool Matcher::parabolicFitting(const uint8_t* I1_du,const uint8_t* I1_dv,const i
   if (fabs(ddu)>=1.0 || fabs(ddv)>=1.0)
     return false;
   
+  printf("pre fit: u2: %f v2: %f\n", u2, v2);
   // update target
   u2 += (float)du-3.0+ddu;
   v2 += (float)dv-3.0+ddv;
+
+  printf("post fit: u2: %f v2: %f\n", u2, v2);
   
   // return true on success
   return true;
@@ -1670,6 +1682,7 @@ void Matcher::refinement (int32_t method) {
     // method: flow or quad matching
     if (method==0 || method==2) {
       if (param.refinement==2) {
+        printf("parabolicf1\n");
         if (!parabolicFitting(I1c_du_fit,I1c_dv_fit,dims_c,I1p_du_fit,I1p_dv_fit,dims_p,
                               it->u1c,it->v1c,it->u1p,it->v1p,At,AtA,desc_buffer))
           continue;
@@ -1682,6 +1695,7 @@ void Matcher::refinement (int32_t method) {
     // method: stereo or quad matching
     if (method==1 || method==2) {
       if (param.refinement==2) {
+        printf("parabolicf2\n");
         if (!parabolicFitting(I1c_du_fit,I1c_dv_fit,dims_c,I2c_du_fit,I2c_dv_fit,dims_c,
                               it->u1c,it->v1c,it->u2c,it->v2c,At,AtA,desc_buffer))
           continue;
@@ -1694,6 +1708,7 @@ void Matcher::refinement (int32_t method) {
     // method: quad matching
     if (method==2) {
       if (param.refinement==2) {
+        printf("parabolicf3\n");
         if (!parabolicFitting(I1c_du_fit,I1c_dv_fit,dims_c,I2p_du_fit,I2p_dv_fit,dims_p,
                               it->u1c,it->v1c,it->u2p,it->v2p,At,AtA,desc_buffer))
           continue;

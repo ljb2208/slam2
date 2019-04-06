@@ -17,9 +17,9 @@
 #include <opencv2/imgproc.hpp>
 #include "boost/thread.hpp"
 
-std::string source = "/home/lbarnett/development/odometry/00";
-std::string calib = "/home/lbarnett/development/odometry/00/param/camera.txt";
-std::string param = "/home/lbarnett/development/odometry/00/param/camera.txt";
+std::string source = "/home/lbarnett/development/odometry/07";
+std::string calib = "/home/lbarnett/development/odometry/07/param/camera.txt";
+std::string param = "/home/lbarnett/development/odometry/07/param/camera.txt";
 
 int width = 0;
 int height = 0;
@@ -91,11 +91,11 @@ int main( int argc, char** argv )
     cv::Mat cameraMatrix = imageReader->getCameraMatrix();
     float baseLine = imageReader->getBaseline();
 
-    imageOffset = 0;
+    imageOffset = 880;
 
     SlamViewer* slamViewer = new SlamViewer(width, height, imageOffset);
     Mapping* mapping = new Mapping(slamViewer, cameraMatrix, baseLine, height, width);
-    Odometry* odom = new Odometry(slamViewer, mapping, cameraMatrix, baseLine, height, width);
+    Odometry* odom = new Odometry(slamViewer, mapping, cameraMatrix, baseLine, height, width, imageOffset);
 
     // temp fix for reading image files from mapping thread
     mapping->setImageAttributes(reader, param);
@@ -137,7 +137,10 @@ int main( int argc, char** argv )
 
         for (int i=0; i < imageCount - imageOffset; i++){
 
-            if (i == 1600)
+            // if (i == 764 || i == 899)
+            //     continue;
+
+            if (i == 100)
                 break;
 
             if (!running)

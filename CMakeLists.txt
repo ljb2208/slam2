@@ -26,7 +26,7 @@ add_definitions("-DENABLE_SSE")
 set(CMAKE_CXX_FLAGS
 #   "${SSE_FLAGS} -O0 -fPIC -g -std=c++0x -march=native"
 #    "${SSE_FLAGS} -O3 -fPIC -g -std=c++0x -march=native"
-    "${SSE_FLAGS} -O3 -fPIC -g -std=c++0x"
+    "${SSE_FLAGS} -O3 -fPIC -g -std=c++1y"
 #   "${SSE_FLAGS} -O3 -g -std=c++0x -fno-omit-frame-pointer"
 )
 
@@ -41,6 +41,7 @@ set(slam_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/Odometry/Odometry.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Filter.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Matcher.cpp
+    ${PROJECT_SOURCE_DIR}/src/Odometry/MatcherNew.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Matches.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Triangle.cpp
     ${PROJECT_SOURCE_DIR}/src/Odometry/Matrix.cpp

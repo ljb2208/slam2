@@ -6,14 +6,15 @@ Matches::Matches(int imageWidth, int imageHeight)
 {
     this->imageHeight = imageHeight;
     this->imageWidth = imageWidth;
-    map_matched = (Matches::p_match**)calloc(imageWidth*imageHeight*8, sizeof(Matches::p_match*));
+    map_matched = std::make_unique<std::shared_ptr<Matches::p_match>[]>(imageWidth*imageHeight*8);
+    // map_matched = (Matches::p_match**)calloc(imageWidth*imageHeight*8, sizeof(Matches::p_match*));
 
     matchesAdded = matchesFound = 0;
 }
 
 Matches::~Matches()
 {
-    free(map_matched);
+    // free(map_matched);
 }
 
 void Matches::ageFeaturePoints()
@@ -95,7 +96,7 @@ bool Matches::push_back(std::shared_ptr<Matches::p_match> match, bool current)
             printf("New Match corrupt.\n");
 
 
-        // addToMap(*mtch);
+        addToMap(mtch);
         matchesAdded++;
 
         r = validateMatch(mtch);
@@ -108,18 +109,18 @@ bool Matches::push_back(std::shared_ptr<Matches::p_match> match, bool current)
     validateMatches("PushBack");
 }
 
-void Matches::addToMap(Matches::p_match match)
+void Matches::addToMap(std::shared_ptr<Matches::p_match> match)
 {
     int32_t u,v;
-    u = (int32_t) match.u1c;
-    v = (int32_t) match.v1c;    
-    int32_t addr = getAddressOffsetMatches(u, v, match.max1.c, imageWidth, imageHeight, 0);
-    map_matched[addr] = &match;    
+    u = (int32_t) match->u1c;
+    v = (int32_t) match->v1c;    
+    int32_t addr = getAddressOffsetMatches(u, v, match->max1.c, imageWidth, imageHeight, 0);
+    map_matched[addr] = match;    
 
-    u = (int32_t) match.u2c;
-    v = (int32_t) match.v2c;    
-    addr = getAddressOffsetMatches(u, v, match.max2.c, imageWidth, imageHeight, 1);
-    map_matched[addr] = &match;    
+    u = (int32_t) match->u2c;
+    v = (int32_t) match->v2c;    
+    addr = getAddressOffsetMatches(u, v, match->max2.c, imageWidth, imageHeight, 1);
+    map_matched[addr] = match;    
     
 }
 
@@ -129,15 +130,14 @@ void Matches::clearMap()
         map_matched[i] = NULL;
 }
 
-Matches::p_match* Matches::getMatchbyMaxima(Matches::maximum max, bool right)
+std::shared_ptr<Matches::p_match> Matches::getMatchbyMaxima(int32_t u, int32_t v, int32_t c, bool right)
 {
     int32_t right_val = 0;
 
     if (right)
         right_val = 1;
-    Matches::p_match* result = map_matched[getAddressOffsetMatches(max.u, max.v, max.c, imageWidth, imageHeight, right_val)];
-
-    return result;
+    
+    return map_matched[getAddressOffsetMatches(u, v, c, imageWidth, imageHeight, right_val)];
 }
 
 bool Matches::matchExists(std::shared_ptr<Matches::p_match> match, bool current)
@@ -177,7 +177,7 @@ bool Matches::matchExists(std::shared_ptr<Matches::p_match> match, bool current)
             if (p_matched[i]->active == false)
             {
                 inlierMatches.push_back(p_matched[i]);
-                // addToMap(p_matched[i]);
+                addToMap(p_matched[i]);
             }
 
             p_matched[i]->active = true;    
@@ -224,6 +224,8 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
     int32_t bucket_rows = (int32_t)floor(v_max/bucket_height)+1;
     std::vector<std::shared_ptr<Matches::p_match>> *buckets = new std::vector<std::shared_ptr<Matches::p_match>>[bucket_cols*bucket_rows*4];
 
+    printf("umax: %f vmax: %f cols: %i rows: %i\n", u_max, v_max, bucket_cols, bucket_rows);
+
     // assign matches to their buckets
     for (int i=0; i < inlierMatches.size(); i++)
     {
@@ -231,6 +233,9 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
         int32_t v = (int32_t)floor(inlierMatches[i]->v1c/bucket_height);        
         buckets[v*bucket_cols+u+inlierMatches[i]->max1.c*bucket_cols].push_back(inlierMatches[i]);
     }
+
+    int32_t b0, b1, b2, b3, b4;
+    b0 = b1 = b2 = b3 = b4;
 
     // refill p_matched from buckets
     for (int32_t c=0; c<bucket_cols; c++) 
@@ -252,6 +257,9 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
             int32_t cnt2 = buckets[ind+2*bucket_cols].size();
             int32_t cnt3 = buckets[ind+3*bucket_cols].size();
 
+            if ((cnt0+cnt1+cnt2+cnt3) == 0)
+                b0++;
+
             while  (cnt0 >k || cnt1 >k || cnt2 > k || cnt3 >k)
             {
                 if (cnt0 > k)
@@ -269,10 +277,28 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
                 k++;
 
                 if (k >= (max_features/2))
-                    break;                
+                {
+                    int val = std::min(cnt0, k) + std::min(cnt1, k) + std::min(cnt2, k) + std::min(cnt3, k);
+
+                    if (val == 0)
+                        b0++;
+                    if (val == 1)
+                        b1++;
+                    if (val == 2)
+                        b2++;
+                    if (val == 3)
+                        b3++;
+                    if (val == 4)
+                        b4++;
+                    
+                    break;
+                }                
             }      
         }
     }
+
+    printf("Buckets. Total: %i 0:%i 1:%i 2:%i 3:%i 4:%i accum:%i\n", bucket_cols* bucket_rows, 
+            b0,b1,b2,b3,b4, b0+b1+b2+b3+b4);
 
     // free buckets
     delete []buckets;
