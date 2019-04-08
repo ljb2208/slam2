@@ -91,7 +91,7 @@ int main( int argc, char** argv )
     cv::Mat cameraMatrix = imageReader->getCameraMatrix();
     float baseLine = imageReader->getBaseline();
 
-    imageOffset = 880;
+    imageOffset = 0;
 
     SlamViewer* slamViewer = new SlamViewer(width, height, imageOffset);
     Mapping* mapping = new Mapping(slamViewer, cameraMatrix, baseLine, height, width);
@@ -140,9 +140,6 @@ int main( int argc, char** argv )
             // if (i == 764 || i == 899)
             //     continue;
 
-            if (i == 100)
-                break;
-
             if (!running)
                 exit(1);
 
@@ -173,8 +170,8 @@ int main( int argc, char** argv )
                 // SLImage* sli_right = imageReaderRight->getUndistortedImage(ts);
 
 
-                SLImage* sli_left = imageReader->getResizedImage(ts);
-                SLImage* sli_right = imageReaderRight->getResizedImage(ts);
+                SLImage* sli_left = imageReader->getResizedImage(ts, width, height);
+                SLImage* sli_right = imageReaderRight->getResizedImage(ts, width, height);
 
                 odom->addStereoFrames(sli_left, sli_right);
 

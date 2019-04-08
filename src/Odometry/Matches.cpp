@@ -106,7 +106,7 @@ bool Matches::push_back(std::shared_ptr<Matches::p_match> match, bool current)
 
     }    
 
-    validateMatches("PushBack");
+    // validateMatches("PushBack");
 }
 
 void Matches::addToMap(std::shared_ptr<Matches::p_match> match)
@@ -209,7 +209,8 @@ void Matches::deleteStaleMatches()
 }
 
 void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucket_height)
-{
+{    
+    // validateMatches("prebucket\n");
     // find max values
     float u_max = 0;
     float v_max = 0;
@@ -236,6 +237,8 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
 
     int32_t b0, b1, b2, b3, b4;
     b0 = b1 = b2 = b3 = b4;
+
+    printf("Inlier match count: %i sel match count: %i\n", static_cast<int>(inlierMatches.size()), static_cast<int>(selectedMatches.size()));
 
     // refill p_matched from buckets
     for (int32_t c=0; c<bucket_cols; c++) 
@@ -302,6 +305,8 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
 
     // free buckets
     delete []buckets;
+
+    validateMatches("bucketFeatures");
 }
 
 int32_t Matches::getSelectedCount()
@@ -317,7 +322,7 @@ int32_t Matches::getKey(std::shared_ptr<Matches::p_match> match)
 }
 
 int32_t Matches::getPriorKey(std::shared_ptr<Matches::p_match> match)
-{
+{    
     float u1p = roundf(match->u1p);
     float v1p = roundf(match->v1p);
     return (match->max1.c * 10000000 + u1p * 10000 + v1p);
@@ -372,8 +377,37 @@ void Matches::printStats()
 
 void Matches::validateMatches(std::string ref)
 {
-    return;
+    int32_t minC, maxC;
+
+    minC = 10000;
+    maxC = -10000;
+
+    for (int i=0; i < inlierMatches.size(); i++)
+    {        
+        if (inlierMatches[i]->max1.v > maxC)
+            maxC = inlierMatches[i]->max1.v;
+        
+        if (inlierMatches[i]->max1.v < minC)
+            minC = inlierMatches[i]->max1.v;                    
+    }
+
+    printf("inliermatchesmaxv: %i minv: %i count: %i\n", maxC, minC, static_cast<int>(inlierMatches.size()));
+
+    minC = 10000;
+    maxC = -10000;
+
+    for (int i=0; i < selectedMatches.size(); i++)
+    {        
+        if (selectedMatches[i]->max1.v > maxC)
+            maxC = selectedMatches[i]->max1.v;
+        
+        if (selectedMatches[i]->max1.v < minC)
+            minC = selectedMatches[i]->max1.v;                    
+    }
+
+    printf("selmatchesmaxv: %i minv: %i count: %i\n", maxC, minC, static_cast<int>(selectedMatches.size()));
     
+    return;
     int badMatches = 0;
 
     for (int i=0; i < p_matched.size(); i++)
