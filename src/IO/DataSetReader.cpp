@@ -1,4 +1,5 @@
 #include "DataSetReader.h"
+#include "Util/Settings.h"
 
 ImageFolderReader::ImageFolderReader(std::string path, std::string calibFile)
 {
@@ -107,8 +108,8 @@ std::vector<slam2::Matrix> ImageFolderReader::getGroundTruth(int imageOffset)
     std::vector<slam2::Matrix> matrix_result;
 
         // show ground truth
-    std::string gtPath = "/home/lbarnett/development/odometry/poses/07.txt";
-    std::ifstream ReadFile(gtPath.c_str());
+    //std::string gtPath = "/home/lbarnett/development/odometry/poses/07.txt";
+    std::ifstream ReadFile(settings_gtFileName.c_str());
     std::string temp;
     std::string delim (" ");
     std::vector<std::string> results;
@@ -132,15 +133,54 @@ std::vector<slam2::Matrix> ImageFolderReader::getGroundTruth(int imageOffset)
     }
 
     ReadFile.close();
+        
+    std::ofstream outputFile;
+    outputFile.open(settings_gtOutputFileName, std::ios::trunc);
 
     if (imageOffset != 0)
     {
         for (int i=imageOffset; i < matrix_temp.size(); i++)
         {
             matrix_result.push_back(matrix_temp[i]);
+            outputFile << matrix_temp[i].val[0][0] << ",";
+            outputFile << matrix_temp[i].val[0][1] << ",";
+            outputFile << matrix_temp[i].val[0][2] << ",";
+            outputFile << matrix_temp[i].val[0][3] << ",";
+            outputFile << matrix_temp[i].val[1][0] << ",";
+            outputFile << matrix_temp[i].val[1][1] << ",";
+            outputFile << matrix_temp[i].val[1][2] << ",";
+            outputFile << matrix_temp[i].val[1][3] << ",";
+            outputFile << matrix_temp[i].val[2][0] << ",";
+            outputFile << matrix_temp[i].val[2][1] << ",";
+            outputFile << matrix_temp[i].val[2][2] << ",";
+            outputFile << matrix_temp[i].val[2][3] << ",";
+            outputFile << "\n";
         }
 
+        outputFile.close();
+
         return matrix_result;
+    }
+    else
+    {
+        for (int i=0; i < matrix_temp.size(); i++)
+        {
+            outputFile << matrix_temp[i].val[0][0] << ",";
+            outputFile << matrix_temp[i].val[0][1] << ",";
+            outputFile << matrix_temp[i].val[0][2] << ",";
+            outputFile << matrix_temp[i].val[0][3] << ",";
+            outputFile << matrix_temp[i].val[1][0] << ",";
+            outputFile << matrix_temp[i].val[1][1] << ",";
+            outputFile << matrix_temp[i].val[1][2] << ",";
+            outputFile << matrix_temp[i].val[1][3] << ",";
+            outputFile << matrix_temp[i].val[2][0] << ",";
+            outputFile << matrix_temp[i].val[2][1] << ",";
+            outputFile << matrix_temp[i].val[2][2] << ",";
+            outputFile << matrix_temp[i].val[2][3] << ",";
+            outputFile << "\n";
+        }
+
+        outputFile.close();   
     }
 
     // if (imageOffset != 0)

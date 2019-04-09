@@ -113,7 +113,7 @@ void MatcherNew::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool repl
   }
 
   // p_matched_p->resetMatches();
-  p_matched_p->clear();
+  p_matched_p->clear(); 
 
   if (replace) {
     if (I1c)         _mm_free(I1c);

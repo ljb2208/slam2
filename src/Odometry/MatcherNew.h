@@ -33,6 +33,7 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 #include <algorithm>
 #include <vector>
 
+#include "Util/Settings.h"
 #include "Matrix.h"
 #include "Matches.h"
 
@@ -70,7 +71,7 @@ public:
       half_resolution        = 1; // default is 1
       refinement             = 2; // default is 1
       ncc_size               = 5;
-      ncc_tolerance          = 0.9;
+      ncc_tolerance          = settings_nccTolerance;
     }
   };
 

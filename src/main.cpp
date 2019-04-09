@@ -16,10 +16,11 @@
 #include "cv.h"
 #include <opencv2/imgproc.hpp>
 #include "boost/thread.hpp"
+#include "Util/Settings.h"
 
-std::string source = "/home/lbarnett/development/odometry/07";
-std::string calib = "/home/lbarnett/development/odometry/07/param/camera.txt";
-std::string param = "/home/lbarnett/development/odometry/07/param/camera.txt";
+// std::string source = "/home/lbarnett/development/odometry/07";
+// std::string calib = "/home/lbarnett/development/odometry/07/param/camera.txt";
+// std::string param = "/home/lbarnett/development/odometry/07/param/camera.txt";
 
 int width = 0;
 int height = 0;
@@ -50,14 +51,34 @@ void exitThread()
 	while(true) pause();
 }
 
+void parseArgument(char* arg)
+{
+	int option;
+	float foption;
+	char buf[1000];
+
+    if(1==sscanf(arg,"settings=%s",buf))
+	{
+        std::string settings = buf;
+		printf("Loading settings from %s\n", settings.c_str());
+        loadSettings(settings);
+		return;
+	}
+}
+
+
+
 
 int main( int argc, char** argv )
 {
+    for(int i=1; i<argc;i++)
+		parseArgument(argv[i]);
+
     // hook crtl+C.
 	boost::thread exThread = boost::thread(exitThread);
    
-    ImageFolderReader* reader = new ImageFolderReader(source+"/image_0", calib);
-    ImageFolderReader* readerRight = new ImageFolderReader(source+"/image_1", calib);
+    ImageFolderReader* reader = new ImageFolderReader(settings_inputPath+"/image_0", settings_calibFile);
+    ImageFolderReader* readerRight = new ImageFolderReader(settings_inputPath+"/image_1", settings_calibFile);
     int imageCount = reader->getNumImages();
 
     if (imageCount < 1)
@@ -72,8 +93,8 @@ int main( int argc, char** argv )
         return 0;
     }
 
-    ImageReader* imageReader = new ImageReader(false, param);
-    ImageReader* imageReaderRight = new ImageReader(false, param);
+    ImageReader* imageReader = new ImageReader(false, settings_paramFile);
+    ImageReader* imageReaderRight = new ImageReader(false, settings_paramFile);
 
     imageReader->loadImage(reader->getImageFilename(0), 0);
 
@@ -91,14 +112,14 @@ int main( int argc, char** argv )
     cv::Mat cameraMatrix = imageReader->getCameraMatrix();
     float baseLine = imageReader->getBaseline();
 
-    imageOffset = 880;
+    imageOffset = settings_imageOffset;
 
     SlamViewer* slamViewer = new SlamViewer(width, height, imageOffset);
     Mapping* mapping = new Mapping(slamViewer, cameraMatrix, baseLine, height, width);
     Odometry* odom = new Odometry(slamViewer, mapping, cameraMatrix, baseLine, height, width, imageOffset);
 
     // temp fix for reading image files from mapping thread
-    mapping->setImageAttributes(reader, param);
+    mapping->setImageAttributes(reader, settings_paramFile);
 
     std::thread runthread([&]() {
 
@@ -140,8 +161,8 @@ int main( int argc, char** argv )
             // if (i == 764 || i == 899)
             //     continue;
 
-            if (i == 100)
-                break;
+            // if (i == 100)
+            //     break;
 
             if (!running)
                 exit(1);
@@ -188,6 +209,8 @@ int main( int argc, char** argv )
         printf("Average translation error: %f\n", odom->getAverageTranslationError());
         printf("Average motion error: %f  pcnt: %f\n", odom->getAverageMotionError(), odom->getPercentageMotionError());
 
+        if (settings_exitOnEnd)
+            slamViewer->close();
     });
 
     boost::thread* mappingThread = new boost::thread(boost::bind(&Mapping::run, mapping));

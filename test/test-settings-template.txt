@@ -1,0 +1,9 @@
+imageOffset:0
+gtfilename:/home/lbarnett/development/odometry/poses/07.txt
+gtoutputfilename:/home/lbarnett/development/odometry/poses/gt.csv
+inputpath:/home/lbarnett/development/odometry/07
+paramfile:/home/lbarnett/development/odometry/07/param/camera.txt
+calibfile:/home/lbarnett/development/odometry/07/param/camera.txt
+outputFile:/home/lbarnett/development/slam2/build/outputs.csv
+exitonend: 1
+

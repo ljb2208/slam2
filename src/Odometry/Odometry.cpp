@@ -40,7 +40,7 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     groundTruth = reader->getGroundTruth(imageOffset);
     delete reader;
 
-    outputFile.open("outputs.csv", std::ios::trunc);
+    outputFile.open(settings_outputFile.c_str(), std::ios::trunc);
     outputFile << "Index,NumMatches,NumInliers,MaxAge,";
     outputFile << "pose00,pose01,pose02,pose03,pose10,pose11,pose12,pose13,pose20,pose21,pose22,pose23,pose30,pose31,pose32,pose33,";
     outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";

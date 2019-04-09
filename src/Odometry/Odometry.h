@@ -11,6 +11,7 @@
 #include <Eigen/Geometry>
 #include "IO/DataSetReader.h"
 #include "5Point/5point.h"
+#include "Util/Settings.h"
 
 class Odometry
 {
@@ -42,7 +43,7 @@ class Odometry
             double  bucket_width;  // width of bucket
             double  bucket_height; // height of bucket
             bucketing () {
-            max_features  = 2;
+            max_features  = settings_maxFeatures;
             bucket_width  = 50;
             bucket_height = 50;
             }

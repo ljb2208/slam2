@@ -1,0 +1,8 @@
+imageOffset:0
+gtfilename:/home/lbarnett/development/odometry/poses/00.txt
+gtoutputfilename:/home/lbarnett/development/odometry/poses/gt.csv
+inputpath:/home/lbarnett/development/odometry/00
+paramfile:/home/lbarnett/development/odometry/00/param/camera.txt
+calibfile:/home/lbarnett/development/odometry/00/param/camera.txt
+nccTolerance:0.85
+maxFeatures:6

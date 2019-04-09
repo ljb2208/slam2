@@ -38,24 +38,24 @@ inline int getdir (std::string dir, std::vector<std::string> &files)
     return files.size();
 }
 
-inline void split(const std::string& src, const std::string& delim, std::vector<std::string>& dest)
-{
-    std::string str = src;
-    std::string::size_type start = 0, index;
-    std::string substr;
+// inline void split(const std::string& src, const std::string& delim, std::vector<std::string>& dest)
+// {
+//     std::string str = src;
+//     std::string::size_type start = 0, index;
+//     std::string substr;
 
-    index = str.find_first_of(delim, start);    //在str中查找(起始：start) delim的任意字符的第一次出现的位置
-//    while(index != std::string::npos)
-    while(1)
-    {
-        substr = str.substr(start, index-start);
-        dest.push_back(substr);
-        start = str.find_first_not_of(delim, index);    //在str中查找(起始：index) 第一个不属于delim的字符出现的位置
-        if(start == std::string::npos) return;
+//     index = str.find_first_of(delim, start);    //在str中查找(起始：start) delim的任意字符的第一次出现的位置
+// //    while(index != std::string::npos)
+//     while(1)
+//     {
+//         substr = str.substr(start, index-start);
+//         dest.push_back(substr);
+//         start = str.find_first_not_of(delim, index);    //在str中查找(起始：index) 第一个不属于delim的字符出现的位置
+//         if(start == std::string::npos) return;
 
-        index = str.find_first_of(delim, start);
-    }
-}
+//         index = str.find_first_of(delim, start);
+//     }
+// }
 
 class ImageFolderReader{
 

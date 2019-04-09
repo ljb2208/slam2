@@ -210,6 +210,9 @@ void Matches::deleteStaleMatches()
 
 void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucket_height)
 {
+    // printf("BFB Inlier count: %i sel count: %i\n", static_cast<int>(inlierMatches.size()),
+    //     static_cast<int>(selectedMatches.size()));
+        
     // find max values
     float u_max = 0;
     float v_max = 0;
@@ -224,38 +227,63 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
     int32_t bucket_rows = (int32_t)floor(v_max/bucket_height)+1;
     std::vector<std::shared_ptr<Matches::p_match>> *buckets = new std::vector<std::shared_ptr<Matches::p_match>>[bucket_cols*bucket_rows*4];
 
-    printf("umax: %f vmax: %f cols: %i rows: %i\n", u_max, v_max, bucket_cols, bucket_rows);
+    // printf("umax: %f vmax: %f cols: %i rows: %i\n", u_max, v_max, bucket_cols, bucket_rows);
 
+    int q = 0;
     // assign matches to their buckets
     for (int i=0; i < inlierMatches.size(); i++)
     {
         int32_t u = (int32_t)floor(inlierMatches[i]->u1c/bucket_width);
         int32_t v = (int32_t)floor(inlierMatches[i]->v1c/bucket_height);        
-        buckets[v*bucket_cols+u+inlierMatches[i]->max1.c*bucket_cols].push_back(inlierMatches[i]);
+        buckets[v*bucket_cols+u+inlierMatches[i]->max1.c*bucket_cols*bucket_rows].push_back(inlierMatches[i]);
+        q++;
+        // printf("AF u: %i v: %i c: %i\n", u, v, inlierMatches[i]->max1.c);
     }
+
+    // printf("BF cols: %i rows: %i count: %i\n", bucket_cols, bucket_rows, q);
 
     int32_t b0, b1, b2, b3, b4;
     b0 = b1 = b2 = b3 = b4;
 
+    int32_t acnt0, acnt1, acnt2, acnt3;
+    acnt0 = acnt1 = acnt2 = acnt3 = 0;
+
+    int32_t bcnt0, bcnt1, bcnt2, bcnt3;
+    bcnt0 = bcnt1 = bcnt2 = bcnt3 = 0;
+
+
+    int loops = 0;
     // refill p_matched from buckets
     for (int32_t c=0; c<bucket_cols; c++) 
     {
         for (int32_t r=0; r<bucket_rows; r++)  
-        {            
+        {
+            loops++;
             int32_t ind = r*bucket_cols +c;
+
+            bcnt0 += buckets[ind].size();
+            bcnt1 += buckets[ind+1*bucket_cols*bucket_rows].size();
+            bcnt2 += buckets[ind+2*bucket_cols*bucket_rows].size();
+            bcnt3 += buckets[ind+3*bucket_cols*bucket_rows].size();
+
             // sort buckets       
             std::sort(buckets[ind].begin(), buckets[ind].end(), compareMatches);
-            std::sort(buckets[ind+1*bucket_cols].begin(), buckets[ind+1*bucket_cols].end(), compareMatches);
-            std::sort(buckets[ind+2*bucket_cols].begin(), buckets[ind+2*bucket_cols].end(), compareMatches);
-            std::sort(buckets[ind+3*bucket_cols].begin(), buckets[ind+3*bucket_cols].end(), compareMatches);
+            std::sort(buckets[ind+1*bucket_cols*bucket_rows].begin(), buckets[ind+1*bucket_cols*bucket_rows].end(), compareMatches);
+            std::sort(buckets[ind+2*bucket_cols*bucket_rows].begin(), buckets[ind+2*bucket_cols*bucket_rows].end(), compareMatches);
+            std::sort(buckets[ind+3*bucket_cols*bucket_rows].begin(), buckets[ind+3*bucket_cols*bucket_rows].end(), compareMatches);
             
             // add up to max_features features from this bucket to p_matched
             int32_t k=0;
 
             int32_t cnt0 = buckets[ind].size();
-            int32_t cnt1 = buckets[ind+1*bucket_cols].size();
-            int32_t cnt2 = buckets[ind+2*bucket_cols].size();
-            int32_t cnt3 = buckets[ind+3*bucket_cols].size();
+            int32_t cnt1 = buckets[ind+1*bucket_cols*bucket_rows].size();
+            int32_t cnt2 = buckets[ind+2*bucket_cols*bucket_rows].size();
+            int32_t cnt3 = buckets[ind+3*bucket_cols*bucket_rows].size();
+
+            acnt0 += cnt0;
+            acnt1 += cnt1;
+            acnt2 += cnt2;
+            acnt3 += cnt3;
 
             if ((cnt0+cnt1+cnt2+cnt3) == 0)
                 b0++;
@@ -266,13 +294,13 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
                     selectedMatches.push_back(buckets[ind].at(k));
 
                 if (cnt1 > k)
-                    selectedMatches.push_back(buckets[ind + 1*bucket_cols].at(k));
+                    selectedMatches.push_back(buckets[ind + 1*bucket_cols*bucket_rows].at(k));
 
                 if (cnt2 > k)
-                    selectedMatches.push_back(buckets[ind + 2*bucket_cols].at(k));
+                    selectedMatches.push_back(buckets[ind + 2*bucket_cols*bucket_rows].at(k));
                 
                 if (cnt3 > k)
-                    selectedMatches.push_back(buckets[ind + 3*bucket_cols].at(k));
+                    selectedMatches.push_back(buckets[ind + 3*bucket_cols*bucket_rows].at(k));
 
                 k++;
 
@@ -297,8 +325,14 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
         }
     }
 
-    printf("Buckets. Total: %i 0:%i 1:%i 2:%i 3:%i 4:%i accum:%i\n", bucket_cols* bucket_rows, 
-            b0,b1,b2,b3,b4, b0+b1+b2+b3+b4);
+    if (selectedMatches.size() > inlierMatches.size())
+    {
+        printf("Buckets. Total: %i 0:%i 1:%i 2:%i 3:%i 4:%i accum:%i\n", bucket_cols* bucket_rows, 
+                b0,b1,b2,b3,b4, b0+b1+b2+b3+b4);
+        printf("BF Inlier count: %i sel count: %i acount: %i bcount: %i loops: %i\n", static_cast<int>(inlierMatches.size()),
+                static_cast<int>(selectedMatches.size()), acnt0 + acnt1 + acnt2 + acnt3,
+                bcnt0 + bcnt1 + bcnt2 + bcnt3, loops);
+    }
 
     // free buckets
     delete []buckets;
