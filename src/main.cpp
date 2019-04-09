@@ -194,8 +194,8 @@ int main( int argc, char** argv )
                 // SLImage* sli_right = imageReaderRight->getUndistortedImage(ts);
 
 
-                SLImage* sli_left = imageReader->getResizedImage(ts);
-                SLImage* sli_right = imageReaderRight->getResizedImage(ts);
+                SLImage* sli_left = imageReader->getResizedImage(ts, width, height);
+                SLImage* sli_right = imageReaderRight->getResizedImage(ts, width, height);
 
                 odom->addStereoFrames(sli_left, sli_right);
 

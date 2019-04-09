@@ -43,7 +43,7 @@ public:
     bool loadImage(std::string fileName, int index);
     cv::Mat getImage();
     SLImage* getUndistortedImage(double timestamp);
-    SLImage* getResizedImage(double timestamp);
+    SLImage* getResizedImage(double timestamp, int width, int height);
     int getImageWidth();
     int getImageHeight();
     int getUDistImageWidth();

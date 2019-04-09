@@ -147,21 +147,26 @@ class Matches
             
             if (p1->max1.c == 0 || p1->max1.c ==2) // class 0 and 2 are minima so negative val
             {
-            if (p1->max1.val < p2->max1.val)
-                return true;
+                if (p1->max1.val < p2->max1.val)
+                    return true;
 
-            if (p2->max1.val < p1->max1.val)
-                return false;
+                if (p2->max1.val < p1->max1.val)
+                    return false;
             }
             else
             {
-            if (p1->max1.val > p2->max1.val)
-                return true;
+                if (p1->max1.val > p2->max1.val)
+                    return true;
 
-            if (p2->max1.val > p1->max1.val)
-                return false;
+                if (p2->max1.val > p1->max1.val)
+                    return false;
             }
-            
+
+            // if (p2->max1.val > p1->max1.val)
+            //     return false;
+            // else
+            //     return true;
+                        
             
             return (p1->i1p > p2->i1p);  
         };

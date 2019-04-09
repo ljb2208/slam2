@@ -77,11 +77,11 @@ SLImage* ImageReader::getUndistortedImage(double timestamp)
 	return udist->undistort(image, timestamp, index);
 }
 
-SLImage* ImageReader::getResizedImage(double timestamp)
+SLImage* ImageReader::getResizedImage(double timestamp, int width, int height)
 {
-	SLImage* result = new SLImage(640, 480, timestamp, index);
+	SLImage* result = new SLImage(width, height, timestamp, index);
 
-	cv::Size sz(640, 480);
+	cv::Size sz(width, height);
 	cv::resize(image, result->image, sz);
 	cv::cvtColor(result->image, result->imageColor, cv::COLOR_GRAY2RGB);
 

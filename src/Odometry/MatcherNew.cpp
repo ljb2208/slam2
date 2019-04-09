@@ -195,7 +195,7 @@ void MatcherNew::matchFeatures(int32_t method, slam2::Matrix *Tr_delta) {
   //////////////////
   // sanity check //
   //////////////////
-  p_matched_p->validateMatches("Matcher start");
+  // p_matched_p->validateMatches("Matcher start");
   
   // flow
   if (method==0) {
@@ -227,22 +227,22 @@ void MatcherNew::matchFeatures(int32_t method, slam2::Matrix *Tr_delta) {
   // double pass matching
   if (param.multi_stage) {    
     // 1st pass (sparse matches)
-    p_matched_p->validateMatches("Matcher1");
+    // p_matched_p->validateMatches("Matcher1");
     matching(m1p1,m2p1,m1c1,m2c1,n1p1,n2p1,n1c1,n2c1,method,false,Tr_delta);
 
     //removeOutliers(p_matched_p,method);
-    p_matched_p->validateMatches("Matcher2");
+    // p_matched_p->validateMatches("Matcher2");
     removeOutliersNCC();
 
     // compute search range prior statistics (used for speeding up 2nd pass)
-    p_matched_p->validateMatches("Matcher3");
+    // p_matched_p->validateMatches("Matcher3");
     computePriorStatistics(method);      
 
     // 2nd pass (dense matches)
-    p_matched_p->validateMatches("Matcher4");
+    // p_matched_p->validateMatches("Matcher4");
     matching(m1p2,m2p2,m1c2,m2c2,n1p2,n2p2,n1c2,n2c2,method,true,Tr_delta);
 
-    p_matched_p->validateMatches("Matcher");
+    // p_matched_p->validateMatches("Matcher");
 
     if (param.refinement>0)
       refinement(method);
@@ -1138,14 +1138,14 @@ void MatcherNew::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
   // method: quad matching
   } else {
     
-    p_matched_p->validateMatches("Quad");
+    // p_matched_p->validateMatches("Quad");
     // create position/class bin index vectors
     createIndexVector(m1p,n1p,k1p,u_bin_num,v_bin_num);
     createIndexVector(m2p,n2p,k2p,u_bin_num,v_bin_num);
     createIndexVector(m1c,n1c,k1c,u_bin_num,v_bin_num);
     createIndexVector(m2c,n2c,k2c,u_bin_num,v_bin_num);
     
-    p_matched_p->validateMatches("Quad1");
+    // p_matched_p->validateMatches("Quad1");
     // for all points do
     for (i1p=0; i1p<n1p; i1p++) {
 
@@ -1255,7 +1255,7 @@ void MatcherNew::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
     }
 
 
-    p_matched_p->validateMatches("Quad3");
+    // p_matched_p->validateMatches("Quad3");
     // old version:
     /*
     // for all points do
@@ -1707,7 +1707,7 @@ void MatcherNew::refinement (int32_t method) {
     I2c_dv_fit = I2c_dv_full;
   }
 
-  p_matched_p->validateMatches("Refinement");
+  // p_matched_p->validateMatches("Refinement");
   // for all matches do
   //for (vector<Matches::p_match*>::iterator it=p_matched->inlierMatches.begin(); it!=p_matched->inlierMatches.end(); it++) {
   for (int i=0; i < p_matched_p->inlierMatches.size(); i++)

@@ -311,7 +311,7 @@ void Mapping::matchKeyFrames(KeyFrame* keyFrame, std::vector<SADKeyFrame> kfsToM
 
     ImageReader* imageReader = new ImageReader(false, camera_param);
     imageReader->loadImage(reader->getImageFilename(keyFrame->index), keyFrame->index);
-    SLImage* sli = imageReader->getResizedImage(0);
+    SLImage* sli = imageReader->getResizedImage(0, param.width, param.height);
 
     uint8_t* image = sli->getImageArray();
 
@@ -326,7 +326,7 @@ void Mapping::matchKeyFrames(KeyFrame* keyFrame, std::vector<SADKeyFrame> kfsToM
     {
         SADKeyFrame kf = kfsToMatch[i];
         imageReader->loadImage(reader->getImageFilename(kf.keyFrame.index), kf.keyFrame.index);
-        SLImage* sli_comp = imageReader->getResizedImage(0);
+        SLImage* sli_comp = imageReader->getResizedImage(0, param.width, param.height);
         uint8_t* image_comp = sli_comp->getImageArray();
 
         if (i == 0)

@@ -51,10 +51,20 @@ void SlamViewer::run()
 
 	glEnable(GL_DEPTH_TEST);
 
+	double vx, vy, vz;
+	vx = vy = vz = 0;
+
+	if (imageOffset != 0)
+	{
+		vx = groundTruth[0].val[0][3];
+		vy = groundTruth[0].val[1][3];
+		vz = groundTruth[0].val[2][3];
+	}
+
     // 3D visualization
 	pangolin::OpenGlRenderState Visualization3D_camera(
 		pangolin::ProjectionMatrix(width,height,400,400,width/2,height/2,0.1,1000),
-		pangolin::ModelViewLookAt(-0,-5,-10, 0,0,0, pangolin::AxisNegY)
+		pangolin::ModelViewLookAt(-0,-5,-10, vx,vy,vz, pangolin::AxisNegY)
 		);
 
 	pangolin::View& Visualization3D_display = pangolin::CreateDisplay()
