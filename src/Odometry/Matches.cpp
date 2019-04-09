@@ -209,15 +209,10 @@ void Matches::deleteStaleMatches()
 }
 
 void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucket_height)
-<<<<<<< HEAD
 {
     // printf("BFB Inlier count: %i sel count: %i\n", static_cast<int>(inlierMatches.size()),
     //     static_cast<int>(selectedMatches.size()));
         
-=======
-{    
-    // validateMatches("prebucket\n");
->>>>>>> origin/match_tracker
     // find max values
     float u_max = 0;
     float v_max = 0;
@@ -250,7 +245,6 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
     int32_t b0, b1, b2, b3, b4;
     b0 = b1 = b2 = b3 = b4;
 
-<<<<<<< HEAD
     int32_t acnt0, acnt1, acnt2, acnt3;
     acnt0 = acnt1 = acnt2 = acnt3 = 0;
 
@@ -259,10 +253,6 @@ void Matches::bucketFeatures(int32_t max_features,float bucket_width,float bucke
 
 
     int loops = 0;
-=======
-    printf("Inlier match count: %i sel match count: %i\n", static_cast<int>(inlierMatches.size()), static_cast<int>(selectedMatches.size()));
-
->>>>>>> origin/match_tracker
     // refill p_matched from buckets
     for (int32_t c=0; c<bucket_cols; c++) 
     {
