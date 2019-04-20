@@ -452,6 +452,10 @@ std::vector<double> Odometry::estimateMotion ()
         if (inliers_curr.size()>inliers.size()) {
             inliers = inliers_curr;
             tr_delta = tr_delta_curr;
+            printf("inliers: %i iterations: %i\n",static_cast<int>(inliers_curr.size()), iter);
+            printf("tr_delta: %f %f %f %f %f %f\n", tr_delta[0],tr_delta[1], tr_delta[2], tr_delta[3],
+                    tr_delta[4], tr_delta[5]);
+
         }
         }
     }
@@ -460,6 +464,8 @@ std::vector<double> Odometry::estimateMotion ()
     if (inliers.size()>=6) {
         int32_t iter=0;
         result res = UPDATED;
+        printf("tr_delta pre final update: %f %f %f %f %f %f inliers: %i\n", tr_delta[0],tr_delta[1], tr_delta[2], tr_delta[3],
+                    tr_delta[4], tr_delta[5], static_cast<int>(inliers.size()));
         while (res==UPDATED) {     
         res = updateParameters(matches,inliers,tr_delta,1,1e-8);
         if (iter++ > 100 || res==CONVERGED)
@@ -471,6 +477,10 @@ std::vector<double> Odometry::estimateMotion ()
         {
             success = false;
         }
+
+         printf("final tr_delta: %f %f %f %f %f %f\n", tr_delta[0],tr_delta[1], tr_delta[2], tr_delta[3],
+                    tr_delta[4], tr_delta[5]);
+        printf("final iterations: %i\n", iter);
 
     // not enough inliers
     } else {
@@ -970,6 +980,8 @@ void Odometry::computeResidualsAndJacobian(std::vector<double> &tr,std::vector<i
     double rx = tr[0]; double ry = tr[1]; double rz = tr[2];
     double tx = tr[3]; double ty = tr[4]; double tz = tr[5];
 
+    // printf("computeResiduals. tx: %f ty: %f tz: %f\n", tx, ty, tz);
+
     // precompute sine/cosine
     double sx = sin(rx); double cx = cos(rx); double sy = sin(ry);
     double cy = cos(ry); double sz = sin(rz); double cz = cos(rz);
@@ -1214,8 +1226,9 @@ bool Odometry::convertRotations()
         qEss2 = eig;
 
         qRs2 = qR2.inverse() * qEss2;
-        qR = qR.slerp(0.5, qRs2); 
-        //Eigen::Quaternionf qTemp = sqrt(qR.inverse() * qRs2);
+        qR = qR.slerp(0.5, qRs2);
+        //qR.pow(0.5);
+        //rt(qR.inverse() * qRs2);
         //qR = qR * (^0.5);
     }
 

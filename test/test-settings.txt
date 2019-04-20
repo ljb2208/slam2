@@ -7,5 +7,6 @@ calibfile:/home/lbarnett/development/odometry/07/param/camera.txt
 outputFile:/home/lbarnett/development/slam2/build/outputs.csv
 exitonend: 1
 
-nccTolerance:0.88
+nccTolerance:0.96
 maxFeatures:10
+featureAgeDiscrim:9

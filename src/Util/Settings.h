@@ -138,6 +138,13 @@ inline void loadSettings(std::string fileName)
             continue;
         }
 
+        if (setting.compare("featureagediscrim") == 0)
+        {
+            settings_featureAgeDiscrim = std::stoi(results[1]);
+            printf("Settings: Using feature age discriminator: %i\n", settings_featureAgeDiscrim);
+            continue;
+        }
+
         if (setting.compare("exitonend") == 0)
         {
             settings_exitOnEnd = std::stoi(results[1]);
