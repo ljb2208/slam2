@@ -124,11 +124,13 @@ class Odometry
         bool updateMotion2();
         bool updateMotion3();
         bool updateMotion4();
+        bool updateMotion5();
 
 
         std::vector<double> estimateMotion ();
         std::vector<double> estimateMotion2 ();
         slam2::Matrix estimateMotion3 (bool* result);
+        slam2::Matrix estimateMotion5 (bool* result);
         std::vector<int32_t> getInliers5Point(PMatrix P);
 
 
@@ -157,6 +159,7 @@ class Odometry
         slam2::Matrix getMotion () { return Tr_delta; }  
 
         cv::Scalar getColorFromDepth(float depth);
+        cv::Scalar getColorFromFeatureAge(int age);
         cv::Mat getDepthImage();
 
         slam2::Matrix estimateRotation(bool* result);
@@ -165,6 +168,8 @@ class Odometry
         float getRotationError(int index);
         float getTranslationError(int index);
         float getMotionError(int index);
+
+        void outputMatchAgeHistogram();
 
         std::vector<slam2::Matrix> groundTruth;
         double groundTruthMotionError;
@@ -184,4 +189,13 @@ class Odometry
             bool operator()(const size_t a, const size_t b) const { return arr[a] < arr[b]; }
             const T arr;
         };
+
+        cv::Mat projMatrl;
+        cv::Mat projMatrr;
+
+        void integrateOdometryStereo(cv::Mat& rigid_body_transformation, cv::Mat& frame_pose, const cv::Mat& rotation, const cv::Mat& translation_stereo);
+        cv::Vec3f rotationMatrixToEulerAngles(cv::Mat &R);
+        bool isRotationMatrix(cv::Mat &R);
+
+
 };

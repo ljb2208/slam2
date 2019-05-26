@@ -126,6 +126,8 @@ public:
 
   void printMatchStats();
 
+  void computeFeatures();
+
 private:
   
   // u/v ranges for matching stage 0-3
@@ -210,6 +212,7 @@ private:
   void refinement (int32_t method);
 
   int32_t getMatchId();
+  int32_t getPixelColor(float u1c, float v1c);
 
   //void updatePersistentMatches();
 

@@ -84,6 +84,7 @@ class Matches
             bool selected;
             bool active;
             bool outlier;
+            int32_t pxlColor;
             p_match(){ age = -1; matched = false; depth = 0.0; outlier=0; selected=false; active=false; outlier=false;}
             p_match(float u1p,float v1p,int32_t i1p,float u2p,float v2p,int32_t i2p,
                     float u1c,float v1c,int32_t i1c,float u2c,float v2c,int32_t i2c):

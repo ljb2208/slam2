@@ -184,9 +184,14 @@ void MatcherNew::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool repl
     }
   }
 
+  computeFeatures();
+}
+
+void MatcherNew::computeFeatures()
+{
   // compute new features for current frame
   computeFeatures(I1c,dims_c,m1c1,n1c1,m1c2,n1c2,I1c_du,I1c_dv,I1c_du_full,I1c_dv_full, false);
-  if (I2!=0)
+  if (I2c!=0)
     computeFeatures(I2c,dims_c,m2c1,n2c1,m2c2,n2c2,I2c_du,I2c_dv,I2c_du_full,I2c_dv_full, true);
 }
 
@@ -1249,6 +1254,8 @@ void MatcherNew::matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
           match->max2.d7 = d27;
           match->max2.d8 = d28;
 
+          match->pxlColor = getPixelColor(u1c, v1c);
+
           p_matched_p->push_back(match, use_prior);
         }
       }
@@ -1908,4 +1915,17 @@ int32_t MatcherNew::getMatchId()
 void MatcherNew::printMatchStats()
 {
   p_matched_p->printStats();
+}
+
+int32_t MatcherNew::getPixelColor(float u1c, float v1c)
+{
+    int u = static_cast<int>(u1c);
+    int v = static_cast<int>(v1c);
+
+    if (I1c == NULL)
+      return 0;
+    
+    int index = getAddressOffsetImage(u, v, imageWidth);
+
+    return I1c[index];
 }

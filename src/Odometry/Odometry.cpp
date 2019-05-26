@@ -29,6 +29,9 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     param.calib.cu = cameraMatrix.at<float>(0, 2);
     param.calib.cv = cameraMatrix.at<float>(1, 2);
 
+    projMatrl = (cv::Mat_<float>(3, 4) << param.calib.f, 0., param.calib.cu, 0., 0., param.calib.f, param.calib.cv, 0., 0,  0., 1., 0.);
+    projMatrr = (cv::Mat_<float>(3, 4) << param.calib.f, 0., param.calib.cu, -386.1448, 0., param.calib.f, param.calib.cv, 0., 0,  0., 1., 0.);
+
     viewer->setCalibration(param.calib.f, param.calib.f, param.calib.cu, param.calib.cv);
 
     matcher = new MatcherNew(MatcherNew::parameters(), matches);
@@ -44,7 +47,8 @@ Odometry::Odometry(SlamViewer* viewer, Mapping* mapping, cv::Mat cameraMatrix, f
     outputFile << "Index,NumMatches,NumInliers,MaxAge,";
     outputFile << "pose00,pose01,pose02,pose03,pose10,pose11,pose12,pose13,pose20,pose21,pose22,pose23,pose30,pose31,pose32,pose33,";
     outputFile << "motion00,motion01,motion02,motion03,motion10,motion11,motion12,motion13,motion20,motion21,motion22,motion23,motion30,motion31,motion32,motion33";
-    outputFile << ",errorR,errorT,errorM,motion,gtMotion";
+    outputFile << ",errorR,errorT,errorM,motion,gtMotion,";
+    outputFile << "fa0,fa1,fa2,fa3,fa4,fa5,fa6,fa7,fa8,fa9,fa10";
     outputFile << std::endl;
 
     groundTruthTranslationError = 0;
@@ -115,6 +119,8 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
     matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
     timer->stopTimer();
 
+    // matcher->computeFeatures();
+
     // timer->startTimer("updateMotion");
     // bool result = updateMotion();
     // timer->stopTimer();
@@ -129,6 +135,9 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         result = updateMotion3();
     else if (param.motion_method == 3)
         result = updateMotion4();
+    else if (param.motion_method == 4)
+        result = updateMotion5();
+
     timer->stopTimer();
 
     timer->startTimer("calculateDepth");
@@ -159,7 +168,7 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         cv::Point2f matchPoint(matches->selectedMatches[i]->u1c, matches->selectedMatches[i]->v1c);
         cv::Point2f matchPointRight(matches->selectedMatches[i]->u2c, matches->selectedMatches[i]->v2c);
         cv::circle(image->imageColor, matchPoint, 3, getColorFromDepth(matches->selectedMatches[i]->depth), -1, 8, 0);
-        cv::circle(imageRight->imageColor, matchPointRight, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
+        cv::circle(imageRight->imageColor, matchPointRight, 3, getColorFromFeatureAge(matches->selectedMatches[i]->age), -1, 8, 0);
 
         if (matches->selectedMatches[i]->age > maxAge)
             maxAge = matches->selectedMatches[i]->age;
@@ -240,7 +249,9 @@ bool Odometry::addStereoFrames(SLImage* image, SLImage* imageRight)
         outputFile << getTranslationError(image->index) <<  ",";
         float motionError = getMotionError(image->index);
         outputFile << motionError << ",";
-        outputFile << computedMotion << "," << groundTruthMotion << std::endl;
+        outputFile << computedMotion << "," << groundTruthMotion << ",";
+        outputMatchAgeHistogram();
+        outputFile << std::endl;
         
         
         groundTruthMotionError += motionError;
@@ -314,6 +325,18 @@ cv::Scalar Odometry::getColorFromDepth(float depth)
     return depthDisplayVec[iDepth - param.min_depth_diplay];
 }
 
+
+cv::Scalar Odometry::getColorFromFeatureAge(int age)
+{
+    if (age < 2)
+        return cv::Scalar(0, 0, 255);
+    
+    if (age < 5)
+        return cv::Scalar(255, 0, 0);
+
+    return cv::Scalar(0,255,0);
+}
+
 bool Odometry::updateMotion()
 {
     // estimate motion
@@ -370,6 +393,17 @@ bool Odometry::updateMotion4()
     
     return result;
 }
+
+bool Odometry::updateMotion5()
+{
+    bool result;
+
+    // estimate motion
+    Tr_delta = estimateMotion5(&result);
+    
+    return result;
+}
+
 std::vector<double> Odometry::estimateMotion ()
 {
     // return value
@@ -1492,4 +1526,266 @@ std::vector<int32_t> Odometry::getInliers5Point(PMatrix P)
     }
 
     return inliers;
+}
+
+slam2::Matrix Odometry::estimateMotion5(bool* result)
+{
+    slam2::Matrix Tr(4,4);
+    cv::Mat rotation = cv::Mat::eye(3, 3, CV_64F);
+    cv::Mat translation = cv::Mat::zeros(3, 1, CV_64F);
+    cv::Mat Rpose = cv::Mat::eye(3, 3, CV_64F);
+
+    if (matches->selectedMatches.size() == 0)
+    {
+        *result = false;
+        return Tr;
+    }
+
+    std::vector<cv::Point2f> pointsLeft_t0, pointsRight_t0, pointsLeft_t1, pointsRight_t1;  
+    for (int i=0; i < matches->selectedMatches.size(); i++)
+    {
+        std::shared_ptr<Matches::p_match> match = matches->selectedMatches[i];
+        cv::Point2f l0(match->u1p, match->v1p);
+        cv::Point2f l1(match->u1c, match->v1c);
+        cv::Point2f r0(match->u2p, match->v2p);
+        cv::Point2f r1(match->u2c, match->v2c);
+        pointsLeft_t0.push_back(l0);
+        pointsLeft_t1.push_back(l1);
+        pointsRight_t0.push_back(r0);
+        pointsRight_t1.push_back(r1);
+    }
+
+    // printf("Points count: l0: %i, l1: %i, r0: %i r1: %i\n",
+    //     static_cast<int>(pointsLeft_t0.size()),
+    //     static_cast<int>(pointsLeft_t1.size()),
+    //     static_cast<int>(pointsRight_t0.size()),
+    //     static_cast<int>(pointsRight_t1.size())
+    //     );
+
+    // printf("Triangulate1\n");
+    cv::Mat points3D_t0, points4D_t0;
+    cv::triangulatePoints( projMatrl,  projMatrr,  pointsLeft_t0,  pointsRight_t0,  points4D_t0);
+    cv::convertPointsFromHomogeneous(points4D_t0.t(), points3D_t0);
+ 
+    // printf("Triangulate2\n");
+    cv::Mat points3D_t1, points4D_t1;
+    cv::triangulatePoints( projMatrl,  projMatrr,  pointsLeft_t1,  pointsRight_t1,  points4D_t1);
+    cv::convertPointsFromHomogeneous(points4D_t1.t(), points3D_t1);
+
+
+    // Calculate frame to frame transformation
+
+    // -----------------------------------------------------------
+    // Rotation(R) estimation using Nister's Five Points Algorithm
+    // -----------------------------------------------------------
+    double focal = projMatrl.at<float>(0, 0);
+    cv::Point2d principle_point(projMatrl.at<float>(0, 2), projMatrl.at<float>(1, 2));
+
+    //recovering the pose and the essential cv::matrix
+    cv::Mat E, mask;
+    cv::Mat translation_mono = cv::Mat::zeros(3, 1, CV_64F);
+    E = cv::findEssentialMat(pointsLeft_t0, pointsLeft_t1, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
+    cv::recoverPose(E, pointsLeft_t0, pointsLeft_t1, rotation, translation_mono, focal, principle_point, mask);
+    // std::cout << "recoverPose rotation: " << rotation << std::endl;
+
+    // ------------------------------------------------
+    // Translation (t) estimation by use solvePnPRansac
+    // ------------------------------------------------
+    cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);  
+    cv::Mat inliers;  
+    cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
+    cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) << projMatrl.at<float>(0, 0), projMatrl.at<float>(0, 1), projMatrl.at<float>(0, 2),
+                                                projMatrl.at<float>(1, 0), projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2),
+                                                projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2), projMatrl.at<float>(1, 3));
+
+    int iterationsCount = 500;        // number of Ransac iterations.
+    float reprojectionError = 2.0;    // maximum allowed distance to consider it an inlier.
+    float confidence = 0.95;          // RANSAC successful confidence.
+    bool useExtrinsicGuess = true;
+    int flags =cv::SOLVEPNP_ITERATIVE;
+
+    cv::solvePnPRansac( points3D_t0, pointsLeft_t1, intrinsic_matrix, distCoeffs, rvec, translation,
+                        useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
+                        inliers, flags );
+
+    // translation = -translation;
+
+    cv::Mat frame_pose = cv::Mat::eye(4, 4, CV_64F);
+    cv::Mat frame_pose32 = cv::Mat::eye(4, 4, CV_32F);
+
+    cv::Mat points4D, points3D;
+    points4D = points4D_t0;
+    frame_pose.convertTo(frame_pose32, CV_32F);
+    points4D = frame_pose32 * points4D;
+    cv::convertPointsFromHomogeneous(points4D.t(), points3D);
+
+    cv::Vec3f rotation_euler = rotationMatrixToEulerAngles(rotation);
+    // std::cout << "rotation: " << rotation_euler << std::endl;
+    // std::cout << "translation: " << translation.t() << std::endl;
+
+    cv::Mat rigid_body_transformation;
+
+    if(abs(rotation_euler[1])<0.1 && abs(rotation_euler[0])<0.1 && abs(rotation_euler[2])<0.1)
+    {
+        integrateOdometryStereo(rigid_body_transformation, frame_pose, rotation, translation);
+
+    } else {
+
+        std::cout << "Too large rotation"  << std::endl;
+    }
+
+    // std::cout << "rigid_body_transformation" << rigid_body_transformation << std::endl;
+
+    // std::cout << "frame_pose" << frame_pose << std::endl;
+
+    // std::cout << "translation" << translation << std::endl;
+
+
+    // Rpose =  frame_pose(cv::Range(0, 3), cv::Range(0, 3));
+    // cv::Vec3f Rpose_euler = rotationMatrixToEulerAngles(Rpose);
+    // std::cout << "Rpose_euler" << Rpose_euler << std::endl;
+
+    // cv::Mat pose = frame_pose.col(3).clone();
+
+
+    // printf("Framepose30: %f\n", frame_pose.at<double>(3,0));
+    Tr.val[0][0] = static_cast<double>(frame_pose.at<double>(0,0));
+    Tr.val[0][1] = static_cast<double>(frame_pose.at<double>(0,1));
+    Tr.val[0][2] = static_cast<double>(frame_pose.at<double>(0,2));
+    Tr.val[1][0] = static_cast<double>(frame_pose.at<double>(1,0));
+    Tr.val[1][1] = static_cast<double>(frame_pose.at<double>(1,1));
+    Tr.val[1][2] = static_cast<double>(frame_pose.at<double>(1,2));
+    Tr.val[2][0] = static_cast<double>(frame_pose.at<double>(2,0));
+    Tr.val[2][1] = static_cast<double>(frame_pose.at<double>(2,1));
+    Tr.val[2][2] = static_cast<double>(frame_pose.at<double>(2,2));
+
+    Tr.val[0][3] = static_cast<double>(translation.at<double>(0));
+    Tr.val[1][3] = static_cast<double>(translation.at<double>(1));
+    Tr.val[2][3] = static_cast<double>(translation.at<double>(2));
+
+
+    Tr.val[3][0] = 0.0;
+    Tr.val[3][1] = 0.0;
+    Tr.val[3][2] = 0.0;
+    Tr.val[3][3] = 1.0;
+
+    std::cout << "tr" << Tr << std::endl;
+
+    *result = true;
+    return Tr;
+}
+
+void Odometry::integrateOdometryStereo(cv::Mat& rigid_body_transformation, cv::Mat& frame_pose, const cv::Mat& rotation, const cv::Mat& translation_stereo)
+{
+
+    // std::cout << "rotation" << rotation << std::endl;
+    // std::cout << "translation_stereo" << translation_stereo << std::endl;
+
+    
+    cv::Mat addup = (cv::Mat_<double>(1, 4) << 0, 0, 0, 1);
+
+    cv::hconcat(rotation, translation_stereo, rigid_body_transformation);
+    cv::vconcat(rigid_body_transformation, addup, rigid_body_transformation);
+
+    // std::cout << "rigid_body_transformation" << rigid_body_transformation << std::endl;
+
+    double scale = sqrt((translation_stereo.at<double>(0))*(translation_stereo.at<double>(0)) 
+                        + (translation_stereo.at<double>(1))*(translation_stereo.at<double>(1))
+                        + (translation_stereo.at<double>(2))*(translation_stereo.at<double>(2))) ;
+
+    // frame_pose = frame_pose * rigid_body_transformation;
+    std::cout << "scale: " << scale << std::endl;
+
+    // rigid_body_transformation = rigid_body_transformation.inv();
+    // if ((scale>0.1)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1))) 
+    if (scale > 0.05 && scale < 10) 
+    {
+      // std::cout << "Rpose" << Rpose << std::endl;
+
+      frame_pose = frame_pose * rigid_body_transformation;
+
+    }
+    else 
+    {
+     std::cout << "[WARNING] scale below 0.1, or incorrect translation" << std::endl;
+    }
+}
+
+// Calculates rotation matrix to euler angles
+// The result is the same as MATLAB except the order
+// of the euler angles ( x and z are swapped ).
+cv::Vec3f Odometry::rotationMatrixToEulerAngles(cv::Mat &R)
+{
+ 
+    assert(isRotationMatrix(R));
+     
+    float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
+ 
+    bool singular = sy < 1e-6; // If
+ 
+    float x, y, z;
+    if (!singular)
+    {
+        x = atan2(R.at<double>(2,1) , R.at<double>(2,2));
+        y = atan2(-R.at<double>(2,0), sy);
+        z = atan2(R.at<double>(1,0), R.at<double>(0,0));
+    }
+    else
+    {
+        x = atan2(-R.at<double>(1,2), R.at<double>(1,1));
+        y = atan2(-R.at<double>(2,0), sy);
+        z = 0;
+    }
+    return cv::Vec3f(x, y, z);
+     
+}
+
+
+bool Odometry::isRotationMatrix(cv::Mat &R)
+{
+    cv::Mat Rt;
+    transpose(R, Rt);
+    cv::Mat shouldBeIdentity = Rt * R;
+    cv::Mat I = cv::Mat::eye(3,3, shouldBeIdentity.type());
+     
+    return  norm(I, shouldBeIdentity) < 1e-6;
+     
+}
+
+
+void Odometry::outputMatchAgeHistogram()
+{
+    int h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10;
+    h0 = h1 = h2 = h3 = h4 = h5 = h6 = h7 = h8 = h9 = h10 = 0;
+
+    for (int i=0; i < matches->selectedMatches.size(); i++)
+    {
+        std::shared_ptr<Matches::p_match> match = matches->selectedMatches[i];
+
+        if (match->age < 1)
+            h0++;
+        else if (match->age < 2)
+            h1++;
+        else if (match->age < 3)
+            h2++;
+        else if (match->age < 4)
+            h3++;
+        else if (match->age < 5)
+            h4++;
+        else if (match->age < 6)
+            h5++;
+        else if (match->age < 7)
+            h6++;
+        else if (match->age < 8)
+            h7++;
+        else if (match->age < 9)
+            h8++;
+        else if (match->age < 10)
+            h9++;
+        else
+            h10++;
+    }
+
+    outputFile << h0 << "," << h1 << "," << h2 << "," << h3 << "," << h4 <<"," << h5 << ",";
+    outputFile << h6 << "," << h7 << "," << h8 << "," << h9 << "," << h10 <<",";
 }

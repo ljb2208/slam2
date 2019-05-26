@@ -130,10 +130,10 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, in
 		tmpVertexBuffer[vertexBufferNumPoints][1] = -y; 
 		tmpVertexBuffer[vertexBufferNumPoints][2] = z;
 
-		tmpColorBuffer[vertexBufferNumPoints][0] = 255;
-		tmpColorBuffer[vertexBufferNumPoints][1] = 255;
-		tmpColorBuffer[vertexBufferNumPoints][2] = 255;
-
+		int color = keyFrame.p_matched[i].pxlColor;
+		tmpColorBuffer[vertexBufferNumPoints][0] = color;
+		tmpColorBuffer[vertexBufferNumPoints][1] = color;
+		tmpColorBuffer[vertexBufferNumPoints][2] = color;
 
 		// tmpColorBuffer[vertexBufferNumPoints][0] = val;
 		// tmpColorBuffer[vertexBufferNumPoints][1] = val;
